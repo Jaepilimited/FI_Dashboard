@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사용자 관리 — FI Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html.theme-dark{--bg:#0A0A0A;--surface:#141414;--surface-hover:#1C1C1C;--border:rgba(255,255,255,0.05);--text:#EDEDED;--text-secondary:#888;--accent:#3b82f6;--accent-secondary:#8b5cf6;--positive:#10b981;--negative:#f43f5e;--warning:#f59e0b}
+    html.theme-light{--bg:#F4F6FA;--surface:#FFFFFF;--surface-hover:#F5F5F4;--border:rgba(0,0,0,0.07);--text:#0f172a;--text-secondary:#64748b;--accent:#2563eb;--accent-secondary:#7c3aed;--positive:#059669;--negative:#e11d48;--warning:#d97706}
+    body{font-family:'Noto Sans KR','Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+    h1{font-size:2.5rem;font-weight:700;letter-spacing:-.03em}
+    h2{font-size:2rem;font-weight:600;letter-spacing:-.03em}
+    h3{font-size:1.5rem;font-weight:500}
+
+    .topnav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(16px)}
+    .nav-brand{display:flex;align-items:center;gap:10px}
+    .nav-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-secondary));display:flex;align-items:center;justify-content:center}
+    .nav-logo svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;stroke-linecap:round}
+    .nav-title{font-size:.9375rem;font-weight:700}
+    .nav-right{display:flex;gap:12px;align-items:center}
+    .nav-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:.8125rem;cursor:pointer;font-family:inherit;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center}
+    .nav-btn:hover{background:var(--surface-hover)}
+
+    .container{max-width:900px;margin:0 auto;padding:40px 32px}
+    .page-header{margin-bottom:40px}
+    .page-title{font-size:1.75rem;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+    .page-sub{color:var(--text-secondary);font-size:.9375rem}
+
+    .add-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:32px}
+    .add-title{font-size:1rem;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .add-title svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round}
+    .add-form{display:grid;grid-template-columns:1fr 1fr auto auto;gap:12px;align-items:end}
+    .form-field{display:flex;flex-direction:column;gap:6px}
+    .form-label{font-size:.75rem;font-weight:500;color:var(--text-secondary);letter-spacing:.03em;text-transform:uppercase}
+    .form-input,.form-select{padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input:focus,.form-select:focus{border-color:var(--accent)}
+    .btn-add{padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:white;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;white-space:nowrap}
+    .btn-add:hover{opacity:.85}
+
+    .table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .table-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .table-title{font-size:1rem;font-weight:600}
+    .user-count{font-size:.8125rem;color:var(--text-secondary)}
+    table{width:100%;border-collapse:collapse;font-size:.875rem}
+    thead th{padding:11px 16px;text-align:left;font-size:.75rem;font-weight:600;color:var(--text-secondary);background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:var(--surface-hover)}
+    tbody td{padding:12px 16px}
+    .role-badge{padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+    .role-badge.admin{background:rgba(139,92,246,.15);color:var(--accent-secondary)}
+    .role-badge.viewer{background:rgba(59,130,246,.15);color:var(--accent)}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+    .status-dot.active{background:var(--positive)}
+    .status-dot.inactive{background:var(--text-secondary)}
+    .status-dot.pending{background:var(--warning)}
+    .badge-pending{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:600;background:rgba(245,158,11,.15);color:var(--warning);margin-left:4px}
+    .action-btns{display:flex;gap:6px}
+    .btn-sm{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:.75rem;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
+    .btn-sm:hover{background:var(--surface-hover)}
+    .btn-sm.danger:hover{background:rgba(244,63,94,.1);color:var(--negative);border-color:rgba(244,63,94,.3)}
+    .msg{padding:12px 16px;border-radius:8px;font-size:.875rem;margin-bottom:16px;display:none}
+    .msg.success{background:rgba(16,185,129,.1);color:var(--positive);border:1px solid rgba(16,185,129,.2)}
+    .msg.error{background:rgba(244,63,94,.1);color:var(--negative);border:1px solid rgba(244,63,94,.2)}
+
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .animate{animation:fadeInUp .5s ease-out both}
+    .delay-1{animation-delay:.05s}.delay-2{animation-delay:.1s}
+    @media(max-width:768px){.add-form{grid-template-columns:1fr 1fr}.container{padding:24px 16px}}
+    @media(max-width:375px){body{overflow-x:hidden}.add-form{grid-template-columns:1fr}}
+    @media print{.topnav,.add-card,.action-btns{display:none}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+    .viz-menu{position:fixed;top:16px;right:16px;z-index:9999}
+    .viz-menu-toggle{width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);transition:all .2s}
+    .viz-menu-toggle:hover{background:var(--surface-hover)}
+    .viz-menu-dropdown{position:absolute;top:52px;right:0;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .2s}
+    .viz-menu-dropdown.open{opacity:1;visibility:visible;transform:translateY(0)}
+    .viz-menu-dropdown button{width:100%;padding:10px 14px;border:none;border-radius:8px;background:transparent;color:var(--text);font-size:14px;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:background .15s}
+    .viz-menu-dropdown button:hover{background:var(--surface-hover)}
+  </style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="nav-brand">
+    <div class="nav-logo"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <span class="nav-title">FI Dashboard — 사용자 관리</span>
+  </div>
+  <div class="nav-right">
+    <a href="/dashboard" class="nav-btn">← 대시보드</a>
+    <a href="/logout" class="nav-btn">로그아웃</a>
+  </div>
+</nav>
+
+<main id="main-content">
+<div class="container">
+  <div class="page-header animate">
+    <div class="page-title">사용자 관리</div>
+    <div class="page-sub">회원가입 신청자 승인 및 사용자 접근 권한을 관리합니다.</div>
+  </div>
+
+  <div id="alertMsg" class="msg"></div>
+
+  <div class="add-card animate delay-1">
+    <div class="add-title">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      사용자 추가
+    </div>
+    <div class="add-form">
+      <div class="form-field">
+        <label class="form-label">AD 계정 (아이디)</label>
+        <input type="text" class="form-input" id="newUsername" placeholder="예: john.doe">
+      </div>
+      <div class="form-field">
+        <label class="form-label">표시 이름</label>
+        <input type="text" class="form-input" id="newDisplayName" placeholder="예: 홍길동">
+      </div>
+      <div class="form-field">
+        <label class="form-label">역할</label>
+        <select class="form-select" id="newRole">
+          <option value="viewer">Viewer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="addUser()">추가</button>
+    </div>
+  </div>
+
+  <div class="table-card animate delay-2">
+    <div class="table-header">
+      <div class="table-title">등록된 사용자</div>
+      <div class="user-count" id="userCount">{{ users|length }}명</div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>아이디</th><th>표시 이름</th><th>역할</th><th>상태</th><th>등록일</th><th>작업</th></tr>
+      </thead>
+      <tbody id="userTableBody">
+        {% for u in users %}
+        <tr id="row-{{ u.id }}">
+          <td style="font-weight:500">{{ u.username }}</td>
+          <td style="color:var(--text-secondary)">{{ u.display_name or '-' }}</td>
+          <td><span class="role-badge {{ u.role }}">{{ u.role }}</span></td>
+          <td>
+            {% if u.is_active %}
+              <span class="status-dot active"></span>활성
+            {% elif u.password_hash %}
+              <span class="status-dot pending"></span>승인 대기<span class="badge-pending">NEW</span>
+            {% else %}
+              <span class="status-dot inactive"></span>비활성
+            {% endif %}
+          </td>
+          <td style="color:var(--text-secondary);font-size:.8125rem">{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '-' }}</td>
+          <td>
+            <div class="action-btns">
+              {% if not u.is_active and u.password_hash %}
+                <button class="btn-sm" style="color:var(--positive);border-color:rgba(16,185,129,.3)" onclick="toggleUser({{ u.id }})">승인</button>
+              {% else %}
+                <button class="btn-sm" onclick="changeRole({{ u.id }}, '{{ 'viewer' if u.role == 'admin' else 'admin' }}')">
+                  → {{ '뷰어로' if u.role == 'admin' else '관리자로' }}
+                </button>
+                <button class="btn-sm" onclick="toggleUser({{ u.id }})">{{ '비활성화' if u.is_active else '활성화' }}</button>
+              {% endif %}
+              <button class="btn-sm danger" onclick="deleteUser({{ u.id }}, '{{ u.username }}')">삭제</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</main>
+
+<div class="viz-menu">
+  <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+    </svg>
+  </button>
+  <div class="viz-menu-dropdown" id="vizMenuDropdown">
+    <button onclick="cycleTheme()"><span id="themeIcon">🌙</span><span id="themeLabel">Dark</span></button>
+    <button onclick="window.print()"><span>🖨️</span><span>인쇄</span></button>
+  </div>
+</div>
+
+<script>
+var savedTheme=localStorage.getItem('viz-theme');
+var currentTheme=savedTheme||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+function applyTheme(t){
+  document.documentElement.className='theme-'+t;
+  var i=document.getElementById('themeIcon'),l=document.getElementById('themeLabel');
+  if(i)i.textContent=t==='dark'?'🌙':'☀️'; if(l)l.textContent=t==='dark'?'Dark':'Light';
+  localStorage.setItem('viz-theme',t); currentTheme=t;
+}
+function cycleTheme(){ applyTheme(currentTheme==='dark'?'light':'dark'); }
+applyTheme(currentTheme);
+
+function toggleMenu(){
+  var d=document.getElementById('vizMenuDropdown'); if(d)d.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.viz-menu')){var d=document.getElementById('vizMenuDropdown');if(d)d.classList.remove('open');}
+});
+
+function showMsg(text,type){
+  var el=document.getElementById('alertMsg');
+  el.textContent=text; el.className='msg '+type; el.style.display='block';
+  setTimeout(function(){ el.style.display='none'; }, 3500);
+}
+
+function addUser(){
+  var username=document.getElementById('newUsername').value.trim();
+  var displayName=document.getElementById('newDisplayName').value.trim();
+  var role=document.getElementById('newRole').value;
+  if(!username){ showMsg('AD 계정을 입력하세요','error'); return; }
+  fetch('/admin/users/add',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:username,display_name:displayName,role:role})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){ showMsg('사용자가 추가되었습니다','success'); setTimeout(function(){ location.reload(); },1000); }
+    else showMsg(d.error||'오류 발생','error');
+  });
+}
+
+function deleteUser(id, username){
+  if(!confirm(username+'을(를) 삭제하시겠습니까?')) return;
+  fetch('/admin/users/'+id+'/delete',{method:'POST'}).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){ showMsg('삭제되었습니다','success'); var row=document.getElementById('row-'+id); if(row)row.remove(); }
+    else showMsg(d.error||'오류 발생','error');
+  });
+}
+
+function changeRole(id, newRole){
+  fetch('/admin/users/'+id+'/role',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({role:newRole})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){ showMsg('역할이 변경되었습니다','success'); setTimeout(function(){ location.reload(); },800); }
+    else showMsg(d.error||'오류 발생','error');
+  });
+}
+
+function toggleUser(id){
+  fetch('/admin/users/'+id+'/toggle',{method:'POST'}).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){ showMsg('상태가 변경되었습니다','success'); setTimeout(function(){ location.reload(); },800); }
+    else showMsg(d.error||'오류 발생','error');
+  });
+}
+</script>
+</body>
+</html>

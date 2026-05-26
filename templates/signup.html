@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FI Dashboard — 회원가입</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html.theme-dark{--bg:#0A0A0A;--surface:#141414;--surface-hover:#1C1C1C;--border:rgba(255,255,255,0.06);--text:#EDEDED;--text-secondary:#888;--accent:#3b82f6;--accent-secondary:#8b5cf6;--positive:#10b981;--negative:#f43f5e;--warning:#f59e0b}
+    html.theme-light{--bg:#FAFAF9;--surface:#FFFFFF;--surface-hover:#F5F5F4;--border:rgba(0,0,0,0.08);--text:#0f172a;--text-secondary:#64748b;--accent:#2563eb;--accent-secondary:#7c3aed;--positive:#059669;--negative:#e11d48;--warning:#d97706}
+
+    body{
+      font-family:'Noto Sans KR','Inter',sans-serif;
+      background:var(--bg); color:var(--text);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      transition:background .3s,color .3s;
+      -webkit-font-smoothing:antialiased;
+      position:relative; overflow:hidden;
+    }
+
+    .bg-orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;pointer-events:none}
+    .bg-orb-1{width:600px;height:600px;background:var(--accent-secondary);top:-200px;right:-200px}
+    .bg-orb-2{width:400px;height:400px;background:var(--accent);bottom:-100px;left:-100px}
+
+    .signup-card{
+      position:relative;z-index:1;
+      width:100%;max-width:460px;margin:24px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:20px;padding:48px 40px;
+      box-shadow:0 32px 64px rgba(0,0,0,.24);
+      animation:fadeInUp .6s ease-out both;
+    }
+
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+    .logo-area{text-align:center;margin-bottom:32px}
+    .logo-icon{
+      width:64px;height:64px;border-radius:16px;
+      background:linear-gradient(135deg,var(--accent-secondary),var(--accent));
+      display:inline-flex;align-items:center;justify-content:center;
+      margin-bottom:16px;
+    }
+    .logo-icon svg{width:32px;height:32px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+    h1{font-size:1.5rem;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+    .logo-sub{color:var(--text-secondary);font-size:.875rem}
+
+    .form-group{margin-bottom:18px}
+    label{display:block;font-size:.8125rem;font-weight:500;color:var(--text-secondary);margin-bottom:8px;letter-spacing:.01em}
+    .input-wrap{position:relative}
+    .input-wrap svg{
+      position:absolute;left:14px;top:50%;transform:translateY(-50%);
+      width:18px;height:18px;stroke:var(--text-secondary);fill:none;stroke-width:2;stroke-linecap:round;
+      pointer-events:none;
+    }
+    input[type="text"],input[type="password"]{
+      width:100%;padding:12px 16px 12px 42px;
+      background:var(--bg);border:1px solid var(--border);border-radius:10px;
+      color:var(--text);font-size:.9375rem;font-family:inherit;
+      transition:border-color .2s,box-shadow .2s;outline:none;
+    }
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+
+    .hint{font-size:.75rem;color:var(--text-secondary);margin-top:5px}
+
+    .divider{height:1px;background:var(--border);margin:8px 0 18px}
+
+    .alert{
+      border-radius:8px;padding:10px 14px;
+      font-size:.875rem;margin-bottom:20px;display:flex;align-items:center;gap:8px;
+    }
+    .alert-error{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:var(--negative)}
+    .alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--positive)}
+    .alert svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+
+    .btn-signup{
+      width:100%;padding:14px;border:none;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent-secondary),var(--accent));
+      color:white;font-size:1rem;font-weight:600;font-family:inherit;
+      cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:-.01em;
+      margin-top:4px;
+    }
+    .btn-signup:hover{opacity:.9}
+    .btn-signup:active{transform:scale(.98)}
+    .btn-signup:disabled{opacity:.6;cursor:not-allowed}
+
+    .footer-link{text-align:center;margin-top:20px;font-size:.8125rem;color:var(--text-secondary)}
+    .footer-link a{color:var(--accent);text-decoration:none;font-weight:500}
+    .footer-link a:hover{text-decoration:underline}
+
+    .theme-btn{
+      position:fixed;top:16px;right:16px;
+      width:40px;height:40px;border-radius:10px;
+      background:var(--surface);border:1px solid var(--border);
+      color:var(--text-secondary);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;font-size:18px;
+      transition:background .2s;
+    }
+    .theme-btn:hover{background:var(--surface-hover)}
+
+    .strength-bar{height:3px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden}
+    .strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0%}
+
+    @media(max-width:375px){.signup-card{padding:32px 24px;margin:16px}}
+    @media print{.bg-orb,.theme-btn{display:none}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+
+  <button class="theme-btn" onclick="cycleTheme()" aria-label="테마 전환">
+    <span id="themeIcon">🌙</span>
+  </button>
+
+  <main id="main-content">
+    <div class="signup-card" role="main">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        <h1>회원가입</h1>
+        <p class="logo-sub">FI Dashboard 접근 신청</p>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-error" role="alert">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {{ error }}
+      </div>
+      {% endif %}
+
+      {% if success %}
+      <div class="alert alert-success" role="alert">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ success }}
+      </div>
+      <p class="footer-link" style="margin-top:8px">
+        <a href="/login">로그인으로 돌아가기</a>
+      </p>
+      {% else %}
+
+      <form method="POST" action="/signup" id="signupForm">
+        <div class="form-group">
+          <label for="username">아이디 <span style="color:var(--text-secondary);font-weight:400">(AD 계정과 동일하게 입력)</span></label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="username" name="username"
+              placeholder="예: jeffrey" autocomplete="username"
+              required value="{{ request.form.username if request.form.username else '' }}">
+          </div>
+          <p class="hint">사내 Windows 로그인 아이디와 동일하게 입력하세요</p>
+        </div>
+
+        <div class="form-group">
+          <label for="display_name">이름 <span style="color:var(--text-secondary);font-weight:400">(선택)</span></label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <input type="text" id="display_name" name="display_name"
+              placeholder="예: 홍길동" autocomplete="name"
+              value="{{ request.form.display_name if request.form.display_name else '' }}">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+          <label for="password">비밀번호</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="password" name="password"
+              placeholder="6자 이상" autocomplete="new-password" required>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <p class="hint" id="strengthText" style="margin-top:4px"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">비밀번호 확인</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="confirm_password" name="confirm_password"
+              placeholder="비밀번호 재입력" autocomplete="new-password" required>
+          </div>
+          <p class="hint" id="matchHint" style="margin-top:4px"></p>
+        </div>
+
+        <button type="submit" class="btn-signup" id="submitBtn">가입 신청</button>
+      </form>
+
+      <p class="footer-link">이미 계정이 있으신가요? <a href="/login">로그인</a></p>
+      {% endif %}
+    </div>
+  </main>
+
+  <script>
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+    function applyTheme(t){
+      document.documentElement.className='theme-'+t;
+      document.getElementById('themeIcon').textContent = t==='dark' ? '🌙' : '☀️';
+      localStorage.setItem('viz-theme',t); currentTheme=t;
+    }
+    function cycleTheme(){ applyTheme(currentTheme==='dark'?'light':'dark'); }
+    applyTheme(currentTheme);
+
+    // 비밀번호 강도 표시
+    var pwInput = document.getElementById('password');
+    var confirmInput = document.getElementById('confirm_password');
+    var strengthFill = document.getElementById('strengthFill');
+    var strengthText = document.getElementById('strengthText');
+    var matchHint = document.getElementById('matchHint');
+
+    if (pwInput) {
+      pwInput.addEventListener('input', function(){
+        var pw = this.value;
+        var score = 0;
+        if (pw.length >= 6) score++;
+        if (pw.length >= 10) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+        var colors = ['#f43f5e','#f59e0b','#f59e0b','#10b981','#10b981'];
+        var labels = ['너무 짧음','약함','보통','강함','매우 강함'];
+        var widths = [20, 40, 60, 80, 100];
+
+        if (pw.length === 0) {
+          strengthFill.style.width = '0%';
+          strengthText.textContent = '';
+        } else {
+          var idx = Math.max(0, score - 1);
+          strengthFill.style.width = widths[idx] + '%';
+          strengthFill.style.background = colors[idx];
+          strengthText.textContent = labels[idx];
+          strengthText.style.color = colors[idx];
+        }
+        checkMatch();
+      });
+
+      confirmInput.addEventListener('input', checkMatch);
+    }
+
+    function checkMatch(){
+      if (!confirmInput || !pwInput) return;
+      var pw = pwInput.value;
+      var cf = confirmInput.value;
+      if (!cf) { matchHint.textContent = ''; return; }
+      if (pw === cf) {
+        matchHint.textContent = '비밀번호가 일치합니다';
+        matchHint.style.color = 'var(--positive)';
+      } else {
+        matchHint.textContent = '비밀번호가 일치하지 않습니다';
+        matchHint.style.color = 'var(--negative)';
+      }
+    }
+
+    var form = document.getElementById('signupForm');
+    if (form) {
+      form.addEventListener('submit', function(){
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true; btn.textContent = '처리 중...';
+      });
+    }
+  </script>
+</body>
+</html>
