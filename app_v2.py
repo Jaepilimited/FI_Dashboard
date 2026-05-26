@@ -350,6 +350,11 @@ def build_bq_filters(args):
         conditions.append('Continent2 = @continent')
         params.append(bigquery.ScalarQueryParameter('continent', 'STRING', continent))
 
+    group = args.get('group', '').strip()
+    if group:
+        conditions.append('`Group` = @group_val')
+        params.append(bigquery.ScalarQueryParameter('group_val', 'STRING', group))
+
     where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
     return where, params
 
@@ -373,6 +378,7 @@ def api_filters():
     sql6 = f"SELECT DISTINCT Category FROM `{config.BQ_TABLE}` WHERE Category IS NOT NULL ORDER BY Category"
     sql7 = f"SELECT DISTINCT Country FROM `{config.BQ_TABLE}` WHERE Country IS NOT NULL AND Country != '' ORDER BY Country"
     sql8 = f"SELECT DISTINCT Continent2 FROM `{config.BQ_TABLE}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2"
+    sql9 = f"SELECT DISTINCT `Group` FROM `{config.BQ_TABLE}` WHERE `Group` IS NOT NULL AND `Group` != '' ORDER BY `Group`"
 
     return jsonify({
         'departments': [r['Department'] for r in run_query(sql)],
@@ -383,6 +389,7 @@ def api_filters():
         'categories':  [r['Category']   for r in run_query(sql6)],
         'countries':   [r['Country']    for r in run_query(sql7)],
         'continents':  [r['Continent2'] for r in run_query(sql8)],
+        'groups':      [r['Group']      for r in run_query(sql9)],
     })
 
 
@@ -598,7 +605,7 @@ def api_raw():
         return rows
 
     SELECT_COLS = """
-        Year_Month, Department, Sales_Type, Line, Category, Country,
+        Year_Month, Department, `Group`, Sales_Type, Line, Category, Country,
         Customer, Product_Name, Product_Code, Specification,
         Sales_Quantity, Sales_Amount, Cost_of_Sales, Gross_Profit,
         SG_and_A_Expenses, Operating_Income
@@ -707,7 +714,11 @@ def admin_toggle_user(uid):
         db.close()
 
 
-_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent2','Customer','Country'}
+_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent2','Customer','Country','Group'}
+_BQ_RESERVED = {'Group'}
+
+def _col(dim):
+    return f'`{dim}`' if dim in _BQ_RESERVED else dim
 
 @app.route('/api/monthly-by-dim')
 @login_required
@@ -715,15 +726,36 @@ def api_monthly_by_dim():
     dim = request.args.get('dim', '').strip()
     if dim not in _ALLOWED_DIM:
         return jsonify({'error': 'invalid dim'}), 400
+    col = _col(dim)
     where, params = build_bq_filters(request.args)
-    null_cond = f"{dim} IS NOT NULL AND {dim} != ''"
+    null_cond = f"{col} IS NOT NULL AND {col} != ''"
     full_where = (where + f' AND {null_cond}') if where else f'WHERE {null_cond}'
     sql = f"""
-        SELECT Year_Month, {dim} AS dim_value, SUM(Sales_Amount) AS sales_amount
+        SELECT Year_Month, {col} AS dim_value, SUM(Sales_Amount) AS sales_amount
         FROM `{config.BQ_TABLE}`
         {full_where}
-        GROUP BY Year_Month, {dim}
+        GROUP BY Year_Month, {col}
         ORDER BY Year_Month, sales_amount DESC
+    """
+    return jsonify(run_query(sql, params))
+
+
+@app.route('/api/group')
+@login_required
+def api_group():
+    where, params = build_bq_filters(request.args)
+    sql = f"""
+        SELECT
+            `Group`,
+            SUM(Sales_Amount)      AS sales_amount,
+            SUM(Gross_Profit)      AS gross_profit,
+            SUM(Operating_Income)  AS operating_income,
+            SUM(SG_and_A_Expenses) AS sga_expenses,
+            SAFE_DIVIDE(SUM(Gross_Profit), SUM(Sales_Amount)) * 100 AS gross_margin,
+            SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
+        FROM `{config.BQ_TABLE}`
+        {where}
+        GROUP BY `Group` ORDER BY sales_amount DESC
     """
     return jsonify(run_query(sql, params))
 

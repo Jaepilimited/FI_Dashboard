@@ -225,6 +225,10 @@
     <select class="fsel" id="filterContinent" onchange="scheduleApply()"><option value="">전체 대륙</option></select>
   </div>
   <div class="fg">
+    <span class="fl">그룹</span>
+    <select class="fsel" id="filterGroup" onchange="scheduleApply()"><option value="">전체 그룹</option></select>
+  </div>
+  <div class="fg">
     <span class="fl">국가</span>
     <select class="fsel" id="filterCountry" onchange="scheduleApply()"><option value="">전체 국가</option></select>
   </div>
@@ -297,6 +301,17 @@
 
       <div class="dim-panel">
         <div class="dim-left">
+          <div class="dim-title">그룹별</div>
+          <div class="dim-sel" id="dimSel_group" onclick="clearDimSel('group')"></div>
+          <div class="dim-canvas-wrap"><canvas id="dimDonut_group" role="img" aria-label="그룹별 비율"></canvas></div>
+        </div>
+        <div class="dim-right">
+          <div class="dim-canvas-wrap"><canvas id="dimTrend_group" role="img" aria-label="그룹별 월별 누적"></canvas></div>
+        </div>
+      </div>
+
+      <div class="dim-panel">
+        <div class="dim-left">
           <div class="dim-title">라인별</div>
           <div class="dim-sel" id="dimSel_line" onclick="clearDimSel('line')"></div>
           <div class="dim-canvas-wrap"><canvas id="dimDonut_line" role="img" aria-label="라인별 비율"></canvas></div>
@@ -364,6 +379,7 @@
       <button class="tab-btn" onclick="switchTab('category')">카테고리별</button>
       <button class="tab-btn" onclick="switchTab('country')">국가별</button>
       <button class="tab-btn" onclick="switchTab('continent')">대륙별</button>
+      <button class="tab-btn" onclick="switchTab('group')">그룹별</button>
     </div>
 
     <div id="tab-dept" class="tab-panel active">
@@ -414,6 +430,13 @@
         <tbody id="continentTb"></tbody>
       </table></div>
     </div>
+
+    <div id="tab-group" class="tab-panel">
+      <div class="tw"><table>
+        <thead><tr><th>#</th><th>그룹</th><th>매출액</th><th>매출총이익</th><th>총이익률</th><th>판관비</th><th>영업이익</th><th>영업이익률</th></tr></thead>
+        <tbody id="groupTb"></tbody>
+      </table></div>
+    </div>
   </section>
 
   <!-- 원시 데이터 -->
@@ -433,12 +456,12 @@
     <div class="rtw">
       <table id="rawTable">
         <thead><tr>
-          <th>연월</th><th>부서</th><th>판매유형</th><th>라인</th><th>카테고리</th><th>국가</th>
+          <th>연월</th><th>부서</th><th>그룹</th><th>판매유형</th><th>라인</th><th>카테고리</th><th>국가</th>
           <th>거래처</th><th>품명</th><th>품번</th><th>규격</th>
           <th class="nc">수량</th><th class="nc">매출액</th><th class="nc">원가</th>
           <th class="nc">총이익</th><th class="nc">판관비</th><th class="nc">영업이익</th>
         </tr></thead>
-        <tbody id="rawTb"><tr><td colspan="16" class="loading-row" style="height:60px">로딩 중...</td></tr></tbody>
+        <tbody id="rawTb"><tr><td colspan="17" class="loading-row" style="height:60px">로딩 중...</td></tr></tbody>
       </table>
     </div>
     <div class="pagi" id="rawPagi"></div>
@@ -455,7 +478,7 @@ var chartsBuilt=false;
 var trendChart;
 var _filterTimer=null;
 var rawPage=1,rawAllRows=[];
-var lastDeptData=[],lastCustomerData=[],lastProductData=[],lastLineData=[],lastCategoryData=[],lastCountryData=[],lastContinentData=[];
+var lastDeptData=[],lastCustomerData=[],lastProductData=[],lastLineData=[],lastCategoryData=[],lastCountryData=[],lastContinentData=[],lastGroupData=[];
 
 var PAL=[
   'rgba(59,130,246,.82)','rgba(139,92,246,.82)','rgba(6,182,212,.82)','rgba(16,185,129,.82)',
@@ -467,6 +490,7 @@ var PAL=[
 var DIM_PANELS=[
   {id:'salestype', title:'B2B·B2C',    api:'sales-type', label:'Sales_Type', dimField:'Sales_Type'},
   {id:'dept',      title:'부서별',     api:'department', label:'Department', dimField:'Department'},
+  {id:'group',     title:'그룹별',     api:'group',      label:'Group',      dimField:'Group'},
   {id:'line',      title:'라인별',     api:'line',       label:'Line',       dimField:'Line'},
   {id:'category',  title:'카테고리',   api:'category',   label:'Category',   dimField:'Category'},
   {id:'continent', title:'대륙별',     api:'continent',  label:'Continent2', dimField:'Continent2'},
@@ -527,6 +551,7 @@ function buildParams(){
   var dept=document.getElementById('filterDept').value;
   var cust=document.getElementById('filterCustomer').value;
   var prod=document.getElementById('filterProduct').value;
+  var grp=document.getElementById('filterGroup').value;
   if(line)p.set('line',line);
   if(cat)p.set('category',cat);
   if(cont)p.set('continent',cont);
@@ -534,6 +559,7 @@ function buildParams(){
   if(dept)p.set('department',dept);
   if(cust)p.set('customer',cust);
   if(prod)p.set('product',prod);
+  if(grp)p.set('group',grp);
   return p.toString();
 }
 function resetFilters(){
@@ -541,7 +567,7 @@ function resetFilters(){
   document.querySelectorAll('.year-chip').forEach(function(c){c.classList.add('active');});
   document.querySelectorAll('.sales-type-chip').forEach(function(c){c.classList.add('active');});
   updateSliderUI();
-  ['filterLine','filterCategory','filterContinent','filterCountry','filterDept','filterCustomer'].forEach(function(id){
+  ['filterLine','filterCategory','filterContinent','filterCountry','filterDept','filterCustomer','filterGroup'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
   document.getElementById('filterProduct').value='';
@@ -659,6 +685,7 @@ function loadFilters(){
     fillSel('filterCategory',data.categories||[]);
     fillSel('filterContinent',data.continents||[]);
     fillSel('filterCountry',data.countries||[]);
+    fillSel('filterGroup',data.groups||[]);
     fillSel('filterDept',data.departments||[]);
     fillSel('filterCustomer',data.customers||[]);
   });
@@ -913,6 +940,23 @@ function renderCountryTable(data){
   }).join('');
 }
 
+function loadGroup(){
+  fetch('/api/group?'+buildParams()).then(function(r){return r.json();}).then(function(d){lastGroupData=d;renderGroupTable(d);});
+}
+function renderGroupTable(data){
+  var b=document.getElementById('groupTb');
+  if(!data.length){b.innerHTML='<tr><td colspan="8" class="empty">데이터 없음</td></tr>';return;}
+  b.innerHTML=data.map(function(r,i){
+    var gm=r.gross_margin||0,om=r.operating_margin||0;
+    return '<tr><td><span class="rb '+(i<3?'t3':'')+'">'+(i+1)+'</span></td>'
+      +'<td>'+r.Group+'</td><td class="nc">'+fmtM(r.sales_amount)+'</td><td class="nc">'+fmtM(r.gross_profit)+'</td>'
+      +'<td class="'+(gm>=0?'pos':'neg')+'">'+fmtP(gm)+'</td>'
+      +'<td class="nc">'+fmtM(r.sga_expenses||0)+'</td>'
+      +'<td class="nc '+(r.operating_income>=0?'pos':'neg')+'">'+fmtM(r.operating_income)+'</td>'
+      +'<td class="'+(om>=0?'pos':'neg')+'">'+fmtP(om)+'</td></tr>';
+  }).join('');
+}
+
 function loadContinent(){
   fetch('/api/continent?'+buildParams()).then(function(r){return r.json();}).then(function(d){lastContinentData=d;renderContinentTable(d);});
 }
@@ -930,7 +974,7 @@ function renderContinentTable(data){
   }).join('');
 }
 
-var TAB_LIST=['dept','customer','product','line','category','country','continent'];
+var TAB_LIST=['dept','customer','product','line','category','country','continent','group'];
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_LIST[i]===name);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
@@ -940,7 +984,7 @@ function switchTab(name){
 /* ═══ Raw Data ═══ */
 function loadRaw(){
   var pp=parseInt(document.getElementById('rawPerPage').value)||100;
-  document.getElementById('rawTb').innerHTML='<tr><td colspan="16" class="loading-row" style="height:60px"><div class="spinner"></div>&nbsp;불러오는 중...</td></tr>';
+  document.getElementById('rawTb').innerHTML='<tr><td colspan="17" class="loading-row" style="height:60px"><div class="spinner"></div>&nbsp;불러오는 중...</td></tr>';
   fetch('/api/raw?'+buildParams()+'&page='+rawPage+'&per_page='+pp).then(function(r){return r.json();}).then(function(d){
     rawAllRows=d.rows||[];
     document.getElementById('rawTotal').textContent=fmt(d.total);
@@ -951,10 +995,10 @@ function loadRaw(){
 }
 function renderRawTable(rows){
   var b=document.getElementById('rawTb');
-  if(!rows.length){b.innerHTML='<tr><td colspan="16" class="empty">데이터 없음</td></tr>';return;}
+  if(!rows.length){b.innerHTML='<tr><td colspan="17" class="empty">데이터 없음</td></tr>';return;}
   b.innerHTML=rows.map(function(r){
     var oi=r.Operating_Income||0;
-    return '<tr><td>'+r.Year_Month+'</td><td>'+r.Department+'</td><td>'+r.Sales_Type+'</td>'
+    return '<tr><td>'+r.Year_Month+'</td><td>'+r.Department+'</td><td>'+(r.Group||'')+'</td><td>'+r.Sales_Type+'</td>'
       +'<td>'+r.Line+'</td><td>'+r.Category+'</td><td>'+r.Country+'</td>'
       +'<td>'+r.Customer+'</td><td>'+r.Product_Name+'</td>'
       +'<td style="color:var(--text-secondary)">'+r.Product_Code+'</td>'
@@ -987,8 +1031,8 @@ function goPage(p){rawPage=p;loadRaw();}
 function downloadRawCSV(){
   var btn=document.querySelector('.btn-csv');btn.textContent='다운로드 중...';btn.disabled=true;
   fetch('/api/raw?'+buildParams()+'&export=1').then(function(r){return r.json();}).then(function(d){
-    var cols=['Year_Month','Department','Sales_Type','Line','Category','Country','Customer','Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income'];
-    var hdKo=['연월','부서','판매유형','라인','카테고리','국가','거래처','품명','품번','규격','수량','매출액','매출원가','매출총이익','판관비','영업이익'];
+    var cols=['Year_Month','Department','Group','Sales_Type','Line','Category','Country','Customer','Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income'];
+    var hdKo=['연월','부서','그룹','판매유형','라인','카테고리','국가','거래처','품명','품번','규격','수량','매출액','매출원가','매출총이익','판관비','영업이익'];
     var csv=[hdKo.join(',')];
     (d.rows||[]).forEach(function(r){csv.push(cols.map(function(col){var v=r[col]!=null?r[col]:'';return typeof v==='string'&&(v.indexOf(',')>-1||v.indexOf('"')>-1)?'"'+v.replace(/"/g,'""')+'"':v;}).join(','));});
     var blob=new Blob(['﻿'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
@@ -1013,7 +1057,7 @@ function onThemeChange(){
 /* ═══ Load All ═══ */
 function loadAll(){
   loadKPI();loadTrend();loadAllDims();
-  loadDept();loadCustomer();loadProduct();loadLine();loadCategory();loadCountry();loadContinent();
+  loadDept();loadCustomer();loadProduct();loadLine();loadCategory();loadCountry();loadContinent();loadGroup();
 }
 
 document.addEventListener('DOMContentLoaded',function(){
