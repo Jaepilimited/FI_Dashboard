@@ -38,12 +38,13 @@
 
     .logo-area{text-align:center;margin-bottom:32px}
     .logo-icon{
-      width:64px;height:64px;border-radius:16px;
-      background:linear-gradient(135deg,var(--accent-secondary),var(--accent));
       display:inline-flex;align-items:center;justify-content:center;
-      margin-bottom:16px;
+      margin-bottom:18px;
     }
-    .logo-icon svg{width:32px;height:32px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+    .logo-icon img{
+      height:48px;width:auto;display:block;
+    }
+    html.theme-dark .logo-icon img{filter:invert(1)}
     h1{font-size:1.5rem;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
     .logo-sub{color:var(--text-secondary);font-size:.875rem}
 
@@ -120,12 +121,7 @@
     <div class="signup-card" role="main">
       <div class="logo-area">
         <div class="logo-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <line x1="19" y1="8" x2="19" y2="14"/>
-            <line x1="22" y1="11" x2="16" y2="11"/>
-          </svg>
+          <img alt="logo" src="data:image/png;base64,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">
         </div>
         <h1>회원가입</h1>
         <p class="logo-sub">FI Dashboard 접근 신청</p>
