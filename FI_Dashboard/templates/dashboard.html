@@ -3520,7 +3520,7 @@ function renderHeroShell(){
       <div class="hero-kpi-label">${it.label}${hint}</div>
       <div class="hero-kpi-value">${it.valueHtml}</div>
       <div class="hero-kpi-delta">
-        <span class="hero-kpi-delta-label">${_priorTrend.length > 0 ? '전기 대비' : trend.length > 1 ? '전월 대비' : '—'}</span>
+        <span class="hero-kpi-delta-label">전월 대비</span>
         <span class="hero-kpi-delta-val ${upDown}"><i data-lucide="${icon}" class="ic"></i>${deltaTxt}</span>
       </div>
       <div class="hero-kpi-spark"><canvas id="heroSpark${i}"></canvas></div>
@@ -4501,7 +4501,7 @@ function renderTopNCards(breakdown){
   const oiTop = items.slice().sort((a,b) => b.oiDelta - a.oiDelta).slice(0, 5);
   const mgnTop = items.slice().sort((a,b) => b.marginDeltaPp - a.marginDeltaPp).slice(0, 5);
 
-  const periodLabel = hasPrior ? '전기 대비' : '—';
+  const periodLabel = hasPrior ? '전월 대비' : '—';
 
   function row(it, idx, type){
     const flag = it.flag ? `${it.flag} ` : '';
@@ -4553,7 +4553,7 @@ function renderDetailSummaryTable(breakdown){
   const priorBkd = (!USE_MOCK && _real.priorBreakdown) ? _real.priorBreakdown : [];
   const priorMap = Object.fromEntries(priorBkd.map(b => [b.name, b]));
   const hasPrior = priorBkd.length > 0;
-  const periodLabel = hasPrior ? '전기 대비' : '—';
+  const periodLabel = hasPrior ? '전월 대비' : '—';
 
   const tot = breakdown.reduce((acc, b) => {
     acc.sales += b.sales_amount || 0;
