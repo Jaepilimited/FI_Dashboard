@@ -1,0 +1,26 @@
+Department	Customer	Country
+GM EAST 1	Nirvasian_틱톡_필리핀	필리핀
+GM EAST 1	FAST BEAUTY_쇼피	인도네시아
+GM EAST 1	Nirvasian_쇼피_필리핀	필리핀
+GM EAST 1	FAST BEAUTY_틱톡	인도네시아
+GM EAST 2	[스킨1004]쇼피_싱가폴B2C	싱가폴
+GM EAST 2	STORE N GO SDN. BHD_말레이시아_쇼피	말레이시아
+GM EAST 2	STORE N GO SDN. BHD_말레이시아_틱톡	말레이시아
+GM WEST Ecomm	AMAZON_미국	미국
+GM WEST Ecomm	Craver USA 법인	미국
+GM WEST Ecomm	AMAZON_호주	호주
+GM WEST Ecomm	비욘드어스 주식회사	미국
+GM WEST Ecomm	Walmart(B2C)	미국
+GM WEST MKT	Stylevana_AU	글로벌_플랫폼
+GM WEST MKT	실리콘투	글로벌_플랫폼
+GM WEST MKT	Craver USA 법인	글로벌_플랫폼
+GM WEST MKT	씨제이올리브영	글로벌_플랫폼
+GM WEST MKT	예스아시아닷컴코리아	글로벌_플랫폼
+GM WEST MKT	Stylevana	글로벌_플랫폼
+GM CBT		중국
+GM JBT		일본
+GM KBT		한국
+BCM_플래그십 파트	명동플래그십	한국
+BCM_플래그십 파트	Craver USA 법인	미국
+전사		기타
+FI		기타

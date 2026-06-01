@@ -1107,7 +1107,10 @@ html.theme-light .cat-tab.active .cat-tab-icon{background:var(--accent-soft-2)}
 .hero-kpi-delta-val .ic{width:11px;height:11px;stroke-width:2.5}
 .hero-kpi-spark{
   margin-top:12px;
-  height:36px;
+  height:44px;
+  position:relative;z-index:1;
+}
+.hero-kpi-spark canvas{position:absolute;inset:0;}
   position:relative;z-index:1;
 }
 
@@ -1581,7 +1584,30 @@ html.theme-light .cat-tab.active .cat-tab-icon{background:var(--accent-soft-2)}
   display:grid;
   grid-template-columns: 96px 264px 1fr;
   min-height:calc(100vh - 56px);
+  position:relative;
 }
+/* ── Edge chevron toggle to fold/unfold the tree rail ──────────────── */
+.tree-edge-toggle{
+  position:fixed; z-index:40; top:50%;
+  transform:translate(-50%,-50%);
+  width:24px; height:54px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text-tertiary);
+  cursor:pointer;
+  box-shadow:0 4px 14px -4px rgba(15,23,42,0.28);
+  transition:color .14s, border-color .14s, background .14s;
+}
+.tree-edge-toggle:hover{color:var(--accent); border-color:var(--accent); background:var(--accent-soft)}
+.tree-edge-toggle .ic{width:16px;height:16px;stroke-width:2.5}
+#treeEdgeCollapse{ left:360px; }   /* on the tree rail's right border (96+264) */
+#treeEdgeReopen{ left:96px; display:none; }  /* on the side-nav's right border */
+.layout-shell.tree-collapsed #treeEdgeCollapse{ display:none; }
+.layout-shell.tree-collapsed #treeEdgeReopen{ display:flex; }
+.layout-shell.no-tree #treeEdgeCollapse,
+.layout-shell.no-tree #treeEdgeReopen{ display:none; }
 .layout-shell.no-tree{
   grid-template-columns: 96px 1fr;
 }
@@ -1797,6 +1823,7 @@ html.theme-dark .side-nav-bottom{border-top-color:rgba(255,255,255,0.06)}
   .layout-shell.tree-collapsed{grid-template-columns: 96px 1fr}
   .layout-shell .tree-rail{display:none}
   .layout-shell .tree-reopen{display:none}
+  .layout-shell .tree-edge-toggle{display:none!important}
   /* narrow screens fall back to the dropdown cat-filters inside inline bar */
   .inline-filters .cat-filters{display:flex!important}
 }
@@ -2112,6 +2139,76 @@ html.theme-light[data-palette="mono"]{
 /* mono additionally desaturates the slider fill */
 html[data-palette="mono"] .slider-fill{background:linear-gradient(90deg, var(--accent), var(--plum))}
 html[data-palette="mono"] .brand-mark{background:linear-gradient(135deg, var(--accent) 0%, var(--plum) 110%);box-shadow:0 4px 12px -4px rgba(148,163,184,0.4)}
+
+/* ═══ SYNTHEX TONE — ultra-minimal cool-white, frosted glass, charcoal accent ═══
+   Re-tokenises the light palette to a near-monochrome cool off-white with a
+   single charcoal accent. Charts read these vars, so they recolor automatically.
+   Toggle via Tweaks → 톤. */
+html.theme-light[data-tone="synthex"]{
+  --bg:#E8ECEA;
+  --surface:#FBFCFC;
+  --surface-2:#F1F4F3;
+  --surface-hover:#ECF0EE;
+  --surface-active:#E2E8E5;
+  --border:rgba(28,38,34,0.065);
+  --border-strong:rgba(28,38,34,0.12);
+  --border-focus:rgba(40,56,49,0.26);
+  --text:#1B2521;
+  --text-secondary:#5C6863;
+  --text-tertiary:#99A39E;
+  --text-disabled:#BCC4BF;
+  --accent:#283631;
+  --accent-hover:#161F1B;
+  --accent-soft:rgba(40,54,49,0.06);
+  --accent-soft-2:rgba(40,54,49,0.11);
+  --plum:#7E8C85;
+  --teal:#5E7A6E;
+  --amber:#A98C5E;
+  --positive:#3E7A5E;
+  --positive-soft:rgba(62,122,94,0.10);
+  --negative:#BE6A5C;
+  --negative-soft:rgba(190,106,92,0.10);
+  --warning:#A98C5E;
+  --topnav-bg:rgba(232,236,234,0.80);
+  --kpi-row-bg:linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+/* Clean, larger-radius, softly-shadowed cards (solid — frost only on popovers) */
+html.theme-light[data-tone="synthex"] .card,
+html.theme-light[data-tone="synthex"] .hero-kpi,
+html.theme-light[data-tone="synthex"] .st-card,
+html.theme-light[data-tone="synthex"] .change-factor-card,
+html.theme-light[data-tone="synthex"] .summary-comment-card,
+html.theme-light[data-tone="synthex"] .insight-card,
+html.theme-light[data-tone="synthex"] .breakdown-card,
+html.theme-light[data-tone="synthex"] .scope-card,
+html.theme-light[data-tone="synthex"] .raw-view{
+  border-radius:18px;
+  background:#FCFDFD;
+  border-color:rgba(28,38,34,0.06);
+  box-shadow:0 1px 2px rgba(28,38,34,0.03), 0 16px 38px -26px rgba(28,38,34,0.32);
+}
+html.theme-light[data-tone="synthex"] .hero-kpi.featured{
+  border-color:rgba(62,122,94,0.45);
+  box-shadow:0 1px 2px rgba(28,38,34,0.04), 0 18px 44px -22px rgba(62,122,94,0.42);
+}
+/* Airier numbers, lighter weight */
+html.theme-light[data-tone="synthex"] .hero-kpi-value{font-weight:600;letter-spacing:-0.032em}
+html.theme-light[data-tone="synthex"] .crumb-summary-val{font-weight:600}
+html.theme-light[data-tone="synthex"] .brand-mark{
+  background:linear-gradient(135deg,#2A3833,#566860);
+  box-shadow:0 4px 14px -6px rgba(28,38,34,0.4);
+}
+html.theme-light[data-tone="synthex"] .topnav{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+/* Soft frosted dropdowns / tooltips */
+html.theme-light[data-tone="synthex"] .period-pop,
+html.theme-light[data-tone="synthex"] .tweaks-panel{
+  border-radius:18px;
+  background:rgba(251,252,252,0.86);
+  -webkit-backdrop-filter:blur(20px);
+  backdrop-filter:blur(20px);
+}
+/* Chips/pills: cleaner ghost look */
+html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 </style>
 </head>
 <body>
@@ -2159,12 +2256,14 @@ html[data-palette="mono"] .brand-mark{background:linear-gradient(135deg, var(--a
       <input type="text" id="treeSearchInput" placeholder="검색" autocomplete="off">
     </div>
     <div class="tree-rail-scroll" id="treeRailScroll"></div>
-    <div class="tree-rail-foot">
-      <button class="tree-collapse-btn" id="treeCollapseBtn" type="button">
-        <i data-lucide="panel-left-close" class="ic"></i><span>트리 접기</span>
-      </button>
-    </div>
   </aside>
+
+  <button class="tree-edge-toggle" id="treeEdgeCollapse" type="button" title="트리 접기" aria-label="트리 접기">
+    <i data-lucide="chevron-left" class="ic"></i>
+  </button>
+  <button class="tree-edge-toggle" id="treeEdgeReopen" type="button" title="트리 펼치기" aria-label="트리 펼치기">
+    <i data-lucide="chevron-right" class="ic"></i>
+  </button>
 
 <main class="wrap">
 
@@ -2199,9 +2298,6 @@ html[data-palette="mono"] .brand-mark{background:linear-gradient(135deg, var(--a
 
   <!-- ── Inline filters (reopen tree + breadcrumb) ───────────────────── -->
   <div class="inline-filters" id="inlineFilters">
-    <button class="tree-reopen" id="treeReopenBtn" type="button">
-      <i data-lucide="panel-left-open" class="ic"></i><span>트리 열기</span>
-    </button>
     <section class="crumb-bar">
       <div class="crumb-trail" id="crumbTrail"></div>
     </section>
@@ -2236,6 +2332,18 @@ html[data-palette="mono"] .brand-mark{background:linear-gradient(135deg, var(--a
     <button class="tweaks-close" id="tweaksClose" aria-label="닫기"><i data-lucide="x" class="ic"></i></button>
   </div>
   <div class="tweaks-body">
+    <!-- Tone -->
+    <div class="tweak-group">
+      <div class="tweak-label">
+        <span>톤</span>
+        <span class="tweak-label-val" id="toneVal">default</span>
+      </div>
+      <div class="tweak-seg" data-tweak="tone">
+        <button data-v="default">기본</button>
+        <button data-v="synthex">Synthex</button>
+      </div>
+    </div>
+
     <!-- Density -->
     <div class="tweak-group">
       <div class="tweak-label">
@@ -2306,7 +2414,8 @@ const USE_MOCK = false;
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density": "compact",
   "palette": "marine",
-  "chartStyle": "crisp"
+  "chartStyle": "crisp",
+  "tone": "default"
 }/*EDITMODE-END*/;
 let tweaks = Object.assign({}, TWEAK_DEFAULTS);
 
@@ -2385,7 +2494,7 @@ const SKUS = [
 
 const CATEGORY_DEFS = [
   { id:'overview', label:'요약',     icon:'home',           path:[]                          },
-  { id:'org',      label:'조직별',    icon:'building-2',     path:['본부','팀'],                startLevel:0 },
+  { id:'org',      label:'조직별',    icon:'building-2',     path:['브랜드','그룹','부서'],      startLevel:0 },
   { id:'region',   label:'지역별',    icon:'globe-2',        path:['대륙','국가','거래처'],       startLevel:0 },
   { id:'product',  label:'상품별',    icon:'package',        path:['라인','카테고리','SKU'],     startLevel:0 },
   { id:'sales',    label:'판매유형별', icon:'shopping-bag',   path:['전체','B2B/B2C'],           startLevel:0 },
@@ -2397,7 +2506,7 @@ const state = {
   category: 'overview',
   drill: { org:[], region:[], product:[], sales:[], rawdata:[] },
   filterSel: {
-    org:     {0: new Set(), 1: new Set()},
+    org:     {0: new Set(), 1: new Set(), 2: new Set()},
     region:  {0: new Set(), 1: new Set(), 2: new Set()},
     product: {0: new Set(), 1: new Set(), 2: new Set()},
   },
@@ -2443,7 +2552,7 @@ let _real = {
 let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
 let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
 // 계층 매핑: 상위 → 하위 목록
-let HIER_GROUP_DEPT={}, HIER_CONTINENT_COUNTRY={}, HIER_COUNTRY_CUSTOMER={}, HIER_LINE_CATEGORY={};
+let HIER_BRAND_GROUP={}, HIER_GROUP_DEPT={}, HIER_CONTINENT_COUNTRY={}, HIER_COUNTRY_CUSTOMER={}, HIER_LINE_CATEGORY={};
 
 /* ─── Deterministic PRNG ────────────────────────────────────────────── */
 function hash(...args){
@@ -2739,14 +2848,14 @@ const RealApi = {
     return null;
   },
   _nameKey(cat, vl){
-    if(cat==='org') return vl===0?'Group':'Department';
+    if(cat==='org') return vl===0?'Brand':vl===1?'Group':'Department';
     if(cat==='region') return vl===0?'Continent2':vl===1?'Country':'Customer';
     if(cat==='product') return vl===0?'Line':vl===1?'Category':'Product_Name';
     if(cat==='sales') return 'Sales_Type';
     return 'name';
   },
   _endpoint(cat, vl){
-    if(cat==='org') return vl===0?'/api/group':'/api/department';
+    if(cat==='org') return vl===0?'/api/group':vl===1?'/api/org-group':vl===2?'/api/department':null;
     if(cat==='region') return vl===0?'/api/continent':vl===1?'/api/country':'/api/customer';
     if(cat==='product') return vl===0?'/api/line':vl===1?'/api/category':'/api/product';
     if(cat==='sales') return '/api/sales-type';
@@ -2759,8 +2868,9 @@ const RealApi = {
     else if(months.length) months.forEach(m => p.append('months',m));
     const cat = state.category;
     if(cat==='org'){
-      fsArr(cat,0).forEach(v=>p.append('group',v));
-      fsArr(cat,1).forEach(v=>p.append('department',v));
+      fsArr(cat,0).forEach(v=>p.append('brand',v));
+      fsArr(cat,1).forEach(v=>p.append('group',v));
+      fsArr(cat,2).forEach(v=>p.append('department',v));
     } else if(cat==='region'){
       fsArr(cat,0).forEach(v=>p.append('continent',v));
       fsArr(cat,1).forEach(v=>p.append('country',v));
@@ -2797,8 +2907,9 @@ const RealApi = {
     const p = new URLSearchParams(basePStr);
     // Ensure drill filters
     if(cat==='org'){
-      if(drill[0]) p.set('group', drill[0]); else p.delete('group');
-      if(drill[1]) p.set('department', drill[1]); else p.delete('department');
+      if(drill[0]) p.set('brand', drill[0]); else p.delete('brand');
+      if(drill[1]) p.set('group', drill[1]); else p.delete('group');
+      if(drill[2]) p.set('department', drill[2]); else p.delete('department');
     } else if(cat==='region'){
       if(drill[0]) p.set('continent', drill[0]); else p.delete('continent');
       if(drill[1]) p.set('country', drill[1]); else p.delete('country');
@@ -2926,7 +3037,7 @@ function chartColors(){
     amber: cs.getPropertyValue('--amber').trim(),
     positive: cs.getPropertyValue('--positive').trim(),
     negative: cs.getPropertyValue('--negative').trim(),
-    grid: getComputedStyle(document.documentElement).getPropertyValue('--border').trim(),
+    grid: 'transparent',
     isDark: document.documentElement.classList.contains('theme-dark'),
   };
 }
@@ -3392,26 +3503,28 @@ function renderHeroShell(){
   const sumK = (arr, key) => arr.reduce((s, r) => s + (r[key] || 0), 0);
   const delta = (cur, prev) => prev ? (cur - prev) / prev * 100 : 0;
 
-  // Period-over-period deltas (전년동기 대비 proxy)
-  const dSales  = delta(sumK(recent, 'sales_amount'),     sumK(prior, 'sales_amount'));
-  const dGross  = delta(sumK(recent, 'gross_profit'),     sumK(prior, 'gross_profit'));
-  const dOI     = delta(sumK(recent, 'operating_income'), sumK(prior, 'operating_income'));
-  // contribution margin %p delta
-  const curMgn = (sumK(recent,'sales_amount') ? sumK(recent,'operating_income')/sumK(recent,'sales_amount')*100 : 0);
-  const prvMgn = (sumK(prior, 'sales_amount') ? sumK(prior, 'operating_income')/sumK(prior, 'sales_amount')*100 : 0);
+  // Month-over-month deltas (전월 대비)
+  const dSales  = delta(last.sales_amount,     prv.sales_amount);
+  const dGross  = delta(last.gross_profit,     prv.gross_profit);
+  const dOI     = delta(last.operating_income, prv.operating_income);
+  // contribution margin %p delta (전월 대비)
+  const curMgn = (last.sales_amount ? last.operating_income/last.sales_amount*100 : 0);
+  const prvMgn = (prv.sales_amount  ? prv.operating_income /prv.sales_amount *100 : 0);
   const dMgnPp = curMgn - prvMgn;
 
   const c = chartColors();
   const sp = key => trend.map(r => r[key] || 0);
+  const heroMonths = (typeof activeMonths === 'function' ? activeMonths() : trend.map((_, i) => i + 1))
+    .map(m => typeof m === 'string' ? m.slice(2).replace('-', '.') : m);
 
   const cards = [
     { label:'매출액',     valueHtml:`${fmtKRWNum(k.sales_amount)}<span class="unit">${fmtKRWUnit(k.sales_amount)}</span>`, color:c.accent,    cls:'',         delta:dSales, deltaSuffix:'%', spark:sp('sales_amount'),     hint:'매출액' },
     { label:'매출총이익', valueHtml:`${fmtKRWNum(k.gross_profit)}<span class="unit">${fmtKRWUnit(k.gross_profit)}</span>`, color:c.positive, cls:'green',   delta:dGross, deltaSuffix:'%', spark:sp('gross_profit'),    hint:'매출총이익' },
     { label:'공헌이익',   valueHtml:`${fmtKRWNum(k.operating_income)}<span class="unit">${fmtKRWUnit(k.operating_income)}</span>`, color: k.operating_income>=0 ? c.positive : c.negative, cls: k.operating_income>=0 ? 'green featured' : 'featured', delta:dOI, deltaSuffix:'%', spark:sp('operating_income'), hint:'공헌이익' },
-    { label:'공헌이익률', valueHtml:`${(k.operating_margin||0).toFixed(1)}<span class="unit">%</span>`, color:c.plum, cls:'purple', delta:dMgnPp, deltaSuffix:'%p', spark:trend.map(r => r.sales_amount ? (r.operating_income/r.sales_amount)*100 : 0), hint:'공헌이익률' },
+    { label:'공헌이익률', valueHtml:`${(k.operating_margin||0).toFixed(1)}<span class="unit">%</span>`, color:c.plum, cls:'purple', delta:dMgnPp, deltaSuffix:'%p', spark:trend.map(r => r.sales_amount ? (r.operating_income/r.sales_amount)*100 : 0), hint:'공헌이익률', pct:true },
   ];
 
-  const cardHtml = cards.map(it => {
+  const cardHtml = cards.map((it, i) => {
     const upDown = it.delta > 0.05 ? 'up' : it.delta < -0.05 ? 'down' : 'flat';
     const icon = it.delta > 0.05 ? 'trending-up' : it.delta < -0.05 ? 'trending-down' : 'minus';
     const deltaTxt = (it.delta >= 0 ? '+' : '') + it.delta.toFixed(1) + it.deltaSuffix;
@@ -3420,16 +3533,16 @@ function renderHeroShell(){
       <div class="hero-kpi-label">${it.label}${hint}</div>
       <div class="hero-kpi-value">${it.valueHtml}</div>
       <div class="hero-kpi-delta">
-        <span class="hero-kpi-delta-label">전기 대비</span>
+        <span class="hero-kpi-delta-label">전월 대비</span>
         <span class="hero-kpi-delta-val ${upDown}"><i data-lucide="${icon}" class="ic"></i>${deltaTxt}</span>
       </div>
-      <div class="hero-kpi-spark">${sparkline(it.spark, it.color, 220, 36)}</div>
+      <div class="hero-kpi-spark"><canvas id="heroSpark${i}"></canvas></div>
     </div>`;
   }).join('');
 
   // Summary comment lines
   const lines = [];
-  lines.push(`매출은 전기 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
+  lines.push(`매출은 전월 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
   if (Math.abs(dOI) > 0.5) {
     lines.push(`공헌이익은 ${formatDeltaSpan(dOI)} ${dOI >= 0 ? '증가' : '감소'}하여 수익성에 ${dOI >= 0 ? '긍정적' : '부정적'} 영향을 주었습니다.`);
   }
@@ -3449,6 +3562,57 @@ function renderHeroShell(){
   shell.innerHTML = `<div class="hero-kpi-grid">${cardHtml}</div>${commentHtml}`;
   if (window.lucide) lucide.createIcons();
   if (typeof attachMetricHints === 'function') attachMetricHints();
+
+  // ── interactive mini line charts (month dots + hover tooltip) ──
+  cards.forEach((it, i) => {
+    destroyChart('heroSpark' + i);
+    const cv = document.getElementById('heroSpark' + i);
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 56);
+    grad.addColorStop(0, it.color + '33');
+    grad.addColorStop(1, it.color + '00');
+    charts['heroSpark' + i] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: heroMonths,
+        datasets: [{
+          data: it.spark,
+          borderColor: it.color,
+          backgroundColor: grad,
+          borderWidth: 2,
+          fill: true,
+          tension: 0.34,
+          pointRadius: 2,
+          pointHoverRadius: 4.5,
+          pointBackgroundColor: it.color,
+          pointBorderColor: c.isDark ? '#131923' : '#fff',
+          pointBorderWidth: 1.5,
+          pointHitRadius: 14,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          datalabels: { display: false },
+          tooltip: {
+            backgroundColor: c.isDark ? '#0A0E14' : '#0D1829',
+            titleColor: '#fff', bodyColor: '#fff', cornerRadius: 7, padding: 8,
+            displayColors: false,
+            titleFont: { size: 10.5, weight: 600 }, bodyFont: { size: 11, weight: 700, family: "'JetBrains Mono',monospace" },
+            callbacks: {
+              title: items => (items[0]?.label || '') + '월',
+              label: ctx => ' ' + (it.pct ? (ctx.raw || 0).toFixed(1) + '%' : fmtKRW(ctx.raw)),
+            },
+          },
+        },
+        scales: { x: { display: false }, y: { display: false } },
+        layout: { padding: { top: 4, bottom: 2 } },
+      },
+    });
+  });
 }
 
 function formatDeltaSpan(v){
@@ -3477,20 +3641,20 @@ function fmtKRWNum(n){
 /* ═════════════════════════════════════════════════════════════════════
    WATERFALL — 손익 흐름 chart
    ═════════════════════════════════════════════════════════════════════ */
-// Shared: 증감 요인 요약 card HTML (전년동기 대비), computed from current filter.
+// Shared: 증감 요인 요약 card HTML (전월 대비), computed from current filter.
 function changeFactorCardHtml(){
   const trend = api.monthlyTrend();
-  const halfN = Math.max(1, Math.floor(trend.length / 2));
-  const recent = trend.slice(-halfN), prior = trend.slice(0, halfN);
-  const sumK = (arr, key) => arr.reduce((s, r) => s + (r[key] || 0), 0);
+  const recent = trend[trend.length - 1] || {};
+  const prior  = trend[trend.length - 2] || {};
+  const g = (o, key) => o[key] || 0;
   const delta = (cur, prev) => prev ? (cur - prev) / prev * 100 : 0;
-  const dSales = delta(sumK(recent,'sales_amount'),     sumK(prior,'sales_amount'));
-  const dCogs  = delta(sumK(recent,'cost_of_sales'),    sumK(prior,'cost_of_sales'));
-  const dGross = delta(sumK(recent,'gross_profit'),     sumK(prior,'gross_profit'));
-  const dSga   = delta(sumK(recent,'sga_expenses'),     sumK(prior,'sga_expenses'));
-  const dOI    = delta(sumK(recent,'operating_income'), sumK(prior,'operating_income'));
-  const curMgn = sumK(recent,'sales_amount') ? sumK(recent,'operating_income')/sumK(recent,'sales_amount')*100 : 0;
-  const prvMgn = sumK(prior,'sales_amount')  ? sumK(prior,'operating_income') /sumK(prior,'sales_amount') *100 : 0;
+  const dSales = delta(g(recent,'sales_amount'),     g(prior,'sales_amount'));
+  const dCogs  = delta(g(recent,'cost_of_sales'),    g(prior,'cost_of_sales'));
+  const dGross = delta(g(recent,'gross_profit'),     g(prior,'gross_profit'));
+  const dSga   = delta(g(recent,'sga_expenses'),     g(prior,'sga_expenses'));
+  const dOI    = delta(g(recent,'operating_income'), g(prior,'operating_income'));
+  const curMgn = g(recent,'sales_amount') ? g(recent,'operating_income')/g(recent,'sales_amount')*100 : 0;
+  const prvMgn = g(prior,'sales_amount')  ? g(prior,'operating_income') /g(prior,'sales_amount') *100 : 0;
   const dMgnPp = curMgn - prvMgn;
   const fr = (label, d, isPp) => {
     const up = d > 0.05, down = d < -0.05;
@@ -3500,7 +3664,7 @@ function changeFactorCardHtml(){
     return `<div class="cf-row"><span class="cf-label">${label}</span><span class="cf-delta ${cls}">${arrow} ${Math.abs(d).toFixed(1)}${isPp?'%p':'%'}</span><span class="cf-word ${cls}">${word}</span></div>`;
   };
   return `<div class="change-factor-card">
-    <div class="breakdown-list-hd"><i data-lucide="git-compare-arrows" class="ic"></i>증감 요인 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:10.5px;margin-left:2px">(전년동기 대비)</span></div>
+    <div class="breakdown-list-hd"><i data-lucide="git-compare-arrows" class="ic"></i>증감 요인 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:10.5px;margin-left:2px">(전월 대비)</span></div>
     ${fr('매출액', dSales)}${fr('매출원가', dCogs)}${fr('매출총이익', dGross)}${fr('판매관리비', dSga)}${fr('공헌이익', dOI)}${fr('공헌이익률', dMgnPp, true)}
   </div>`;
 }
@@ -3513,10 +3677,9 @@ function renderWaterfallShell(){
 
   const k = api.kpi();
   const trend = api.monthlyTrend();
-  const halfN = Math.max(1, Math.floor(trend.length / 2));
-  const recent = trend.slice(-halfN);
-  const prior  = trend.slice(0, halfN);
-  const sumK = (arr, key) => arr.reduce((s, r) => s + (r[key] || 0), 0);
+  const recent = trend[trend.length - 1] || {};
+  const prior  = trend[trend.length - 2] || {};
+  const sumK = (o, key) => o[key] || 0;
   const delta = (cur, prev) => prev ? (cur - prev) / prev * 100 : 0;
   const dSales = delta(sumK(recent,'sales_amount'),     sumK(prior,'sales_amount'));
   const dCogs  = delta(sumK(recent,'cost_of_sales'),    sumK(prior,'cost_of_sales'));
@@ -3553,14 +3716,14 @@ function renderWaterfallShell(){
       <div class="waterfall-card-hd">
         <div>
           <div class="card-title"><i data-lucide="bar-chart-3"></i>손익 흐름 <span style="color:var(--text-tertiary);font-weight:500;font-size:11px;margin-left:4px">(누적)</span></div>
-          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판매관리비 → 공헌이익</div>
+          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판매관리비 → 공헌이익 <span style="opacity:.8">· 막대 안 %는 매출 대비 비중</span></div>
         </div>
         <div class="waterfall-card-unit">단위: 억원</div>
       </div>
       <div class="waterfall-chart"><canvas id="waterfallChart"></canvas></div>
     </div>
     <div class="change-factor-card">
-      <div class="breakdown-list-hd"><i data-lucide="git-compare-arrows" class="ic"></i>증감 요인 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:10.5px;margin-left:2px">(전년동기 대비)</span></div>
+      <div class="breakdown-list-hd"><i data-lucide="git-compare-arrows" class="ic"></i>증감 요인 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:10.5px;margin-left:2px">(전월 대비)</span></div>
       ${factorRow('매출액', dSales)}
       ${factorRow('매출원가', dCogs)}
       ${factorRow('매출총이익', dGross)}
@@ -3586,12 +3749,13 @@ function buildWaterfallChart(k){
   const oi    = k.operating_income || 0;
 
   // 5 floating-bar columns: [low, high] for each step
+  const pctOf = (v) => sales ? (Math.abs(v) / sales * 100) : 0;
   const data = [
-    { label:'매출액',    base:0,         top:sales,        color:c.accent,   value:sales },
-    { label:'매출원가',  base:sales-cogs, top:sales,       color:c.tertiary, value:-cogs, isSub:true },
-    { label:'매출총이익', base:0,        top:gross,        color:c.positive, value:gross, isSubtotal:true },
-    { label:'판매관리비', base:gross-sga, top:gross,       color: c.isDark ? '#5A6478' : '#AEB7C7', value:-sga, isSub:true },
-    { label:'공헌이익',  base:0,         top:oi,           color:c.positive, value:oi, isSubtotal:true, emphasized:true },
+    { label:'매출액',    base:0,         top:sales,        color:c.accent,   value:sales, pct:100 },
+    { label:'매출원가',  base:sales-cogs, top:sales,       color:c.tertiary, value:-cogs, isSub:true, pct:pctOf(cogs) },
+    { label:'매출총이익', base:0,        top:gross,        color:c.positive, value:gross, isSubtotal:true, pct:pctOf(gross) },
+    { label:'판매관리비', base:gross-sga, top:gross,       color: c.isDark ? '#5A6478' : '#AEB7C7', value:-sga, isSub:true, pct:pctOf(sga) },
+    { label:'공헌이익',  base:0,         top:oi,           color:c.positive, value:oi, isSubtotal:true, emphasized:true, pct:pctOf(oi) },
   ];
 
   // floating bar requires array data [low, high]
@@ -3622,16 +3786,36 @@ function buildWaterfallChart(k){
           callbacks: {
             title: (items) => data[items[0].dataIndex].label,
             label: (item) => ' ' + fmtKRW(data[item.dataIndex].value),
+            afterLabel: (item) => ' 매출 대비 ' + (data[item.dataIndex].pct || 0).toFixed(1) + '%',
           },
         },
         datalabels: {
-          display: true,
-          anchor: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
-          align: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
-          offset: 6,
-          color: (ctx) => data[ctx.dataIndex].value >= 0 ? c.positive : c.negative,
-          font: { family: "'JetBrains Mono',monospace", size: 11, weight: 700 },
-          formatter: (v, ctx) => fmtKRW(data[ctx.dataIndex].value),
+          labels: {
+            value: {
+              display: true,
+              anchor: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
+              align: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
+              offset: 7,
+              clip: false,
+              color: (ctx) => data[ctx.dataIndex].value >= 0 ? c.positive : c.negative,
+              font: { family: "'JetBrains Mono',monospace", size: 11.5, weight: 800 },
+              formatter: (v, ctx) => fmtKRW(data[ctx.dataIndex].value),
+            },
+            pct: {
+              display: true,
+              anchor: 'center',
+              align: 'center',
+              color: (ctx) => {
+                const d = data[ctx.dataIndex];
+                return d.isSubtotal ? '#FFFFFF' : (c.isDark ? '#E6E9EF' : '#2C3340');
+              },
+              backgroundColor: (ctx) => data[ctx.dataIndex].isSubtotal ? 'rgba(0,0,0,0.18)' : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.74)'),
+              borderRadius: 5,
+              padding: { top: 3, bottom: 3, left: 6, right: 6 },
+              font: { family: "'JetBrains Mono',monospace", size: 10, weight: 700 },
+              formatter: (v, ctx) => (data[ctx.dataIndex].pct || 0).toFixed(1) + '%',
+            },
+          },
         },
       },
       scales: {
@@ -3668,10 +3852,9 @@ function renderChangeDriversShell(){
   // Real backend would need a YoY change-attribution endpoint.
   const k = api.kpi();
   const trend = api.monthlyTrend();
-  const halfN = Math.max(1, Math.floor(trend.length / 2));
-  const recent = trend.slice(-halfN);
-  const prior  = trend.slice(0, halfN);
-  const sumK = (arr, key) => arr.reduce((s, r) => s + (r[key] || 0), 0);
+  const recent = trend[trend.length - 1] || {};
+  const prior  = trend[trend.length - 2] || {};
+  const sumK = (o, key) => o[key] || 0;
   const diff = (key) => sumK(recent, key) - sumK(prior, key);
 
   const dSales = diff('sales_amount');
@@ -3712,7 +3895,7 @@ function renderChangeDriversShell(){
   const mgn0 = sales0 ? sumK(prior, 'operating_income') / sales0 * 100 : 0;
   const mgn1 = sales1 ? sumK(recent, 'operating_income') / sales1 * 100 : 0;
   const dMgnPp = mgn1 - mgn0;
-  if (Math.abs(dMgnPp) > 0.05) insights.push(`공헌이익률은 전기 대비 <b>${dMgnPp >= 0 ? '+' : ''}${dMgnPp.toFixed(1)}%p</b> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
+  if (Math.abs(dMgnPp) > 0.05) insights.push(`공헌이익률은 전월 대비 <b>${dMgnPp >= 0 ? '+' : ''}${dMgnPp.toFixed(1)}%p</b> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
   const insightHtml = insights.length
     ? insights.map(s => `<p>${s}</p>`).join('')
     : '<p>특이 변동이 식별되지 않았습니다.</p>';
@@ -4354,7 +4537,7 @@ function renderTopNCards(breakdown){
   const oiCard = `<div class="topn-card">
     <div class="topn-card-hd">
       <div class="topn-card-title">${dimLabel}별 공헌이익 증감 TOP 5</div>
-      <div class="topn-card-sub">전기 대비</div>
+      <div class="topn-card-sub">전월 대비</div>
     </div>
     ${oiTop.map((it, i) => row(it, i, 'oi')).join('')}
   </div>`;
@@ -4362,7 +4545,7 @@ function renderTopNCards(breakdown){
   const mgnCard = `<div class="topn-card">
     <div class="topn-card-hd">
       <div class="topn-card-title">${dimLabel}별 공헌이익률 증감 TOP 5</div>
-      <div class="topn-card-sub">전기 대비</div>
+      <div class="topn-card-sub">전월 대비</div>
     </div>
     ${mgnTop.map((it, i) => row(it, i, 'mgn')).join('')}
   </div>`;
@@ -4448,7 +4631,7 @@ function renderDetailSummaryTable(breakdown){
     <div class="detail-tbl-wrap">
       <div class="detail-tbl-hd">
         <div class="detail-tbl-title"><i data-lucide="table-2" class="ic"></i>${catLabel} 성과 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-        <div class="detail-tbl-tools">단위: 억원, % &nbsp;·&nbsp; * 전기 대비</div>
+        <div class="detail-tbl-tools">단위: 억원, % &nbsp;·&nbsp; * 전월 대비</div>
       </div>
       <div class="detail-tbl-scroll">
         <table class="detail-tbl">
@@ -4456,13 +4639,13 @@ function renderDetailSummaryTable(breakdown){
             <tr>
               <th>${dimColTitle}</th>
               <th class="num">매출액</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">매출총이익</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">공헌이익</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">공헌이익률</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
             </tr>
           </thead>
           <tbody>
@@ -4906,13 +5089,13 @@ function renderSalesDetailTable(opts){
               <th>판매유형</th>
               <th class="num">매출액</th>
               <th class="num">비중</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">매출총이익</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">공헌이익</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
               <th class="num">공헌이익률</th>
-              <th class="num">전기 대비</th>
+              <th class="num">전월 대비</th>
             </tr>
           </thead>
           <tbody>
@@ -5183,7 +5366,8 @@ function treeHierarchy(cat){
     return {
       rootLabel: '전체', rootIcon: 'layout-grid',
       levels: [
-        { icon:'gem', opts: USE_MOCK ? HONBUS : REAL_GROUPS },
+        { icon:'tag', opts: USE_MOCK ? HONBUS : REAL_BRANDS },
+        { icon:'gem', childrenOf: (parent) => USE_MOCK ? [] : (HIER_BRAND_GROUP[parent]||[]) },
         { icon:'users', childrenOf: (parent) => USE_MOCK ? (HONBU_TEAM_MAP[parent]||[]) : (HIER_GROUP_DEPT[parent]||[]) },
       ],
     };
@@ -5400,13 +5584,18 @@ function renderCatFilters(){
   const fv = lv => fs[lv] && fs[lv].size ? [...fs[lv]] : [];
 
   if (cat === 'org') {
-    const selGroups = fv(0);
-    const depts = USE_MOCK
-      ? (selGroups.length ? [...new Set(selGroups.flatMap(g => HONBU_TEAM_MAP[g]||[]))] : ALL_TEAMS)
-      : (selGroups.length ? [...new Set(selGroups.flatMap(g => HIER_GROUP_DEPT[g]||[]))] : REAL_DEPARTMENTS);
+    const selBrands = fv(0);
+    const selGroups = fv(1);
+    const groups = selBrands.length
+      ? [...new Set(selBrands.flatMap(b => HIER_BRAND_GROUP[b]||[]))]
+      : REAL_GROUPS;
+    const depts = selGroups.length
+      ? [...new Set(selGroups.flatMap(g => HIER_GROUP_DEPT[g]||[]))]
+      : (selBrands.length ? [...new Set(selBrands.flatMap(b => (HIER_BRAND_GROUP[b]||[]).flatMap(g => HIER_GROUP_DEPT[g]||[])))] : REAL_DEPARTMENTS);
     levels = [
-      { lv: 0, label: '그룹', icon: 'building-2', opts: USE_MOCK ? HONBUS : REAL_GROUPS },
-      { lv: 1, label: '부서', icon: 'users', opts: depts },
+      { lv: 0, label: '브랜드', icon: 'tag',       opts: USE_MOCK ? HONBUS : REAL_BRANDS },
+      { lv: 1, label: '그룹',   icon: 'building-2', opts: USE_MOCK ? [] : groups },
+      { lv: 2, label: '부서',   icon: 'users',      opts: USE_MOCK ? ALL_TEAMS : depts },
     ];
   } else if (cat === 'region') {
     const selConts = fv(0);
@@ -5569,6 +5758,7 @@ function escapeAttr(s){ return String(s).replace(/"/g, '&quot;'); }
 function applyTweaks(){
   document.documentElement.dataset.density = tweaks.density || 'comfy';
   document.documentElement.dataset.palette = tweaks.palette || 'marine';
+  document.documentElement.dataset.tone = tweaks.tone || 'default';
   $$('#tweaksPanel [data-tweak]').forEach(group => {
     const key = group.dataset.tweak;
     group.querySelectorAll('button').forEach(b => {
@@ -5578,6 +5768,7 @@ function applyTweaks(){
   const dv = $('#densityVal');     if (dv) dv.textContent = tweaks.density;
   const pv = $('#paletteVal');     if (pv) pv.textContent = tweaks.palette;
   const cv = $('#chartStyleVal');  if (cv) cv.textContent = tweaks.chartStyle;
+  const tv = $('#toneVal');        if (tv) tv.textContent = tweaks.tone || 'default';
 }
 
 function setTweak(key, val){
@@ -5612,7 +5803,8 @@ function setupTweaks(){
 }
 
 function getChartStyleOpts(){
-  const s = tweaks.chartStyle || 'crisp';
+  // Synthex tone implies the soft chart style (rounded bars, smooth filled lines)
+  const s = (tweaks.tone === 'synthex') ? 'soft' : (tweaks.chartStyle || 'crisp');
   return {
     barRadius: s === 'soft' ? 8 : s === 'editorial' ? 0 : 2,
     lineFill: s === 'soft',
@@ -5673,6 +5865,10 @@ async function init(){
   const treeReopenBtn = $('#treeReopenBtn');
   if (treeCollapseBtn) treeCollapseBtn.onclick = () => { state.treeCollapsed = true; renderTreeRail(); };
   if (treeReopenBtn) treeReopenBtn.onclick = () => { state.treeCollapsed = false; renderTreeRail(); };
+  const treeEdgeCollapse = $('#treeEdgeCollapse');
+  const treeEdgeReopen = $('#treeEdgeReopen');
+  if (treeEdgeCollapse) treeEdgeCollapse.onclick = () => { state.treeCollapsed = true; renderTreeRail(); };
+  if (treeEdgeReopen) treeEdgeReopen.onclick = () => { state.treeCollapsed = false; renderTreeRail(); };
   const treeSearchInput = $('#treeSearchInput');
   if (treeSearchInput) treeSearchInput.oninput = (e) => { state.treeSearch = e.target.value; renderTreeRail(); };
   const tbPeriodBtn = $('#tbPeriodBtn');
@@ -5756,6 +5952,7 @@ async function init(){
       REAL_BRANDS      = filters.brands||[];
       REAL_CUSTOMERS   = filters.customers||[];
       REAL_SALES_TYPES = filters.sales_types||[];
+      HIER_BRAND_GROUP       = filters.brand_group||{};
       HIER_GROUP_DEPT        = filters.group_dept||{};
       HIER_CONTINENT_COUNTRY = filters.continent_country||{};
       HIER_COUNTRY_CUSTOMER  = filters.country_customer||{};
