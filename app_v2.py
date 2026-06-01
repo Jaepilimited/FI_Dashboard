@@ -1048,11 +1048,13 @@ def api_prefetch():
         return build_bq_filters(ImmutableMultiDict([(k, v) for k, vs in d.items() for v in vs]))
 
     # Assemble parallel tasks
+    breakdown_sql = _bkd_sql.get((cat, vl), lambda w: '')(where)
     tasks = {
-        'kpi':       (kpi_sql(where), params),
-        'trend':     (trend_sql(where), params),
-        'breakdown': (_bkd_sql.get((cat, vl), lambda w: '')(where), params),
+        'kpi':   (kpi_sql(where), params),
+        'trend': (trend_sql(where), params),
     }
+    if breakdown_sql:
+        tasks['breakdown'] = (breakdown_sql, params)
     if dim:
         tasks['trendByDim'] = (tbd_sql(where, dim), params)
     if is_sales:
@@ -1104,4 +1106,4 @@ def api_cache_clear():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5000)
