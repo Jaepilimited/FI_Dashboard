@@ -3632,7 +3632,8 @@ function fmtKRWNum(n){
 function changeFactorCardHtml(){
   const trend = api.monthlyTrend();
   const recent = trend[trend.length - 1] || {};
-  const prior  = trend[trend.length - 2] || {};
+  const _pt = (!USE_MOCK && _real.priorTrend) ? (_real.priorTrend.all || []) : [];
+  const prior = _pt.length > 0 ? (_pt[_pt.length - 1] || {}) : (trend[trend.length - 2] || {});
   const g = (o, key) => o[key] || 0;
   const delta = (cur, prev) => prev ? (cur - prev) / prev * 100 : 0;
   const dSales = delta(g(recent,'sales_amount'),     g(prior,'sales_amount'));
@@ -3665,7 +3666,8 @@ function renderWaterfallShell(){
   const k = api.kpi();
   const trend = api.monthlyTrend();
   const recent = trend[trend.length - 1] || {};
-  const prior  = trend[trend.length - 2] || {};
+  const _wfPt = (!USE_MOCK && _real.priorTrend) ? (_real.priorTrend.all || []) : [];
+  const prior = _wfPt.length > 0 ? (_wfPt[_wfPt.length - 1] || {}) : (trend[trend.length - 2] || {});
   const sumK = (o, key) => o[key] || 0;
   const delta = (cur, prev) => prev ? (cur - prev) / prev * 100 : 0;
   const dSales = delta(sumK(recent,'sales_amount'),     sumK(prior,'sales_amount'));
