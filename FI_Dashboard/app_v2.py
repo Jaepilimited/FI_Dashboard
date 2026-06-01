@@ -1097,6 +1097,19 @@ def api_prefetch():
     }
     if breakdown_sql:
         tasks['breakdown'] = (breakdown_sql, params)
+
+    # Prior period: same-length window immediately before selected months
+    prior_months_list = request.args.getlist('prior_months')
+    if prior_months_list:
+        from werkzeug.datastructures import ImmutableMultiDict
+        prior_args = request.args.to_dict(flat=False)
+        prior_args['months'] = prior_months_list
+        # Remove any prior_months key to avoid recursion
+        prior_args.pop('prior_months', None)
+        pw, pp = build_bq_filters(ImmutableMultiDict([(k, v) for k, vs in prior_args.items() for v in vs]))
+        tasks['priorKpi']   = (kpi_sql(pw), pp)
+        tasks['priorTrend'] = (trend_sql(pw), pp)
+
     if dim:
         tasks['trendByDim'] = (tbd_sql(where, dim), params)
     if is_sales:
@@ -1125,6 +1138,8 @@ def api_prefetch():
         'trend':     results.get('trend', []),
         'breakdown': results.get('breakdown', []),
         'trendByDim': results.get('trendByDim', []),
+        'priorKpi':   results.get('priorKpi',   [{}])[0] if results.get('priorKpi') else {},
+        'priorTrend': results.get('priorTrend', []),
     }
     if is_sales:
         out['kpiAll']   = fmt_kpi(results.get('kpiAll', []))

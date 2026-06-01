@@ -349,6 +349,33 @@ html.theme-dark .brand-mark-img{ --logo-filter: invert(1) brightness(1.1); }
 }
 .slider-tick.in-range{color:var(--accent);font-weight:700}
 
+/* ─── Period nav group ──────────────────────────────────────── */
+.tb-period-group{display:flex;align-items:center;gap:2px}
+.tb-nav-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-secondary);cursor:pointer;
+  transition:all 0.12s ease;flex-shrink:0;
+}
+.tb-nav-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border-strong)}
+.tb-nav-btn .ic{width:14px;height:14px;stroke-width:2}
+/* ─── Month grid ────────────────────────────────────────────── */
+.month-grid{padding:4px 0 8px}
+.mg-year-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.mg-year{font-size:11px;font-weight:700;color:var(--text-tertiary);min-width:32px;letter-spacing:-.01em}
+.mg-month{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:38px;height:28px;border-radius:6px;
+  font-size:11.5px;font-weight:500;color:var(--text-secondary);
+  cursor:pointer;border:1px solid transparent;
+  transition:all 0.1s ease;user-select:none;
+}
+.mg-month:hover:not(.disabled){background:var(--surface-hover);color:var(--text)}
+.mg-month.in-range{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.mg-month.range-end,.mg-month.range-start{background:var(--accent);color:#fff;font-weight:700;border-color:var(--accent)}
+.mg-month.disabled{color:var(--text-tertiary);opacity:0.35;cursor:default;pointer-events:none}
+
 .btn-reset{
   display:inline-flex;align-items:center;gap:5px;
   height:30px; padding:0 14px;
@@ -2221,12 +2248,16 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
   <div class="topnav-divider"></div>
   <div class="topnav-title" id="pageTitle">손익 대시보드</div>
   <div class="nav-spacer"></div>
-  <button class="tb-period-btn" id="tbPeriodBtn" title="기간 선택" type="button">
-    <i data-lucide="calendar" class="ic"></i>
-    <span class="label" id="tbPeriodLabel">—</span>
-    <span class="span" id="tbPeriodSpan"></span>
-    <i data-lucide="chevron-down" class="ic"></i>
-  </button>
+  <div class="tb-period-group">
+    <button class="tb-nav-btn" id="prevPeriodBtn" title="이전 기간" type="button"><i data-lucide="chevron-left" class="ic"></i></button>
+    <button class="tb-period-btn" id="tbPeriodBtn" title="기간 선택" type="button">
+      <i data-lucide="calendar" class="ic"></i>
+      <span class="label" id="tbPeriodLabel">—</span>
+      <span class="span" id="tbPeriodSpan"></span>
+      <i data-lucide="chevron-down" class="ic"></i>
+    </button>
+    <button class="tb-nav-btn" id="nextPeriodBtn" title="다음 기간" type="button"><i data-lucide="chevron-right" class="ic"></i></button>
+  </div>
   <div class="nav-tools">
     <div class="user-chip">
       <div class="user-avatar" id="userAvatar">U</div>
@@ -2270,17 +2301,9 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
   <!-- ── Period popover (period + presets + reset) ───────────────────── -->
   <div class="period-popover" id="periodPopover" role="dialog" aria-label="기간 선택">
     <section class="filterbar" style="display:flex">
-      <div class="fb-group slider-wrap">
-        <span class="fb-label">기간 선택</span>
-        <div class="slider-range-label" id="monthRangeLabel">전체 기간</div>
-        <div class="slider-track-outer">
-          <div class="slider-track" id="monthTrack">
-            <div class="slider-fill" id="monthFill"></div>
-            <div class="slider-thumb" id="monthThumbL"></div>
-            <div class="slider-thumb" id="monthThumbR"></div>
-          </div>
-          <div class="slider-ticks" id="monthTicks"></div>
-        </div>
+      <div class="fb-group" style="flex:1;min-width:0">
+        <span class="fb-label">기간 선택 <span style="font-weight:400;color:var(--text-tertiary);font-size:10px">클릭: 단일월 &nbsp;|&nbsp; Shift+클릭: 범위</span></span>
+        <div class="month-grid" id="monthGrid"></div>
       </div>
       <div class="fb-group" style="align-items:flex-end">
         <span class="fb-label">빠른 선택</span>
@@ -2546,6 +2569,7 @@ let _real = {
   trend: {},         // { all:[], B2B:[], B2C:[] }
   breakdown: [],
   trendByDim: [],
+  priorTrend: {},    // { all:[] } — prior period trend for comparison
   treeData: {},      // { 'cat|drill|level': rows }
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
 };
@@ -2866,6 +2890,15 @@ const RealApi = {
     const months = activeMonths();
     if(months.length && months.length < ALL_MONTHS.length) months.forEach(m => p.append('months',m));
     else if(months.length) months.forEach(m => p.append('months',m));
+    // Compute and append prior period months for comparison
+    const _active = activeMonths();
+    if(_active.length > 0){
+      const _startIdx = ALL_MONTHS.indexOf(_active[0]);
+      if(_startIdx >= _active.length){
+        const _priorMonths = ALL_MONTHS.slice(_startIdx - _active.length, _startIdx);
+        _priorMonths.forEach(m => p.append('prior_months', m));
+      }
+    }
     const cat = state.category;
     if(cat==='org'){
       fsArr(cat,0).forEach(v=>p.append('brand',v));
@@ -2943,6 +2976,7 @@ const RealApi = {
       : { all: d.trend||[], B2B: d.trend||[], B2C: d.trend||[] };
     _real.trendByDim = d.trendByDim || [];
     _real.breakdown  = this._normalize(d.breakdown || [], cat, vl);
+    _real.priorTrend = { all: d.priorTrend || [] };
 
     // Root tree cache key
     const rootKey = `${cat}|${drill.slice(0,vl).join(',')}|${vl}`;
@@ -3104,7 +3138,8 @@ function applyPreset(id){
     state.rangeEnd = total - 1;
     state.rangeStart = Math.max(0, total - p.months);
   }
-  updateMonthSlider();
+  updatePeriodLabel();
+  renderMonthGrid();
   renderPresetChips();
   scheduleApply(0);
 }
@@ -3144,73 +3179,47 @@ function renderPresetChips(){
   });
 }
 
-let dragSide = null;
-function initMonthSlider(){
-  renderMonthTicks();
-  updateMonthSlider();
-  const tl = $('#monthThumbL'), tr = $('#monthThumbR'), track = $('#monthTrack');
-  const down = side => e => { e.preventDefault(); dragSide = side; (side==='L'?tl:tr).classList.add('dragging'); };
-  tl.addEventListener('mousedown', down('L'));
-  tr.addEventListener('mousedown', down('R'));
-  tl.addEventListener('touchstart', down('L'), { passive:false });
-  tr.addEventListener('touchstart', down('R'), { passive:false });
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('touchmove', onMove, { passive:false });
-  document.addEventListener('mouseup', onUp);
-  document.addEventListener('touchend', onUp);
-  track.addEventListener('click', e => {
-    if (e.target.classList.contains('slider-thumb')) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const idx = idxFromX(e.clientX, r);
-    const dL = Math.abs(idx - state.rangeStart), dR = Math.abs(idx - state.rangeEnd);
-    if (dL <= dR) state.rangeStart = Math.min(idx, state.rangeEnd);
-    else state.rangeEnd = Math.max(idx, state.rangeStart);
-    updateMonthSlider();
-    renderPresetChips();
-    scheduleApply();
+function renderMonthGrid(){
+  const container = $('#monthGrid');
+  if(!container || !ALL_MONTHS.length) return;
+  const s = Math.min(state.rangeStart, state.rangeEnd);
+  const e = Math.max(state.rangeStart, state.rangeEnd);
+  const years = [...new Set(ALL_MONTHS.map(m => m.slice(0,4)))];
+  let html = '';
+  years.forEach(yr => {
+    html += `<div class="mg-year-row"><span class="mg-year">${yr}</span>`;
+    for(let mo = 1; mo <= 12; mo++){
+      const ym = `${yr}-${String(mo).padStart(2,'0')}`;
+      const idx = ALL_MONTHS.indexOf(ym);
+      const inRange = idx >= s && idx <= e;
+      const isS = idx === s, isE = idx === e;
+      const cls = idx === -1 ? 'disabled' : (isS||isE ? 'range-start in-range'+(isE&&!isS?' range-end':'') : inRange ? 'in-range' : '');
+      const extra = idx === -1 ? '' : `data-idx="${idx}"`;
+      html += `<span class="mg-month ${cls}" ${extra}>${mo}월</span>`;
+    }
+    html += '</div>';
   });
+  container.innerHTML = html;
+  container.querySelectorAll('.mg-month:not(.disabled)').forEach(el => {
+    el.onclick = e2 => {
+      const idx = parseInt(el.dataset.idx);
+      if(e2.shiftKey){
+        if(idx < state.rangeStart) state.rangeStart = idx;
+        else state.rangeEnd = idx;
+      } else {
+        state.rangeStart = state.rangeEnd = idx;
+      }
+      updatePeriodLabel();
+      renderMonthGrid();
+      applyAll();
+    };
+  });
+}
+function initMonthSlider(){
+  renderMonthGrid();
 }
 
-function renderMonthTicks(){
-  const row = $('#monthTicks');
-  const total = ALL_MONTHS.length;
-  // Show major ticks only — every Jan + every Jul, plus first/last.
-  // We render all positions but make most invisible (so tick.in-range still works).
-  const major = new Set();
-  major.add(0); major.add(total - 1);
-  ALL_MONTHS.forEach((ym, i) => {
-    const m = ym.split('-')[1];
-    if (m === '01' || m === '07') major.add(i);
-  });
-  row.innerHTML = '';
-  ALL_MONTHS.forEach((ym, idx) => {
-    const t = document.createElement('div');
-    t.className = 'slider-tick';
-    t.dataset.idx = idx;
-    if (major.has(idx)) {
-      const [y, m] = ym.split('-');
-      t.textContent = `${y.slice(2)}.${m}`;
-      t.style.opacity = '1';
-    } else {
-      t.textContent = '';
-      t.style.opacity = '0';
-      t.style.height = '8px';
-    }
-    t.style.position = 'absolute';
-    t.style.left = `calc(${(idx / (total - 1)) * 100}% - 14px)`;
-    t.onclick = () => {
-      const dL = Math.abs(idx - state.rangeStart), dR = Math.abs(idx - state.rangeEnd);
-      if (dL <= dR) state.rangeStart = Math.min(idx, state.rangeEnd);
-      else state.rangeEnd = Math.max(idx, state.rangeStart);
-      updateMonthSlider();
-      renderPresetChips();
-      scheduleApply();
-    };
-    row.appendChild(t);
-  });
-  row.style.position = 'relative';
-  row.style.height = '18px';
-}
+function renderMonthTicks(){ /* slider removed — no-op */ }
 
 function idxFromX(clientX, r){
   const total = ALL_MONTHS.length;
@@ -3218,53 +3227,22 @@ function idxFromX(clientX, r){
   return Math.round(pct * (total - 1));
 }
 
-function onMove(e){
-  if (!dragSide) return;
-  e.preventDefault();
-  const cx = e.touches ? e.touches[0].clientX : e.clientX;
-  const t = $('#monthTrack');
-  const r = t.getBoundingClientRect();
-  const idx = idxFromX(cx, r);
-  if (dragSide === 'L') state.rangeStart = Math.min(idx, state.rangeEnd);
-  else state.rangeEnd = Math.max(idx, state.rangeStart);
-  updateMonthSlider();
-  renderPresetChips();
-}
-function onUp(){
-  if (!dragSide) return;
-  $('#monthThumbL').classList.remove('dragging');
-  $('#monthThumbR').classList.remove('dragging');
-  dragSide = null;
-  scheduleApply();
-}
-function updateMonthSlider(){
+let dragSide = null;
+function onMove(e){ /* slider removed — no-op */ }
+function onUp(){ /* slider removed — no-op */ }
+function updatePeriodLabel(){
   const total = ALL_MONTHS.length;
-  const lp = (state.rangeStart / (total - 1)) * 100;
-  const rp = (state.rangeEnd / (total - 1)) * 100;
-  $('#monthThumbL').style.left = lp + '%';
-  $('#monthThumbR').style.left = rp + '%';
-  $('#monthFill').style.left = lp + '%';
-  $('#monthFill').style.right = (100 - rp) + '%';
-  $$('.slider-tick').forEach(t => {
-    const i = parseInt(t.dataset.idx);
-    t.classList.toggle('in-range', i >= state.rangeStart && i <= state.rangeEnd);
-  });
-  const lbl = $('#monthRangeLabel');
+  if (!total) return;
   const sYM = ALL_MONTHS[state.rangeStart]?.replace('-', '.');
   const eYM = ALL_MONTHS[state.rangeEnd]?.replace('-', '.');
   const span = state.rangeEnd - state.rangeStart + 1;
-  if (state.rangeStart === 0 && state.rangeEnd === total - 1) {
-    lbl.textContent = `전체 기간 · ${sYM} ~ ${eYM} · ${total}개월`;
-  } else if (sYM === eYM) {
-    lbl.textContent = `${sYM} · 1개월`;
-  } else {
-    lbl.textContent = `${sYM} ~ ${eYM} · ${span}개월`;
-  }
-  // Also sync the compact top-bar period button label
   const tbLabel = $('#tbPeriodLabel');
   const tbSpan  = $('#tbPeriodSpan');
   if (tbLabel) tbLabel.textContent = `${sYM} ~ ${eYM}`;
   if (tbSpan)  tbSpan.textContent  = `(${span}개월)`;
+}
+function updateMonthSlider(){
+  updatePeriodLabel();
 }
 
 function resetFilters(){
@@ -3272,7 +3250,8 @@ function resetFilters(){
   state.rangeStart = 0; state.rangeEnd = total - 1;
   state.rawPage = 1; state.rawSearch = '';
   const srchEl = $('#rawSearch'); if(srchEl) srchEl.value = '';
-  updateMonthSlider();
+  updatePeriodLabel();
+  renderMonthGrid();
   renderPresetChips();
   scheduleApply(0);
 }
@@ -3496,7 +3475,11 @@ function renderHeroShell(){
   const k = api.kpi();
   const trend = api.monthlyTrend();
   const last = trend[trend.length - 1] || {};
-  const prv  = trend[trend.length - 2] || {};
+  // Use priorTrend if available (set by prefetch when prior_months sent)
+  const _priorTrend = (!USE_MOCK && _real.priorTrend) ? (_real.priorTrend.all || []) : [];
+  const prv = _priorTrend.length > 0
+    ? _priorTrend[_priorTrend.length - 1] || {}
+    : (trend[trend.length - 2] || {});
   const halfN = Math.max(1, Math.floor(trend.length / 2));
   const recent = trend.slice(-halfN);
   const prior  = trend.slice(0, halfN);
@@ -3533,7 +3516,7 @@ function renderHeroShell(){
       <div class="hero-kpi-label">${it.label}${hint}</div>
       <div class="hero-kpi-value">${it.valueHtml}</div>
       <div class="hero-kpi-delta">
-        <span class="hero-kpi-delta-label">전월 대비</span>
+        <span class="hero-kpi-delta-label">${_priorTrend.length > 0 ? '전기 대비' : trend.length > 1 ? '전월 대비' : '—'}</span>
         <span class="hero-kpi-delta-val ${upDown}"><i data-lucide="${icon}" class="ic"></i>${deltaTxt}</span>
       </div>
       <div class="hero-kpi-spark"><canvas id="heroSpark${i}"></canvas></div>
@@ -5906,6 +5889,22 @@ async function init(){
       }
     });
   }
+  const prevPeriodBtn = $('#prevPeriodBtn');
+  const nextPeriodBtn = $('#nextPeriodBtn');
+  if(prevPeriodBtn) prevPeriodBtn.onclick = () => {
+    const n = Math.abs(state.rangeEnd - state.rangeStart) + 1;
+    const newEnd = Math.max(0, state.rangeStart - 1);
+    const newStart = Math.max(0, newEnd - n + 1);
+    state.rangeStart = newStart; state.rangeEnd = newEnd;
+    updatePeriodLabel(); renderMonthGrid(); applyAll();
+  };
+  if(nextPeriodBtn) nextPeriodBtn.onclick = () => {
+    const n = Math.abs(state.rangeEnd - state.rangeStart) + 1;
+    const newStart = Math.min(ALL_MONTHS.length - 1, state.rangeEnd + 1);
+    const newEnd = Math.min(ALL_MONTHS.length - 1, newStart + n - 1);
+    state.rangeStart = newStart; state.rangeEnd = newEnd;
+    updatePeriodLabel(); renderMonthGrid(); applyAll();
+  };
   const _cacheBtn = $('#btnClearCache');
   if (_cacheBtn) _cacheBtn.onclick = async () => {
     if (!confirm('BigQuery 캐시를 초기화하고 최신 데이터를 불러올까요?\n(수십 초 소요될 수 있습니다)')) return;
