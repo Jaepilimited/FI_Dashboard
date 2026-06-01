@@ -429,6 +429,7 @@ def build_bq_filters(args):
         conditions.append('`Group` IN UNNEST(@group_vals)')
         params.append(bigquery.ArrayQueryParameter('group_vals', 'STRING', expanded))
     _arr('department', 'Department', 'dept_vals')
+    _arr('continent1', 'Continent1', 'continent1_vals')
     _arr('continent',  'Continent2', 'continent_vals')
     _arr('country',    'Country',    'country_vals')
     _arr('customer',   'Customer',   'customer_vals')
@@ -476,13 +477,15 @@ def api_filters():
         'lines':       (f"SELECT DISTINCT Line FROM `{T}` WHERE Line IS NOT NULL AND Line != '' ORDER BY Line",               'Line'),
         'categories':  (f"SELECT DISTINCT Category FROM `{T}` WHERE Category IS NOT NULL AND Category != '' ORDER BY Category",   'Category'),
         'countries':   (f"SELECT DISTINCT Country FROM `{T}` WHERE Country IS NOT NULL AND Country != '' ORDER BY Country", 'Country'),
-        'continents':  (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2'),
+        'continents':  (f"SELECT DISTINCT Continent1 FROM `{T}` WHERE Continent1 IS NOT NULL AND Continent1 != '' ORDER BY Continent1", 'Continent1'),
+        'continents2': (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2'),
         'groups':      (f"SELECT DISTINCT {_GN} AS norm_group FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' ORDER BY norm_group", 'norm_group'),
         'brands':      (f"SELECT DISTINCT Brand FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' ORDER BY Brand", 'Brand'),
     }
     hier_queries = {
         'group_dept':      f"SELECT DISTINCT {_GN} AS norm_group, Department FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' AND Department IS NOT NULL AND Department != '' ORDER BY norm_group, Department",
         'brand_group':     f"SELECT DISTINCT Brand, {_GN} AS norm_group FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' AND `Group` IS NOT NULL AND `Group` != '' ORDER BY Brand, norm_group",
+        'cont1_cont2':       f"SELECT DISTINCT Continent1, Continent2 FROM `{T}` WHERE Continent1 IS NOT NULL AND Continent1 != '' AND Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent1, Continent2",
         'continent_country': f"SELECT DISTINCT Continent2, Country FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' AND Country IS NOT NULL AND Country != '' ORDER BY Continent2, Country",
         'country_customer':  f"SELECT DISTINCT Country, Customer FROM `{T}` WHERE Country IS NOT NULL AND Country != '' AND Customer IS NOT NULL AND Customer != '' ORDER BY Country, Customer",
         'line_category':   f"SELECT DISTINCT Line, Category FROM `{T}` WHERE Line IS NOT NULL AND Line != '' AND Category IS NOT NULL AND Category != '' ORDER BY Line, Category",
@@ -502,6 +505,9 @@ def api_filters():
         elif key == 'brand_group':
             for r in rows:
                 mapping.setdefault(r['Brand'], []).append(r['norm_group'])
+        elif key == 'cont1_cont2':
+            for r in rows:
+                mapping.setdefault(r['Continent1'], []).append(r['Continent2'])
         elif key == 'continent_country':
             for r in rows:
                 mapping.setdefault(r['Continent2'], []).append(r['Country'])
@@ -918,7 +924,7 @@ def admin_toggle_user(uid):
         db.close()
 
 
-_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent2','Customer','Country','Group'}
+_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent1','Continent2','Customer','Country','Group'}
 _BQ_RESERVED = {'Group'}
 
 def _col(dim):
@@ -1013,6 +1019,30 @@ def api_continent():
     return jsonify(run_query_cached(sql, params))
 
 
+@app.route('/api/continent1')
+@login_required
+def api_continent1():
+    where, params = build_bq_filters(request.args)
+    cont_cond = "Continent1 IS NOT NULL AND Continent1 != ''"
+    full_where = (where + f' AND {cont_cond}') if where else f'WHERE {cont_cond}'
+    T = config.BQ_TABLE
+    sql = f"""
+        SELECT
+            Continent1,
+            SUM(Sales_Amount)      AS sales_amount,
+            SUM(Cost_of_Sales)     AS cost_of_sales,
+            SUM(Gross_Profit)      AS gross_profit,
+            SUM(Operating_Income)  AS operating_income,
+            SUM(SG_and_A_Expenses) AS sga_expenses,
+            SAFE_DIVIDE(SUM(Gross_Profit), SUM(Sales_Amount)) * 100 AS gross_margin,
+            SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
+        FROM `{T}`
+        {full_where}
+        GROUP BY Continent1 ORDER BY sales_amount DESC
+    """
+    return jsonify(run_query_cached(sql, params))
+
+
 # ─── 통합 프리패치 엔드포인트 ──────────────────────────────────────
 # 프론트에서 4~9번 개별 호출하던 걸 1번 왕복으로 통합
 @app.route('/api/prefetch')
@@ -1049,7 +1079,7 @@ def api_prefetch():
     # dim → monthly-by-dim
     _dim_map = {
         ('org', 0): 'Brand', ('org', 1): 'Group', ('org', 2): 'Department',
-        ('region', 0): 'Continent2', ('region', 1): 'Country', ('region', 2): 'Customer',
+        ('region', 0): 'Continent1', ('region', 1): 'Continent2', ('region', 2): 'Country', ('region', 3): 'Customer',
         ('product', 0): 'Line', ('product', 1): 'Category',
         ('sales', 0): 'Sales_Type',
     }
@@ -1070,9 +1100,10 @@ def api_prefetch():
         ('org', 0):     lambda w: f"SELECT Brand, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Brand ORDER BY sales_amount DESC",
         ('org', 1):     lambda w: f"SELECT {_GN} AS `Group`, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY {_GN} ORDER BY sales_amount DESC",
         ('org', 2):     lambda w: f"SELECT Department, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Department ORDER BY sales_amount DESC",
-        ('region', 0):  lambda w: f"SELECT Continent2, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent2 IS NOT NULL AND Continent2!='' GROUP BY Continent2 ORDER BY sales_amount DESC",
-        ('region', 1):  lambda w: f"SELECT Country, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Country ORDER BY sales_amount DESC LIMIT 30",
-        ('region', 2):  lambda w: f"SELECT Customer, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
+        ('region', 0):  lambda w: f"SELECT Continent1, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent1 IS NOT NULL AND Continent1!='' GROUP BY Continent1 ORDER BY sales_amount DESC",
+        ('region', 1):  lambda w: f"SELECT Continent2, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent2 IS NOT NULL AND Continent2!='' GROUP BY Continent2 ORDER BY sales_amount DESC",
+        ('region', 2):  lambda w: f"SELECT Country, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Country ORDER BY sales_amount DESC LIMIT 30",
+        ('region', 3):  lambda w: f"SELECT Customer, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
         ('product', 0): lambda w: f"SELECT Line, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Line ORDER BY sales_amount DESC",
         ('product', 1): lambda w: f"SELECT Category, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Category ORDER BY sales_amount DESC",
         ('product', 2): lambda w: f"SELECT Product_Name, Product_Code, SUM(Sales_Quantity) AS sales_quantity, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Product_Name,Product_Code ORDER BY sales_amount DESC LIMIT 30",

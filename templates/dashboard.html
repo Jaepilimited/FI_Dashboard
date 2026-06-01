@@ -2518,7 +2518,7 @@ const SKUS = [
 const CATEGORY_DEFS = [
   { id:'overview', label:'요약',     icon:'home',           path:[]                          },
   { id:'org',      label:'조직별',    icon:'building-2',     path:['브랜드','그룹','부서'],      startLevel:0 },
-  { id:'region',   label:'지역별',    icon:'globe-2',        path:['대륙','국가','거래처'],       startLevel:0 },
+  { id:'region',   label:'지역별',    icon:'globe-2',        path:['권역','대륙','국가','거래처'], startLevel:0 },
   { id:'product',  label:'상품별',    icon:'package',        path:['라인','카테고리','SKU'],     startLevel:0 },
   { id:'sales',    label:'판매유형별', icon:'shopping-bag',   path:['전체','B2B/B2C'],           startLevel:0 },
   { id:'rawdata',  label:'원시데이터', icon:'table-2',        path:[]                          },
@@ -2530,7 +2530,7 @@ const state = {
   drill: { org:[], region:[], product:[], sales:[], rawdata:[] },
   filterSel: {
     org:     {0: new Set(), 1: new Set(), 2: new Set()},
-    region:  {0: new Set(), 1: new Set(), 2: new Set()},
+    region:  {0: new Set(), 1: new Set(), 2: new Set(), 3: new Set()},
     product: {0: new Set(), 1: new Set(), 2: new Set()},
   },
   viewLevel: { org: 0, region: 0, product: 0 },
@@ -2573,10 +2573,10 @@ let _real = {
   treeData: {},      // { 'cat|drill|level': rows }
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
 };
-let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
+let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS1=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
 let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
 // 계층 매핑: 상위 → 하위 목록
-let HIER_BRAND_GROUP={}, HIER_GROUP_DEPT={}, HIER_CONTINENT_COUNTRY={}, HIER_COUNTRY_CUSTOMER={}, HIER_LINE_CATEGORY={};
+let HIER_BRAND_GROUP={}, HIER_GROUP_DEPT={}, HIER_CONT1_CONT2={}, HIER_CONTINENT_COUNTRY={}, HIER_COUNTRY_CUSTOMER={}, HIER_LINE_CATEGORY={};
 
 /* ─── Deterministic PRNG ────────────────────────────────────────────── */
 function hash(...args){
@@ -2873,14 +2873,14 @@ const RealApi = {
   },
   _nameKey(cat, vl){
     if(cat==='org') return vl===0?'Brand':vl===1?'Group':'Department';
-    if(cat==='region') return vl===0?'Continent2':vl===1?'Country':'Customer';
+    if(cat==='region') return vl===0?'Continent1':vl===1?'Continent2':vl===2?'Country':'Customer';
     if(cat==='product') return vl===0?'Line':vl===1?'Category':'Product_Name';
     if(cat==='sales') return 'Sales_Type';
     return 'name';
   },
   _endpoint(cat, vl){
     if(cat==='org') return vl===0?'/api/group':vl===1?'/api/org-group':vl===2?'/api/department':null;
-    if(cat==='region') return vl===0?'/api/continent':vl===1?'/api/country':'/api/customer';
+    if(cat==='region') return vl===0?'/api/continent1':vl===1?'/api/continent':vl===2?'/api/country':'/api/customer';
     if(cat==='product') return vl===0?'/api/line':vl===1?'/api/category':'/api/product';
     if(cat==='sales') return '/api/sales-type';
     return null;
@@ -2905,9 +2905,10 @@ const RealApi = {
       fsArr(cat,1).forEach(v=>p.append('group',v));
       fsArr(cat,2).forEach(v=>p.append('department',v));
     } else if(cat==='region'){
-      fsArr(cat,0).forEach(v=>p.append('continent',v));
-      fsArr(cat,1).forEach(v=>p.append('country',v));
-      fsArr(cat,2).forEach(v=>p.append('customer',v));
+      fsArr(cat,0).forEach(v=>p.append('continent1',v));
+      fsArr(cat,1).forEach(v=>p.append('continent',v));
+      fsArr(cat,2).forEach(v=>p.append('country',v));
+      fsArr(cat,3).forEach(v=>p.append('customer',v));
     } else if(cat==='product'){
       fsArr(cat,0).forEach(v=>p.append('line',v));
       fsArr(cat,1).forEach(v=>p.append('category',v));
@@ -2944,9 +2945,10 @@ const RealApi = {
       if(drill[1]) p.set('group', drill[1]); else p.delete('group');
       if(drill[2]) p.set('department', drill[2]); else p.delete('department');
     } else if(cat==='region'){
-      if(drill[0]) p.set('continent', drill[0]); else p.delete('continent');
-      if(drill[1]) p.set('country', drill[1]); else p.delete('country');
-      if(drill[2]) p.set('customer', drill[2]); else p.delete('customer');
+      if(drill[0]) p.set('continent1', drill[0]); else p.delete('continent1');
+      if(drill[1]) p.set('continent', drill[1]); else p.delete('continent');
+      if(drill[2]) p.set('country', drill[2]); else p.delete('country');
+      if(drill[3]) p.set('customer', drill[3]); else p.delete('customer');
     } else if(cat==='product'){
       if(drill[0]) p.set('line', drill[0]); else p.delete('line');
       if(drill[1]) p.set('category', drill[1]); else p.delete('category');
@@ -5359,8 +5361,9 @@ function treeHierarchy(cat){
     return {
       rootLabel: '전체', rootIcon: 'layout-grid',
       levels: [
-        { icon:'globe-2', opts: USE_MOCK ? CONTINENTS : REAL_CONTINENTS },
-        { icon:'map-pin', childrenOf: (parent) => USE_MOCK ? COUNTRIES.filter(c=>c.cont===parent).map(c=>c.name) : (HIER_CONTINENT_COUNTRY[parent]||[]) },
+        { icon:'globe-2',  opts: USE_MOCK ? CONTINENTS : REAL_CONTINENTS1 },
+        { icon:'map',      childrenOf: (parent) => USE_MOCK ? [] : (HIER_CONT1_CONT2[parent]||[]) },
+        { icon:'map-pin',  childrenOf: (parent) => USE_MOCK ? COUNTRIES.filter(c=>c.cont===parent).map(c=>c.name) : (HIER_CONTINENT_COUNTRY[parent]||[]) },
         { icon:'briefcase', childrenOf: (parent) => USE_MOCK ? CUSTOMERS.slice(0, 8) : (HIER_COUNTRY_CUSTOMER[parent]||[]) },
       ],
     };
@@ -5581,17 +5584,22 @@ function renderCatFilters(){
       { lv: 2, label: '부서',   icon: 'users',      opts: USE_MOCK ? ALL_TEAMS : depts },
     ];
   } else if (cat === 'region') {
-    const selConts = fv(0);
-    const selCtrys = fv(1);
-    const mockCountries = selConts.length ? COUNTRIES.filter(c=>selConts.includes(c.cont)).map(c=>c.name) : COUNTRIES.map(c=>c.name);
-    const realCountries = selConts.length ? [...new Set(selConts.flatMap(c=>HIER_CONTINENT_COUNTRY[c]||[]))] : REAL_COUNTRIES;
+    const selCont1s = fv(0);
+    const selCont2s = fv(1);
+    const selCtrys  = fv(2);
+    const cont2s = selCont1s.length ? [...new Set(selCont1s.flatMap(c=>HIER_CONT1_CONT2[c]||[]))] : REAL_CONTINENTS;
+    const mockCountries = selCont2s.length ? COUNTRIES.filter(c=>selCont2s.includes(c.cont)).map(c=>c.name) : COUNTRIES.map(c=>c.name);
+    const realCountries = selCont2s.length ? [...new Set(selCont2s.flatMap(c=>HIER_CONTINENT_COUNTRY[c]||[]))]
+                        : selCont1s.length ? [...new Set(selCont1s.flatMap(c=>(HIER_CONT1_CONT2[c]||[]).flatMap(k=>HIER_CONTINENT_COUNTRY[k]||[])))]
+                        : REAL_COUNTRIES;
     const realCustomers = selCtrys.length ? [...new Set(selCtrys.flatMap(c=>HIER_COUNTRY_CUSTOMER[c]||[]))]
-                        : selConts.length ? [...new Set(selConts.flatMap(c=>(HIER_CONTINENT_COUNTRY[c]||[]).flatMap(k=>HIER_COUNTRY_CUSTOMER[k]||[])))]
+                        : selCont2s.length ? [...new Set(selCont2s.flatMap(c=>(HIER_CONTINENT_COUNTRY[c]||[]).flatMap(k=>HIER_COUNTRY_CUSTOMER[k]||[])))]
                         : REAL_CUSTOMERS;
     levels = [
-      { lv: 0, label: '대륙',   icon: 'globe-2',   opts: USE_MOCK ? CONTINENTS : REAL_CONTINENTS },
-      { lv: 1, label: '국가',   icon: 'map-pin',   opts: USE_MOCK ? mockCountries : realCountries },
-      { lv: 2, label: '거래처', icon: 'briefcase', opts: USE_MOCK ? CUSTOMERS : realCustomers },
+      { lv: 0, label: '권역',   icon: 'globe-2',   opts: USE_MOCK ? CONTINENTS : REAL_CONTINENTS1 },
+      { lv: 1, label: '대륙',   icon: 'map',       opts: USE_MOCK ? [] : cont2s },
+      { lv: 2, label: '국가',   icon: 'map-pin',   opts: USE_MOCK ? mockCountries : realCountries },
+      { lv: 3, label: '거래처', icon: 'briefcase', opts: USE_MOCK ? CUSTOMERS : realCustomers },
     ];
   } else if (cat === 'product') {
     const selLines = fv(0);
@@ -5944,7 +5952,8 @@ async function init(){
       state.rangeStart = 0;
       REAL_GROUPS      = filters.groups||[];
       REAL_DEPARTMENTS = filters.departments||[];
-      REAL_CONTINENTS  = filters.continents||[];
+      REAL_CONTINENTS1 = filters.continents||[];
+      REAL_CONTINENTS  = filters.continents2||[];
       REAL_COUNTRIES   = filters.countries||[];
       REAL_LINES       = filters.lines||[];
       REAL_CATEGORIES  = filters.categories||[];
@@ -5953,6 +5962,7 @@ async function init(){
       REAL_SALES_TYPES = filters.sales_types||[];
       HIER_BRAND_GROUP       = filters.brand_group||{};
       HIER_GROUP_DEPT        = filters.group_dept||{};
+      HIER_CONT1_CONT2       = filters.cont1_cont2||{};
       HIER_CONTINENT_COUNTRY = filters.continent_country||{};
       HIER_COUNTRY_CUSTOMER  = filters.country_customer||{};
       HIER_LINE_CATEGORY     = filters.line_category||{};
