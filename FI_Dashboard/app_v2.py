@@ -1138,8 +1138,11 @@ def api_prefetch():
         # Remove any prior_months key to avoid recursion
         prior_args.pop('prior_months', None)
         pw, pp = build_bq_filters(ImmutableMultiDict([(k, v) for k, vs in prior_args.items() for v in vs]))
-        tasks['priorKpi']   = (kpi_sql(pw), pp)
-        tasks['priorTrend'] = (trend_sql(pw), pp)
+        tasks['priorKpi']       = (kpi_sql(pw), pp)
+        tasks['priorTrend']     = (trend_sql(pw), pp)
+        prior_bkd_sql = _bkd_sql.get((cat, vl), lambda w: '')(pw)
+        if prior_bkd_sql:
+            tasks['priorBreakdown'] = (prior_bkd_sql, pp)
 
     if dim:
         tasks['trendByDim'] = (tbd_sql(where, dim), params)
@@ -1171,6 +1174,7 @@ def api_prefetch():
         'trendByDim': results.get('trendByDim', []),
         'priorKpi':   results.get('priorKpi',   [{}])[0] if results.get('priorKpi') else {},
         'priorTrend': results.get('priorTrend', []),
+        'priorBreakdown': results.get('priorBreakdown', []),
     }
     if is_sales:
         out['kpiAll']   = fmt_kpi(results.get('kpiAll', []))

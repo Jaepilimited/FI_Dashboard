@@ -2570,6 +2570,7 @@ let _real = {
   breakdown: [],
   trendByDim: [],
   priorTrend: {},    // { all:[] } — prior period trend for comparison
+  priorBreakdown: [],
   treeData: {},      // { 'cat|drill|level': rows }
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
 };
@@ -2978,7 +2979,8 @@ const RealApi = {
       : { all: d.trend||[], B2B: d.trend||[], B2C: d.trend||[] };
     _real.trendByDim = d.trendByDim || [];
     _real.breakdown  = this._normalize(d.breakdown || [], cat, vl);
-    _real.priorTrend = { all: d.priorTrend || [] };
+    _real.priorTrend     = { all: d.priorTrend || [] };
+    _real.priorBreakdown = d.priorBreakdown || [];
 
     // Root tree cache key
     const rootKey = `${cat}|${drill.slice(0,vl).join(',')}|${vl}`;
@@ -4474,16 +4476,19 @@ function renderTopNCards(breakdown){
   const lv = state.viewLevel?.[state.category] ?? 0;
   const dimLabel = cat?.path?.[lv] || cat?.label || '항목';
 
-  // Sort by absolute YoY (delta) change in 공헌이익 (operating_income)
-  // We approximate: compute deltaOI for each item using random-but-deterministic priorOI proxy.
+  // Build prior period lookup from real API data
+  const priorBkd = (!USE_MOCK && _real.priorBreakdown) ? _real.priorBreakdown : [];
+  const priorMap = Object.fromEntries(priorBkd.map(b => [b.name, b]));
+  const hasPrior = priorBkd.length > 0;
+
   const items = breakdown.map(b => {
-    const sales = b.sales_amount || 0;
     const oi = b.operating_income || 0;
-    const margin = b.operating_margin || 0;
-    // synthesize prior-period OI (~85% of current with jitter) for top-N change ranking
-    const priorOI = oi * (0.78 + ((Math.abs(hash(b.name)) % 100) / 100) * 0.30);
-    const priorSales = sales * (0.80 + ((Math.abs(hash(b.name, 'sales')) % 100) / 100) * 0.30);
-    const priorMargin = priorSales ? (priorOI / priorSales * 100) : 0;
+    const sales = b.sales_amount || 0;
+    const margin = sales ? oi / sales * 100 : 0;
+    const pb = priorMap[b.name] || {};
+    const priorOI = pb.operating_income || 0;
+    const priorSales = pb.sales_amount || 0;
+    const priorMargin = priorSales ? priorOI / priorSales * 100 : 0;
     return {
       name: b.name,
       flag: b.flag,
@@ -4494,12 +4499,10 @@ function renderTopNCards(breakdown){
   });
 
   const oiTop = items.slice().sort((a,b) => b.oiDelta - a.oiDelta).slice(0, 5);
-  const oiBot = items.slice().sort((a,b) => a.oiDelta - b.oiDelta).filter(it => it.oiDelta < 0).slice(0, 5);
   const mgnTop = items.slice().sort((a,b) => b.marginDeltaPp - a.marginDeltaPp).slice(0, 5);
-  const mgnBot = items.slice().sort((a,b) => a.marginDeltaPp - b.marginDeltaPp).filter(it => it.marginDeltaPp < 0).slice(0, 5);
 
-  // Decide which TWO cards to show: prefer increase + decrease pair (matches team-lead layout)
-  // 공헌이익 증감 TOP 5 + 공헌이익률 증감 TOP 5
+  const periodLabel = hasPrior ? '전기 대비' : '—';
+
   function row(it, idx, type){
     const flag = it.flag ? `${it.flag} ` : '';
     if (type === 'oi') {
@@ -4518,11 +4521,10 @@ function renderTopNCards(breakdown){
     }
   }
 
-  // Build 공헌이익 증감 TOP 5 + 공헌이익률 증감 TOP 5
   const oiCard = `<div class="topn-card">
     <div class="topn-card-hd">
       <div class="topn-card-title">${dimLabel}별 공헌이익 증감 TOP 5</div>
-      <div class="topn-card-sub">전월 대비</div>
+      <div class="topn-card-sub">${periodLabel}</div>
     </div>
     ${oiTop.map((it, i) => row(it, i, 'oi')).join('')}
   </div>`;
@@ -4530,7 +4532,7 @@ function renderTopNCards(breakdown){
   const mgnCard = `<div class="topn-card">
     <div class="topn-card-hd">
       <div class="topn-card-title">${dimLabel}별 공헌이익률 증감 TOP 5</div>
-      <div class="topn-card-sub">전월 대비</div>
+      <div class="topn-card-sub">${periodLabel}</div>
     </div>
     ${mgnTop.map((it, i) => row(it, i, 'mgn')).join('')}
   </div>`;
@@ -4545,61 +4547,63 @@ function renderDetailSummaryTable(breakdown){
   const cat = CATEGORY_DEFS.find(c => c.id === state.category);
   const lv = state.viewLevel?.[state.category] ?? 0;
   const dimLabel = cat?.path?.[lv] || cat?.label || '항목';
-  const dimColTitle = `${dimLabel}`;
   const catLabel = cat?.label || '';
 
-  // Aggregate totals
+  // Real prior period data
+  const priorBkd = (!USE_MOCK && _real.priorBreakdown) ? _real.priorBreakdown : [];
+  const priorMap = Object.fromEntries(priorBkd.map(b => [b.name, b]));
+  const hasPrior = priorBkd.length > 0;
+  const periodLabel = hasPrior ? '전기 대비' : '—';
+
   const tot = breakdown.reduce((acc, b) => {
     acc.sales += b.sales_amount || 0;
     acc.gross += b.gross_profit || 0;
-    acc.oi += b.operating_income || 0;
+    acc.oi    += b.operating_income || 0;
     return acc;
   }, { sales: 0, gross: 0, oi: 0 });
   const totMgn = tot.sales ? tot.oi / tot.sales * 100 : 0;
+
+  const priorTot = priorBkd.reduce((acc, b) => {
+    acc.sales += b.sales_amount || 0;
+    acc.gross += b.gross_profit || 0;
+    acc.oi    += b.operating_income || 0;
+    return acc;
+  }, { sales: 0, gross: 0, oi: 0 });
+  const priorTotMgn = priorTot.sales ? priorTot.oi / priorTot.sales * 100 : 0;
+
+  const pctDelta = (cur, prv) => prv ? (cur - prv) / Math.abs(prv) * 100 : null;
+  const ppDelta  = (cur, prv) => hasPrior ? cur - prv : null;
 
   function deltaCell(v, suffix){
     if (v === undefined || v === null) return '<td class="num">—</td>';
     const cls = v > 0.1 ? 'up' : v < -0.1 ? 'down' : 'flat';
     const sign = v >= 0 ? '+' : '';
-    return `<td class="num"><span class="delta ${cls}">${cls === 'up' ? '▲ ' : cls === 'down' ? '▼ ' : '— '}${sign}${v.toFixed(1)}${suffix||'%'}</span></td>`;
+    return `<td class="num"><span class="delta ${cls}">${cls==='up'?'▲ ':cls==='down'?'▼ ':'— '}${sign}${v.toFixed(1)}${suffix||'%'}</span></td>`;
   }
 
-  // Total row
-  const totMgnDelta = ((Math.abs(hash('tot','m')) % 100) / 100 - 0.5) * 2;
-  const totSalesDelta = (((Math.abs(hash('tot','s')) % 100) / 100) - 0.3) * 12;
-  const totGrossDelta = (((Math.abs(hash('tot','g')) % 100) / 100) - 0.3) * 14;
-  const totOiDelta    = (((Math.abs(hash('tot','o')) % 100) / 100) - 0.3) * 10;
-
-  // synthesize per-period deltas for any breakdown row
-  function withDeltas(b){
-    const sales = b.sales_amount || 0, gross = b.gross_profit || 0, oi = b.operating_income || 0, margin = b.operating_margin || 0;
-    const prv = name => 0.78 + ((Math.abs(hash(b.name, name)) % 100) / 100) * 0.30;
-    return {
-      ...b,
-      dSales: sales ? ((sales - sales*prv('s'))/(sales*prv('s')))*100 : 0,
-      dGross: gross ? ((gross - gross*prv('g'))/(gross*prv('g')))*100 : 0,
-      dOI:    oi ? ((oi - oi*prv('o'))/Math.abs(oi*prv('o')))*100 : 0,
-      dMgnPp: margin * (1 - prv('m')),
-    };
-  }
   function bodyRow(b, depth){
-    const it = withDeltas(b);
-    const flag = it.flag ? `${it.flag} ` : '';
+    const pb = priorMap[b.name] || {};
+    const margin = (b.sales_amount) ? b.operating_income / b.sales_amount * 100 : 0;
+    const priorMargin = (pb.sales_amount) ? (pb.operating_income||0) / pb.sales_amount * 100 : 0;
+    const dSales = pctDelta(b.sales_amount, pb.sales_amount);
+    const dGross = pctDelta(b.gross_profit, pb.gross_profit);
+    const dOI    = pctDelta(b.operating_income, pb.operating_income);
+    const dMgn   = ppDelta(margin, priorMargin);
+    const flag = b.flag ? `${b.flag} ` : '';
     const cls = depth === 0 ? 'label parent' : 'label indent';
     return `<tr class="${depth===0?'is-parent':''}">
-      <td class="${cls}">${flag}${it.name}</td>
-      <td class="num">${fmtKRW(it.sales_amount)}</td>
-      ${deltaCell(it.dSales)}
-      <td class="num">${fmtKRW(it.gross_profit)}</td>
-      ${deltaCell(it.dGross)}
-      <td class="num">${fmtKRW(it.operating_income)}</td>
-      ${deltaCell(it.dOI)}
-      <td class="num">${(it.operating_margin||0).toFixed(1)}%</td>
-      ${deltaCell(it.dMgnPp, '%p')}
+      <td class="${cls}">${flag}${b.name}</td>
+      <td class="num">${fmtKRW(b.sales_amount)}</td>
+      ${deltaCell(dSales)}
+      <td class="num">${fmtKRW(b.gross_profit)}</td>
+      ${deltaCell(dGross)}
+      <td class="num">${fmtKRW(b.operating_income)}</td>
+      ${deltaCell(dOI)}
+      <td class="num">${(b.operating_margin||0).toFixed(1)}%</td>
+      ${deltaCell(dMgn, '%p')}
     </tr>`;
   }
 
-  // Build hierarchical rows: each top-level item + its immediate children (one level deeper)
   const maxDepth = cat?.path?.length || 1;
   const canChild = lv < maxDepth - 1 && typeof api.breakdownAt === 'function';
   const rows = breakdown.slice(0, 20).map(b => {
@@ -4612,25 +4616,30 @@ function renderDetailSummaryTable(breakdown){
     return html;
   }).join('');
 
+  const totDSales = pctDelta(tot.sales, priorTot.sales);
+  const totDGross = pctDelta(tot.gross, priorTot.gross);
+  const totDOI    = pctDelta(tot.oi,    priorTot.oi);
+  const totDMgn   = ppDelta(totMgn, priorTotMgn);
+
   wrap.innerHTML = `
     <div class="detail-tbl-wrap">
       <div class="detail-tbl-hd">
         <div class="detail-tbl-title"><i data-lucide="table-2" class="ic"></i>${catLabel} 성과 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-        <div class="detail-tbl-tools">단위: 억원, % &nbsp;·&nbsp; * 전월 대비</div>
+        <div class="detail-tbl-tools">단위: 억원, % &nbsp;·&nbsp; * ${periodLabel}</div>
       </div>
       <div class="detail-tbl-scroll">
         <table class="detail-tbl">
           <thead>
             <tr>
-              <th>${dimColTitle}</th>
+              <th>${dimLabel}</th>
               <th class="num">매출액</th>
-              <th class="num">전월 대비</th>
+              <th class="num">${periodLabel}</th>
               <th class="num">매출총이익</th>
-              <th class="num">전월 대비</th>
+              <th class="num">${periodLabel}</th>
               <th class="num">공헌이익</th>
-              <th class="num">전월 대비</th>
+              <th class="num">${periodLabel}</th>
               <th class="num">공헌이익률</th>
-              <th class="num">전월 대비</th>
+              <th class="num">${periodLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -4638,13 +4647,13 @@ function renderDetailSummaryTable(breakdown){
             <tr class="is-total">
               <td class="label">전체 합계</td>
               <td class="num">${fmtKRW(tot.sales)}</td>
-              ${deltaCell(totSalesDelta)}
+              ${deltaCell(totDSales)}
               <td class="num">${fmtKRW(tot.gross)}</td>
-              ${deltaCell(totGrossDelta)}
+              ${deltaCell(totDGross)}
               <td class="num">${fmtKRW(tot.oi)}</td>
-              ${deltaCell(totOiDelta)}
+              ${deltaCell(totDOI)}
               <td class="num">${totMgn.toFixed(1)}%</td>
-              ${deltaCell(totMgnDelta, '%p')}
+              ${deltaCell(totDMgn, '%p')}
             </tr>
           </tbody>
         </table>
@@ -4684,6 +4693,7 @@ function buildDrillCharts(){
       const gray = c.isDark ? '#5A6478' : '#AEB7C7';
       const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
       const dss = [
+        { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
         { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
         { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
         { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
