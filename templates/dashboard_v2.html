@@ -2409,7 +2409,7 @@ const state = {
   rangeStart: 0,
   rangeEnd: 0,
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false,
-  rawFilter: { group:'', department:'', continent:'', country:'', line:'', category:'', salesType:'' },
+  rawFilter: { group:'', department:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'' },
 };
 function fsArr(cat, lv){ const s = state.filterSel[cat]; return s && s[lv] && s[lv].size ? [...s[lv]] : []; }
 function fsDepth(cat){ const s = state.filterSel[cat]; if(!s) return 0; for(let i=2;i>=0;i--){ if(s[i]&&s[i].size) return i+1; } return 0; }
@@ -2441,7 +2441,7 @@ let _real = {
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
 };
 let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
-let REAL_LINES=[], REAL_CATEGORIES=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
+let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
 // 계층 매핑: 상위 → 하위 목록
 let HIER_GROUP_DEPT={}, HIER_CONTINENT_COUNTRY={}, HIER_COUNTRY_CUSTOMER={}, HIER_LINE_CATEGORY={};
 
@@ -3898,14 +3898,16 @@ function renderRawDataView(){
   const _ctrys = USE_MOCK ? COUNTRIES.map(c=>c.name)               : REAL_COUNTRIES;
   const _lines = USE_MOCK ? LINES                                   : REAL_LINES;
   const _cats  = USE_MOCK ? [...new Set(Object.values(CATEGORIES_BY_LINE).flat())] : REAL_CATEGORIES;
+  const _brands = USE_MOCK ? []                                    : REAL_BRANDS;
   const _sts   = USE_MOCK ? ['B2B','B2C']                          : REAL_SALES_TYPES;
   const grpOpts = _grps.map(v=>`<option value="${v}"${state.rawFilter.group===v?' selected':''}>${v}</option>`).join('');
   const deptOpts = _depts.map(v=>`<option value="${v}"${state.rawFilter.department===v?' selected':''}>${v}</option>`).join('');
   const contOpts = _conts.map(v=>`<option value="${v}"${state.rawFilter.continent===v?' selected':''}>${v}</option>`).join('');
   const ctryOpts = _ctrys.map(v=>`<option value="${v}"${state.rawFilter.country===v?' selected':''}>${v}</option>`).join('');
   const lineOpts = _lines.map(v=>`<option value="${v}"${state.rawFilter.line===v?' selected':''}>${v}</option>`).join('');
-  const catOpts  = _cats.map(v=>`<option value="${v}"${state.rawFilter.category===v?' selected':''}>${v}</option>`).join('');
-  const stOpts   = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
+  const catOpts   = _cats.map(v=>`<option value="${v}"${state.rawFilter.category===v?' selected':''}>${v}</option>`).join('');
+  const brandOpts = _brands.map(v=>`<option value="${v}"${state.rawFilter.brand===v?' selected':''}>${v}</option>`).join('');
+  const stOpts    = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
   return `<div class="raw-view">
     <div class="raw-filter-bar">
       <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
@@ -3914,6 +3916,7 @@ function renderRawDataView(){
       <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
       <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
       <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
+      ${_brands.length ? `<select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>` : ''}
       <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
     </div>
@@ -3930,7 +3933,7 @@ function renderRawDataView(){
     </div>
     <div class="rtw"><table>
       <thead><tr>
-        <th>연월</th><th>그룹</th><th>부서</th><th>판매유형</th><th>라인</th><th>카테고리</th>
+        <th>연월</th><th>그룹</th><th>부서</th><th>판매유형</th><th>라인</th><th>카테고리</th><th>브랜드</th>
         <th>국가</th><th>거래처</th><th>품명</th><th>품번</th><th>규격</th>
         <th class="num">수량</th><th class="num">매출액</th><th class="num">매출원가</th>
         <th class="num">매출총이익</th><th class="num">판관비</th><th class="num">공헌이익</th>
@@ -3948,12 +3951,13 @@ function initRawDataView(){
     state.rawFilter.continent  = ($('#rawContSel')||{}).value || '';
     state.rawFilter.country    = ($('#rawCtrySel')||{}).value || '';
     state.rawFilter.line       = ($('#rawLineSel')||{}).value || '';
-    state.rawFilter.category   = ($('#rawCatSel')||{}).value  || '';
-    state.rawFilter.salesType  = ($('#rawSalesSel')||{}).value|| '';
+    state.rawFilter.category   = ($('#rawCatSel')||{}).value    || '';
+    state.rawFilter.brand      = ($('#rawBrandSel')||{}).value  || '';
+    state.rawFilter.salesType  = ($('#rawSalesSel')||{}).value  || '';
     state.rawPage = 1;
     loadRawPage();
   };
-  ['rawGrpSel','rawDeptSel','rawContSel','rawCtrySel','rawLineSel','rawCatSel','rawSalesSel'].forEach(id => {
+  ['rawGrpSel','rawDeptSel','rawContSel','rawCtrySel','rawLineSel','rawCatSel','rawBrandSel','rawSalesSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
@@ -5010,6 +5014,7 @@ async function loadRawPage(){
     if(state.rawFilter.country)    p.set('country',    state.rawFilter.country);
     if(state.rawFilter.line)       p.set('line',       state.rawFilter.line);
     if(state.rawFilter.category)   p.set('category',   state.rawFilter.category);
+    if(state.rawFilter.brand)      p.set('brand',      state.rawFilter.brand);
     if(state.rawFilter.salesType)  p.set('sales_type', state.rawFilter.salesType);
     p.set('page',     state.rawPage);
     p.set('per_page', state.rawPerPage);
@@ -5038,6 +5043,7 @@ function renderRaw(){
     <td><span class="pill ${r.Sales_Type === 'B2C' ? 'b2c' : 'b2b'}">${r.Sales_Type||''}</span></td>
     <td class="td-clip-sm" title="${esc(r.Line||'')}">${r.Line||''}</td>
     <td class="td-clip-sm" title="${esc(r.Category||'')}">${r.Category||''}</td>
+    ${!USE_MOCK?`<td class="td-clip-sm" title="${esc(r.Brand||'')}">${r.Brand||''}</td>`:''}
     ${USE_MOCK?`<td>${r.Continent||''}</td>`:''}
     <td class="td-clip-sm" title="${esc(r.Country||'')}">${USE_MOCK?(`<span class="flag">${r.Country_Flag||''}</span>`):''} ${r.Country||''}</td>
     <td class="td-clip" title="${esc(cust)}">${cust}</td>
@@ -5747,6 +5753,7 @@ async function init(){
       REAL_COUNTRIES   = filters.countries||[];
       REAL_LINES       = filters.lines||[];
       REAL_CATEGORIES  = filters.categories||[];
+      REAL_BRANDS      = filters.brands||[];
       REAL_CUSTOMERS   = filters.customers||[];
       REAL_SALES_TYPES = filters.sales_types||[];
       HIER_GROUP_DEPT        = filters.group_dept||{};

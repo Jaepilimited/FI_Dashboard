@@ -422,6 +422,7 @@ def build_bq_filters(args):
     _arr('customer',   'Customer',   'customer_vals')
     _arr('line',       'Line',       'line_vals')
     _arr('category',   'Category',   'category_vals')
+    _arr('brand',      'Brand',      'brand_vals')
     _arr('sales_type', 'Sales_Type', 'sales_type_vals')
 
     product = args.get('product', '').strip()
@@ -465,6 +466,7 @@ def api_filters():
         'countries':   (f"SELECT DISTINCT Country FROM `{T}` WHERE Country IS NOT NULL AND Country != '' ORDER BY Country", 'Country'),
         'continents':  (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2'),
         'groups':      (f"SELECT DISTINCT `Group` FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' ORDER BY `Group`", 'Group'),
+        'brands':      (f"SELECT DISTINCT Brand FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' ORDER BY Brand", 'Brand'),
     }
     hier_queries = {
         'group_dept':      f"SELECT DISTINCT `Group`, Department FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' AND Department IS NOT NULL AND Department != '' ORDER BY `Group`, Department",
@@ -737,7 +739,7 @@ def api_export_csv():
     chunk_size = int(request.args.get('chunk_size', 0))
     chunk_num  = int(request.args.get('chunk_num',  1))
 
-    SELECT_COLS = ("Year_Month, `Group`, Department, Sales_Type, Line, Category, Country, Customer,"
+    SELECT_COLS = ("Year_Month, `Group`, Department, Sales_Type, Line, Category, Brand, Country, Customer,"
                    " Product_Name, Product_Code, Specification, Sales_Quantity, Sales_Amount,"
                    " Cost_of_Sales, Gross_Profit, SG_and_A_Expenses, Operating_Income")
     sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
@@ -747,10 +749,10 @@ def api_export_csv():
 
     rows = run_query_cached(sql, params)
 
-    col_names  = ['Year_Month','Group','Department','Sales_Type','Line','Category','Country','Customer',
+    col_names  = ['Year_Month','Group','Department','Sales_Type','Line','Category','Brand','Country','Customer',
                   'Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount',
                   'Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']
-    col_labels = ['연월','그룹','부서','판매유형','라인','카테고리','국가','거래처','품명','품번','규격',
+    col_labels = ['연월','그룹','부서','판매유형','라인','카테고리','브랜드','국가','거래처','품명','품번','규격',
                   '수량','매출액','매출원가','매출총이익','판관비','공헌이익']
 
     output = io.StringIO()
@@ -791,7 +793,7 @@ def api_raw():
         return rows
 
     SELECT_COLS = """
-        Year_Month, Department, `Group`, Sales_Type, Line, Category, Country,
+        Year_Month, Department, `Group`, Sales_Type, Line, Category, Brand, Country,
         Customer, Product_Name, Product_Code, Specification,
         Sales_Quantity, Sales_Amount, Cost_of_Sales, Gross_Profit,
         SG_and_A_Expenses, Operating_Income
