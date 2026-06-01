@@ -1172,7 +1172,7 @@ def api_prefetch():
         'trend':     results.get('trend', []),
         'breakdown': results.get('breakdown', []),
         'trendByDim': results.get('trendByDim', []),
-        'priorKpi':   results.get('priorKpi',   [{}])[0] if results.get('priorKpi') else {},
+        'priorKpi':   fmt_kpi(results.get('priorKpi', [])),
         'priorTrend': results.get('priorTrend', []),
         'priorBreakdown': results.get('priorBreakdown', []),
     }

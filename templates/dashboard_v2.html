@@ -2980,7 +2980,7 @@ const RealApi = {
     _real.trendByDim = d.trendByDim || [];
     _real.breakdown  = this._normalize(d.breakdown || [], cat, vl);
     _real.priorTrend     = { all: d.priorTrend || [] };
-    _real.priorBreakdown = d.priorBreakdown || [];
+    _real.priorBreakdown = this._normalize(d.priorBreakdown || [], cat, vl);
 
     // Root tree cache key
     const rootKey = `${cat}|${drill.slice(0,vl).join(',')}|${vl}`;
