@@ -2545,7 +2545,7 @@ const state = {
   rangeStart: 0,
   rangeEnd: 0,
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false,
-  rawFilter: { group:'', department:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'' },
+  rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'' },
 };
 function fsArr(cat, lv){ const s = state.filterSel[cat]; return s && s[lv] && s[lv].size ? [...s[lv]] : []; }
 function fsDepth(cat){ const s = state.filterSel[cat]; if(!s) return 0; for(let i=2;i>=0;i--){ if(s[i]&&s[i].size) return i+1; } return 0; }
@@ -4069,17 +4069,19 @@ function renderKPI(){
 function renderRawDataView(){
   const _grps  = USE_MOCK ? HONBUS                                  : REAL_GROUPS;
   const _depts = USE_MOCK ? ALL_TEAMS                               : REAL_DEPARTMENTS;
-  const _conts = USE_MOCK ? CONTINENTS                              : REAL_CONTINENTS;
+  const _conts1 = USE_MOCK ? CONTINENTS                              : REAL_CONTINENTS1;
+  const _conts2 = USE_MOCK ? CONTINENTS                              : REAL_CONTINENTS;
   const _ctrys = USE_MOCK ? COUNTRIES.map(c=>c.name)               : REAL_COUNTRIES;
   const _lines = USE_MOCK ? LINES                                   : REAL_LINES;
   const _cats  = USE_MOCK ? [...new Set(Object.values(CATEGORIES_BY_LINE).flat())] : REAL_CATEGORIES;
   const _brands = USE_MOCK ? []                                    : REAL_BRANDS;
   const _sts   = USE_MOCK ? ['B2B','B2C']                          : REAL_SALES_TYPES;
-  const grpOpts = _grps.map(v=>`<option value="${v}"${state.rawFilter.group===v?' selected':''}>${v}</option>`).join('');
-  const deptOpts = _depts.map(v=>`<option value="${v}"${state.rawFilter.department===v?' selected':''}>${v}</option>`).join('');
-  const contOpts = _conts.map(v=>`<option value="${v}"${state.rawFilter.continent===v?' selected':''}>${v}</option>`).join('');
-  const ctryOpts = _ctrys.map(v=>`<option value="${v}"${state.rawFilter.country===v?' selected':''}>${v}</option>`).join('');
-  const lineOpts = _lines.map(v=>`<option value="${v}"${state.rawFilter.line===v?' selected':''}>${v}</option>`).join('');
+  const grpOpts   = _grps.map(v=>`<option value="${v}"${state.rawFilter.group===v?' selected':''}>${v}</option>`).join('');
+  const deptOpts  = _depts.map(v=>`<option value="${v}"${state.rawFilter.department===v?' selected':''}>${v}</option>`).join('');
+  const cont1Opts = _conts1.map(v=>`<option value="${v}"${state.rawFilter.continent1===v?' selected':''}>${v}</option>`).join('');
+  const cont2Opts = _conts2.map(v=>`<option value="${v}"${state.rawFilter.continent===v?' selected':''}>${v}</option>`).join('');
+  const ctryOpts  = _ctrys.map(v=>`<option value="${v}"${state.rawFilter.country===v?' selected':''}>${v}</option>`).join('');
+  const lineOpts  = _lines.map(v=>`<option value="${v}"${state.rawFilter.line===v?' selected':''}>${v}</option>`).join('');
   const catOpts   = _cats.map(v=>`<option value="${v}"${state.rawFilter.category===v?' selected':''}>${v}</option>`).join('');
   const brandOpts = _brands.map(v=>`<option value="${v}"${state.rawFilter.brand===v?' selected':''}>${v}</option>`).join('');
   const stOpts    = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
@@ -4087,7 +4089,8 @@ function renderRawDataView(){
     <div class="raw-filter-bar">
       <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
       <select class="select-sm" id="rawDeptSel"><option value="">전체 부서</option>${deptOpts}</select>
-      <select class="select-sm" id="rawContSel"><option value="">전체 대륙</option>${contOpts}</select>
+      <select class="select-sm" id="rawCont1Sel"><option value="">전체 대륙1</option>${cont1Opts}</select>
+      <select class="select-sm" id="rawContSel"><option value="">전체 대륙2</option>${cont2Opts}</select>
       <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
       <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
       <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
@@ -4107,12 +4110,7 @@ function renderRawDataView(){
       </div>
     </div>
     <div class="rtw"><table>
-      <thead><tr>
-        <th>연월</th><th>그룹</th><th>부서</th><th>판매유형</th><th>대륙</th><th>국가</th><th>거래처</th>
-        <th>브랜드</th><th>라인</th><th>카테고리</th><th>품명</th><th>품번</th><th>규격</th>
-        <th class="num">수량</th><th class="num">매출액</th><th class="num">매출원가</th>
-        <th class="num">매출총이익</th><th class="num">판관비</th><th class="num">공헌이익</th>
-      </tr></thead>
+      <thead id="rawThead"><tr><th>—</th></tr></thead>
       <tbody id="rawTb"></tbody>
     </table></div>
     <div class="pagi" id="rawPagi"></div>
@@ -4121,18 +4119,19 @@ function renderRawDataView(){
 
 function initRawDataView(){
   const onFilterChange = () => {
-    state.rawFilter.group      = ($('#rawGrpSel')||{}).value  || '';
-    state.rawFilter.department = ($('#rawDeptSel')||{}).value || '';
-    state.rawFilter.continent  = ($('#rawContSel')||{}).value || '';
-    state.rawFilter.country    = ($('#rawCtrySel')||{}).value || '';
-    state.rawFilter.line       = ($('#rawLineSel')||{}).value || '';
+    state.rawFilter.group      = ($('#rawGrpSel')||{}).value    || '';
+    state.rawFilter.department = ($('#rawDeptSel')||{}).value   || '';
+    state.rawFilter.continent1 = ($('#rawCont1Sel')||{}).value  || '';
+    state.rawFilter.continent  = ($('#rawContSel')||{}).value   || '';
+    state.rawFilter.country    = ($('#rawCtrySel')||{}).value   || '';
+    state.rawFilter.line       = ($('#rawLineSel')||{}).value   || '';
     state.rawFilter.category   = ($('#rawCatSel')||{}).value    || '';
     state.rawFilter.brand      = ($('#rawBrandSel')||{}).value  || '';
     state.rawFilter.salesType  = ($('#rawSalesSel')||{}).value  || '';
     state.rawPage = 1;
     loadRawPage();
   };
-  ['rawGrpSel','rawDeptSel','rawContSel','rawCtrySel','rawLineSel','rawCatSel','rawBrandSel','rawSalesSel'].forEach(id => {
+  ['rawGrpSel','rawDeptSel','rawCont1Sel','rawContSel','rawCtrySel','rawLineSel','rawCatSel','rawBrandSel','rawSalesSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
@@ -5242,11 +5241,12 @@ async function loadRawPage(){
   if(!USE_MOCK){
     const p = new URLSearchParams();
     activeMonths().forEach(m => p.append('months', m));
-    if(state.rawFilter.group)      p.set('group',      state.rawFilter.group);
-    if(state.rawFilter.department) p.set('department', state.rawFilter.department);
-    if(state.rawFilter.continent)  p.set('continent',  state.rawFilter.continent);
-    if(state.rawFilter.country)    p.set('country',    state.rawFilter.country);
-    if(state.rawFilter.line)       p.set('line',       state.rawFilter.line);
+    if(state.rawFilter.group)       p.set('group',       state.rawFilter.group);
+    if(state.rawFilter.department)  p.set('department',  state.rawFilter.department);
+    if(state.rawFilter.continent1)  p.set('continent1',  state.rawFilter.continent1);
+    if(state.rawFilter.continent)   p.set('continent',   state.rawFilter.continent);
+    if(state.rawFilter.country)     p.set('country',     state.rawFilter.country);
+    if(state.rawFilter.line)        p.set('line',        state.rawFilter.line);
     if(state.rawFilter.category)   p.set('category',   state.rawFilter.category);
     if(state.rawFilter.brand)      p.set('brand',      state.rawFilter.brand);
     if(state.rawFilter.salesType)  p.set('sales_type', state.rawFilter.salesType);
@@ -5260,40 +5260,56 @@ async function loadRawPage(){
 
 function renderRaw(){
   if (state.category !== 'rawdata') return;
-  const res = USE_MOCK ? api.raw(state.rawPage, state.rawPerPage) : (_real.raw||{total:0,page:1,per_page:100,rows:[]});
+  const res = USE_MOCK ? api.raw(state.rawPage, state.rawPerPage) : (_real.raw||{total:0,page:1,per_page:100,rows:[],columns:[]});
   if($('#rawTotal')) $('#rawTotal').textContent = fmtFull(res.total);
   const pages = Math.max(1, Math.ceil(res.total / state.rawPerPage));
   if($('#rawPgInfo')) $('#rawPgInfo').textContent = `페이지 ${state.rawPage} / ${pages}`;
+
+  // column name → Korean label mapping
+  const COL_LABEL = {
+    Year_Month:'연월', Group:'그룹', Honbu:'그룹', Department:'부서', Team:'부서',
+    Sales_Type:'판매유형', Continent:'대륙', Continent1:'대륙1', Continent2:'대륙2',
+    Country:'국가', Country_Flag:'국기', Customer:'거래처', Brand:'브랜드',
+    Line:'라인', Category:'카테고리', Product_Name:'품명', Product_Code:'품번',
+    Specification:'규격', Sales_Quantity:'수량', Sales_Amount:'매출액',
+    Cost_of_Sales:'매출원가', Gross_Profit:'매출총이익',
+    SG_and_A_Expenses:'판관비', Operating_Income:'공헌이익',
+  };
+  const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']);
+  const NUM_QTY  = new Set(['Sales_Quantity']);
+  const SKIP_COL = new Set(['Country_Flag']);
+
+  // derive columns from API response (real) or first row keys (mock)
+  const cols = (res.columns && res.columns.length)
+    ? res.columns.filter(c => !SKIP_COL.has(c))
+    : (res.rows[0] ? Object.keys(res.rows[0]).filter(c => !SKIP_COL.has(c)) : []);
+
+  // update thead
+  const thead = $('#rawThead');
+  if(thead) thead.innerHTML = '<tr>' + cols.map(c => {
+    const num = NUM_KRW.has(c) || NUM_QTY.has(c);
+    return `<th${num?' class="num"':''}>${COL_LABEL[c]||c}</th>`;
+  }).join('') + '</tr>';
+
   const rawTb = $('#rawTb');
   const esc = s => String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   if(rawTb) rawTb.innerHTML = res.rows.map(r => {
-    const grp  = USE_MOCK?(r.Honbu||''):(r.Group||'');
-    const dept = USE_MOCK?(r.Team||''):(r.Department||'');
-    const cont = r.Continent||'';
-    const cntry = r.Country||''; const flag = USE_MOCK ? (r.Country_Flag||'') : '';
-    const brand = r.Brand||'';
-    const cust = r.Customer||''; const pname = r.Product_Name||''; const spec = r.Specification||'';
-    return `<tr>
-    <td class="mono">${r.Year_Month||''}</td>
-    <td class="td-clip-sm" title="${esc(grp)}">${grp}</td>
-    <td class="td-clip-sm" title="${esc(dept)}">${dept}</td>
-    <td><span class="pill ${r.Sales_Type === 'B2C' ? 'b2c' : 'b2b'}">${r.Sales_Type||''}</span></td>
-    <td class="td-clip-sm">${cont}</td>
-    <td class="td-clip-sm" title="${esc(cntry)}">${flag ? `<span class="flag">${flag}</span> ` : ''}${cntry}</td>
-    <td class="td-clip" title="${esc(cust)}">${cust}</td>
-    <td class="td-clip-sm" title="${esc(brand)}">${brand}</td>
-    <td class="td-clip-sm" title="${esc(r.Line||'')}">${r.Line||''}</td>
-    <td class="td-clip-sm" title="${esc(r.Category||'')}">${r.Category||''}</td>
-    <td class="td-clip" title="${esc(pname)}">${pname}</td>
-    <td class="mono td-clip-sm" style="color:var(--text-tertiary)" title="${esc(r.Product_Code||'')}">${r.Product_Code||''}</td>
-    <td class="td-clip-sm" title="${esc(spec)}">${spec}</td>
-    <td class="num">${fmtFull(r.Sales_Quantity)}</td>
-    <td class="num">${fmtKRW(r.Sales_Amount)}</td>
-    <td class="num">${fmtKRW(r.Cost_of_Sales)}</td>
-    <td class="num"><span class="pos">${fmtKRW(r.Gross_Profit)}</span></td>
-    <td class="num">${fmtKRW(r.SG_and_A_Expenses)}</td>
-    <td class="num"><span class="${(r.Operating_Income||0) >= 0 ? 'pos' : 'neg'}">${fmtKRW(r.Operating_Income)}</span></td>
-  </tr>`;}).join('');
+    const flag = r.Country_Flag || '';
+    return '<tr>' + cols.map(c => {
+      const v = r[c];
+      const sv = v == null ? '' : String(v);
+      if(c === 'Sales_Type') return `<td><span class="pill ${v==='B2C'?'b2c':'b2b'}">${sv}</span></td>`;
+      if(c === 'Country' && flag) return `<td class="td-clip-sm"><span class="flag">${flag}</span> ${sv}</td>`;
+      if(c === 'Year_Month' || c === 'Product_Code') return `<td class="mono td-clip-sm">${sv}</td>`;
+      if(NUM_KRW.has(c)){
+        const n = Number(v)||0;
+        const cls = (c==='Gross_Profit'||c==='Operating_Income') ? (n>=0?'pos':'neg') : '';
+        return `<td class="num">${cls?`<span class="${cls}">`:''}${fmtKRW(n)}${cls?'</span>':''}</td>`;
+      }
+      if(NUM_QTY.has(c)) return `<td class="num">${fmtFull(Number(v)||0)}</td>`;
+      return `<td class="td-clip-sm" title="${esc(sv)}">${sv}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
   // pagination
   const rawPagi = $('#rawPagi');
   if(!rawPagi) return;
@@ -5356,11 +5372,12 @@ async function downloadCSV(){
   // Build filter params \u2014 use activeMonths() to respect current slider range
   const p = new URLSearchParams();
   activeMonths().forEach(m => p.append('months', m));
-  if(state.rawFilter.group)      p.append('group',      state.rawFilter.group);
-  if(state.rawFilter.department) p.append('department', state.rawFilter.department);
-  if(state.rawFilter.continent)  p.append('continent',  state.rawFilter.continent);
-  if(state.rawFilter.country)    p.append('country',    state.rawFilter.country);
-  if(state.rawFilter.line)       p.append('line',       state.rawFilter.line);
+  if(state.rawFilter.group)       p.append('group',       state.rawFilter.group);
+  if(state.rawFilter.department)  p.append('department',  state.rawFilter.department);
+  if(state.rawFilter.continent1)  p.append('continent1',  state.rawFilter.continent1);
+  if(state.rawFilter.continent)   p.append('continent',   state.rawFilter.continent);
+  if(state.rawFilter.country)     p.append('country',     state.rawFilter.country);
+  if(state.rawFilter.line)        p.append('line',        state.rawFilter.line);
   if(state.rawFilter.category)   p.append('category',   state.rawFilter.category);
   if(state.rawFilter.salesType)  p.append('sales_type', state.rawFilter.salesType);
   if(state.rawSearch)            p.set('search',        state.rawSearch);

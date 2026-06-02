@@ -761,26 +761,21 @@ def api_export_csv():
     chunk_size = int(request.args.get('chunk_size', 0))
     chunk_num  = int(request.args.get('chunk_num',  1))
 
-    SELECT_COLS = ("Year_Month, `Group`, Department, Sales_Type, Line, Category, Brand, Country, Customer,"
-                   " Product_Name, Product_Code, Specification, Sales_Quantity, Sales_Amount,"
-                   " Cost_of_Sales, Gross_Profit, SG_and_A_Expenses, Operating_Income")
-    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
+    sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
     if chunk_size > 0:
         offset = (chunk_num - 1) * chunk_size
         sql += f" LIMIT {chunk_size} OFFSET {offset}"
 
     rows = run_query_cached(sql, params)
+    rows_list = list(rows)
 
-    col_names  = ['Year_Month','Group','Department','Sales_Type','Line','Category','Brand','Country','Customer',
-                  'Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount',
-                  'Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']
-    col_labels = ['연월','그룹','부서','판매유형','라인','카테고리','브랜드','국가','거래처','품명','품번','규격',
-                  '수량','매출액','매출원가','매출총이익','판관비','공헌이익']
+    # column names from first row; fall back to empty
+    col_names = list(rows_list[0].keys()) if rows_list else []
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(col_labels)
-    for row in rows:
+    writer.writerow(col_names)
+    for row in rows_list:
         writer.writerow([row.get(c, '') if row.get(c) is not None else '' for c in col_names])
 
     filename = f"FI_Export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -814,17 +809,11 @@ def api_raw():
             rows.append(r)
         return rows
 
-    SELECT_COLS = """
-        Year_Month, Department, `Group`, Sales_Type, Line, Category, Brand, Country,
-        Customer, Product_Name, Product_Code, Specification,
-        Sales_Quantity, Sales_Amount, Cost_of_Sales, Gross_Profit,
-        SG_and_A_Expenses, Operating_Income
-    """
-
     if export:
-        sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
+        sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
         rows = serialize(run_query_cached(sql, params))
-        return jsonify({'total': len(rows), 'rows': rows})
+        cols = list(rows[0].keys()) if rows else []
+        return jsonify({'total': len(rows), 'rows': rows, 'columns': cols})
 
     try:
         page     = max(1, int(request.args.get('page', 1)))
@@ -836,9 +825,10 @@ def api_raw():
     count_sql = f"SELECT COUNT(*) AS cnt FROM `{config.BQ_TABLE}` {where}"
     total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
 
-    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
+    sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
     rows = serialize(run_query_cached(sql, params))
-    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'rows': rows})
+    cols = list(rows[0].keys()) if rows else []
+    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'rows': rows, 'columns': cols})
 
 
 # ─── 어드민 ────────────────────────────────────────────────────────
