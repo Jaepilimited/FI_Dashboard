@@ -3660,7 +3660,7 @@ function changeFactorCardHtml(){
 function renderWaterfallShell(){
   const shell = $('#waterfallShell');
   if (!shell) return;
-  if (state.category === 'rawdata' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
+  if (state.category === 'rawdata' || state.category === 'org' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
   shell.style.display = '';
 
   const k = api.kpi();
@@ -4396,9 +4396,31 @@ function renderDrillView(){
   `;
   }
 
-  // ── ORG default layout ──
+  // ── ORG layout (지역별과 동일 구성: 손익흐름 + 매출비중 / 월별추이 + TOP N / 성과요약) ──
   return `
     <div class="row-grid-2">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <div class="card-title"><i data-lucide="bar-chart-3"></i>${levelLabel}별 손익 흐름 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
+            <div class="card-sub">${levelLabel}별 매출액 · 매출원가 · 매출총이익 · 판매관리비 · 공헌이익</div>
+          </div>
+          <div class="waterfall-card-unit">단위: 억원</div>
+        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="dimWaterfallChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <div class="card-title"><i data-lucide="pie-chart"></i>${levelLabel}별 매출 비중 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
+            <div class="card-sub">${levelLabel}별 매출 점유율</div>
+          </div>
+        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="region-row3">
       <div class="card">
         <div class="card-hd">
           <div>
@@ -4407,24 +4429,10 @@ function renderDrillView(){
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="dimTrendChart"></canvas></div>
-        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="dimTrendChart"></canvas></div></div>
       </div>
-      <div class="card">
-        <div class="card-hd">
-          <div>
-            <div class="card-title"><i data-lucide="pie-chart"></i>${state.category === 'org' ? '손익 구조' : state.category === 'product' ? '라인별 공헌이익 비중' : '매출 비중'}<span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">${state.category === 'org' ? '매출원가 · 판매관리비 · 공헌이익' : state.category === 'product' ? '라인별 공헌이익 점유율' : levelLabel + '별 매출 점유율'}</div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
-        </div>
-      </div>
+      <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
-
-    ${state.category === 'org' ? '' : '<div class="topn-grid" id="topNGrid"></div>'}
 
     <div id="detailSummaryTable"></div>
   `;
@@ -4686,7 +4694,7 @@ function buildDrillCharts(){
 
   // ── per-dimension profit waterfall (region & product) ──
   destroyChart('dimWaterfall');
-  if (state.category === 'region' || state.category === 'product') {
+  if (state.category === 'region' || state.category === 'product' || state.category === 'org') {
     const wctx = resetCanvas('dimWaterfallChart');
     if (wctx) {
       const wfN = Math.min(8, breakdown.length);
@@ -4754,19 +4762,12 @@ function buildDrillCharts(){
     });
   }
 
-  // ── donut: category-aware (org=손익구조 / region=매출비중 / product=공헌이익비중) ──
+  // ── donut: category-aware (org/region=매출비중 / product=공헌이익비중) ──
   destroyChart('donut');
   const dctx = resetCanvas('donutChart');
   let labels, vals, donutColors, centerLabel, centerVal;
   const c2 = chartColors();
-  if (state.category === 'org') {
-    // 손익 구조 (P&L parts): 매출원가 / 판매관리비 / 공헌이익
-    const k = api.kpi();
-    labels = ['매출원가', '판매관리비', '공헌이익'];
-    vals = [k.cost_of_sales, k.sga_expenses, k.operating_income];
-    donutColors = [c2.accent, c2.positive, c2.plum];
-    centerLabel = '공헌이익'; centerVal = k.operating_income;
-  } else {
+  {
     const metricKey = state.category === 'product' ? 'operating_income' : 'sales_amount';
     const max = 10;
     const dTop = breakdown.slice(0, max);
