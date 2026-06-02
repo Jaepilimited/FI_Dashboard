@@ -4091,7 +4091,7 @@ function renderRawDataView(){
       <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
       <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
       <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
-      ${_brands.length ? `<select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>` : ''}
+      <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
       <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
     </div>
@@ -4108,8 +4108,8 @@ function renderRawDataView(){
     </div>
     <div class="rtw"><table>
       <thead><tr>
-        <th>연월</th><th>그룹</th><th>부서</th><th>판매유형</th><th>라인</th><th>카테고리</th><th>브랜드</th>
-        <th>국가</th><th>거래처</th><th>품명</th><th>품번</th><th>규격</th>
+        <th>연월</th><th>그룹</th><th>부서</th><th>판매유형</th><th>대륙</th><th>국가</th><th>거래처</th>
+        <th>브랜드</th><th>라인</th><th>카테고리</th><th>품명</th><th>품번</th><th>규격</th>
         <th class="num">수량</th><th class="num">매출액</th><th class="num">매출원가</th>
         <th class="num">매출총이익</th><th class="num">판관비</th><th class="num">공헌이익</th>
       </tr></thead>
@@ -5269,21 +5269,24 @@ function renderRaw(){
   if(rawTb) rawTb.innerHTML = res.rows.map(r => {
     const grp  = USE_MOCK?(r.Honbu||''):(r.Group||'');
     const dept = USE_MOCK?(r.Team||''):(r.Department||'');
+    const cont = r.Continent||'';
+    const cntry = r.Country||''; const flag = USE_MOCK ? (r.Country_Flag||'') : '';
+    const brand = r.Brand||'';
     const cust = r.Customer||''; const pname = r.Product_Name||''; const spec = r.Specification||'';
     return `<tr>
     <td class="mono">${r.Year_Month||''}</td>
     <td class="td-clip-sm" title="${esc(grp)}">${grp}</td>
     <td class="td-clip-sm" title="${esc(dept)}">${dept}</td>
     <td><span class="pill ${r.Sales_Type === 'B2C' ? 'b2c' : 'b2b'}">${r.Sales_Type||''}</span></td>
+    <td class="td-clip-sm">${cont}</td>
+    <td class="td-clip-sm" title="${esc(cntry)}">${flag ? `<span class="flag">${flag}</span> ` : ''}${cntry}</td>
+    <td class="td-clip" title="${esc(cust)}">${cust}</td>
+    <td class="td-clip-sm" title="${esc(brand)}">${brand}</td>
     <td class="td-clip-sm" title="${esc(r.Line||'')}">${r.Line||''}</td>
     <td class="td-clip-sm" title="${esc(r.Category||'')}">${r.Category||''}</td>
-    ${!USE_MOCK?`<td class="td-clip-sm" title="${esc(r.Brand||'')}">${r.Brand||''}</td>`:''}
-    ${USE_MOCK?`<td>${r.Continent||''}</td>`:''}
-    <td class="td-clip-sm" title="${esc(r.Country||'')}">${USE_MOCK?(`<span class="flag">${r.Country_Flag||''}</span>`):''} ${r.Country||''}</td>
-    <td class="td-clip" title="${esc(cust)}">${cust}</td>
     <td class="td-clip" title="${esc(pname)}">${pname}</td>
     <td class="mono td-clip-sm" style="color:var(--text-tertiary)" title="${esc(r.Product_Code||'')}">${r.Product_Code||''}</td>
-    ${!USE_MOCK?`<td class="td-clip-sm" title="${esc(spec)}">${spec}</td>`:''}
+    <td class="td-clip-sm" title="${esc(spec)}">${spec}</td>
     <td class="num">${fmtFull(r.Sales_Quantity)}</td>
     <td class="num">${fmtKRW(r.Sales_Amount)}</td>
     <td class="num">${fmtKRW(r.Cost_of_Sales)}</td>
@@ -5379,7 +5382,10 @@ async function downloadCSV(){
     for(let i = 1; i <= chunks; i++){
       const from = ((i-1)*CHUNK+1).toLocaleString();
       const to   = Math.min(i*CHUNK, count).toLocaleString();
-      _setCsvProgress(2 + (i-1)/chunks*94, `\uD30C\uC77C ${i}/${chunks} \uB2E4\uC6B4\uB85C\uB4DC \uC911\u2026 (${from}~${to}\uD589)`);
+      const baseP = 2 + (i-1)/chunks*94;
+      const sliceP = 94/chunks;
+
+      _setCsvProgress(baseP, `\uD30C\uC77C ${i}/${chunks} \uC900\uBE44 \uC911\u2026 (${from}~${to}\uD589)`);
 
       const cp = new URLSearchParams(p);
       cp.set('chunk_size', CHUNK);
@@ -5388,7 +5394,25 @@ async function downloadCSV(){
       const resp = await fetch('/api/export-csv?' + cp);
       if(!resp.ok) throw new Error(`\uC11C\uBC84 \uC624\uB958 (\uD30C\uC77C ${i}): ${resp.status}`);
 
-      const blob = await resp.blob();
+      // streaming download \u2192 \uC810\uC9C4\uC801 progress
+      const contentLength = resp.headers.get('Content-Length');
+      const fileSize = contentLength ? parseInt(contentLength) : 0;
+      const reader = resp.body.getReader();
+      const buffers = [];
+      let received = 0;
+      while(true){
+        const {done, value} = await reader.read();
+        if(done) break;
+        buffers.push(value);
+        received += value.length;
+        const filePct = fileSize > 0 ? received/fileSize : 0;
+        const curP = baseP + filePct * sliceP * 0.9;
+        const rcvMB = (received/1048576).toFixed(1);
+        const totMB = fileSize > 0 ? `/${(fileSize/1048576).toFixed(1)}MB` : 'MB';
+        _setCsvProgress(curP, `\uD30C\uC77C ${i}/${chunks} \uC218\uC2E0 \uC911\u2026 ${rcvMB}${totMB}`);
+      }
+
+      const blob = new Blob(buffers);
       const suffix = chunks > 1 ? `_${i}of${chunks}` : '';
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -5396,8 +5420,8 @@ async function downloadCSV(){
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(a.href);
 
-      _setCsvProgress(2 + i/chunks*94, `\uD30C\uC77C ${i}/${chunks} \uC800\uC7A5 \uC644\uB8CC`);
-      if(i < chunks) await new Promise(r => setTimeout(r, 600));
+      _setCsvProgress(baseP + sliceP, `\uD30C\uC77C ${i}/${chunks} \uC800\uC7A5 \uC644\uB8CC`);
+      if(i < chunks) await new Promise(r => setTimeout(r, 400));
     }
 
     _setCsvProgress(100, '\uBAA8\uB4E0 \uD30C\uC77C \uB2E4\uC6B4\uB85C\uB4DC \uC644\uB8CC!');
