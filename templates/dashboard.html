@@ -3794,8 +3794,9 @@ function buildWaterfallChart(k){
                 const raw = ctx.raw;
                 if (!Array.isArray(raw)) return false;
                 const barH = Math.abs(raw[1] - raw[0]);
-                const yMax = ctx.chart.scales.y ? ctx.chart.scales.y.max : 1;
-                return yMax > 0 && barH / yMax > 0.08;
+                const yMax = ctx.chart.scales.y?.max;
+                if (!yMax) return true;
+                return barH / yMax > 0.05;
               },
               anchor: 'center',
               align: 'center',
@@ -4724,8 +4725,9 @@ function buildDrillCharts(){
             const raw = ctx.raw;
             if (!Array.isArray(raw)) return false;
             const barH = Math.abs(raw[1] - raw[0]);
-            const yMax = ctx.chart.scales.y ? ctx.chart.scales.y.max : 1;
-            return yMax > 0 && barH / yMax > 0.06;
+            const yMax = ctx.chart.scales.y?.max;
+            if (!yMax) return true;
+            return barH / yMax > 0.04;
           },
           color: '#fff',
           anchor: 'center',
@@ -4740,7 +4742,7 @@ function buildDrillCharts(){
         options: {
           responsive:true, maintainAspectRatio:false,
           plugins: {
-            legend: { position:'top', align:'start', labels:{ color:c.secondary, font:{size:10.5}, boxWidth:8, padding:12, usePointStyle:true } },
+            legend: { position:'top', align:'start', labels:{ color:c.secondary, font:{size:10.5}, boxWidth:8, padding:22, usePointStyle:true } },
             tooltip: { backgroundColor: c.isDark?'#0A0E14':'#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius:8, padding:10, callbacks:{ label:(it)=>` ${it.dataset.label}: ${fmtKRW(it.dataset._vals[it.dataIndex])}` } },
           },
           scales: {
@@ -4771,7 +4773,7 @@ function buildDrillCharts(){
         responsive: true, maintainAspectRatio: false,
         interaction: { mode:'index', intersect: false },
         plugins: {
-          legend: { position:'top', align:'start', labels: { color: c.secondary, font: { size: 10.5 }, boxWidth: 8, padding: 12, usePointStyle: true } },
+          legend: { position:'top', align:'start', labels: { color: c.secondary, font: { size: 10.5 }, boxWidth: 8, padding: 18, usePointStyle: true } },
           tooltip: { backgroundColor: c.isDark ? '#0A0E14' : '#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius: 8, padding: 10,
             callbacks: { label: ctx => ctx.dataset.yAxisID === 'y2' ? ` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%` : ` ${ctx.dataset.label}: ${fmtKRW(ctx.raw)}` } },
         },
