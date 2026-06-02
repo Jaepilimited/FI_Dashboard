@@ -3783,21 +3783,14 @@ function buildWaterfallChart(k){
               display: true,
               anchor: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
               align: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
-              offset: 6,
+              offset: 7,
               clip: false,
               color: (ctx) => data[ctx.dataIndex].value >= 0 ? c.positive : c.negative,
-              font: { family: "'JetBrains Mono',monospace", size: 10.5, weight: 800 },
+              font: { family: "'JetBrains Mono',monospace", size: 11.5, weight: 800 },
               formatter: (v, ctx) => fmtKRW(data[ctx.dataIndex].value),
             },
             pct: {
-              display: (ctx) => {
-                const raw = ctx.raw;
-                if (!Array.isArray(raw)) return false;
-                const barH = Math.abs(raw[1] - raw[0]);
-                const yMax = ctx.chart.scales.y?.max;
-                if (!yMax) return true;
-                return barH / yMax > 0.05;
-              },
+              display: true,
               anchor: 'center',
               align: 'center',
               color: (ctx) => {
@@ -3826,7 +3819,7 @@ function buildWaterfallChart(k){
           border: { display: false },
         },
       },
-      layout: { padding: { top: 40, right: 16, left: 4 } },
+      layout: { padding: { top: 24, right: 16, left: 4 } },
     },
   });
 }
@@ -4301,7 +4294,8 @@ function renderMainView(){
   }
   if (window.lucide) lucide.createIcons();
   // build charts after DOM exists
-  buildDrillCharts();
+  if (state.category === 'sales') buildSalesCharts();
+  else buildDrillCharts();
   // attach interactions
   attachDrillClicks();
 }
@@ -4401,14 +4395,14 @@ function renderDrillView(){
   `;
   }
 
-  // ── ORG layout (지역별과 동일 구성: 손익흐름 + 매출비중 / 월별추이 + TOP N / 성과요약) ──
+  // ── ORG layout (지역별과 동일 구성: 손익흐름 + 손익구조 / 월별추이 + TOP N) ──
   return `
     <div class="row-grid-2">
       <div class="card">
         <div class="card-hd">
           <div>
             <div class="card-title"><i data-lucide="bar-chart-3"></i>${levelLabel}별 손익 흐름 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">${levelLabel}별 매출액 · 매출원가 · 매출총이익 · 판매관리비 · 공헌이익</div>
+            <div class="card-sub">${levelLabel}별 매출원가 · 매출총이익 · 판매관리비 · 공헌이익</div>
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
@@ -4417,8 +4411,8 @@ function renderDrillView(){
       <div class="card">
         <div class="card-hd">
           <div>
-            <div class="card-title"><i data-lucide="pie-chart"></i>${levelLabel}별 매출 비중 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">${levelLabel}별 매출 점유율</div>
+            <div class="card-title"><i data-lucide="pie-chart"></i>손익 구조<span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
+            <div class="card-sub">매출원가 · 판매관리비 · 공헌이익</div>
           </div>
         </div>
         <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
@@ -4443,7 +4437,7 @@ function renderDrillView(){
   `;
 }
 
-/* ─── Sales view (조직별과 동일 구성) ───────────────────────────────── */
+/* ─── Sales view (지역별과 동일 구성: 손익흐름 + 매출비중 / 월별추이 + TOP N) ───────────────────────────────── */
 function renderSalesView(){
   return `
     <div class="row-grid-2">
@@ -4451,20 +4445,20 @@ function renderSalesView(){
         <div class="card-hd">
           <div>
             <div class="card-title"><i data-lucide="bar-chart-3"></i>판매유형별 손익 흐름 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">B2B · B2C 매출액 · 매출원가 · 매출총이익 · 판매관리비 · 공헌이익</div>
+            <div class="card-sub">매출액 → 매출원가 → 매출총이익 → 판매관리비 → 공헌이익</div>
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="dimWaterfallChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="stWaterfallChart"></canvas></div></div>
       </div>
       <div class="card">
         <div class="card-hd">
           <div>
-            <div class="card-title"><i data-lucide="pie-chart"></i>판매유형별 매출 비중 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
+            <div class="card-title"><i data-lucide="pie-chart"></i>매출 비중</div>
             <div class="card-sub">B2B · B2C 매출 점유율</div>
           </div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="stDonutChart"></canvas></div></div>
       </div>
     </div>
 
@@ -4477,12 +4471,12 @@ function renderSalesView(){
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="dimTrendChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="stTrendChart"></canvas></div></div>
       </div>
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
 
-    <div id="detailSummaryTable"></div>
+    <div id="salesDetailTable"></div>
   `;
 }
 
@@ -4704,7 +4698,7 @@ function buildDrillCharts(){
 
   // ── per-dimension profit waterfall (region & product) ──
   destroyChart('dimWaterfall');
-  if (state.category === 'region' || state.category === 'product' || state.category === 'org' || state.category === 'sales') {
+  if (state.category === 'region' || state.category === 'product' || state.category === 'org') {
     const wctx = resetCanvas('dimWaterfallChart');
     if (wctx) {
       const wfN = Math.min(8, breakdown.length);
@@ -4713,36 +4707,20 @@ function buildDrillCharts(){
       const gray = c.isDark ? '#5A6478' : '#AEB7C7';
       const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
       const dss = [
-        { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
         { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
         { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
         { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
         { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
       ];
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.92; ds.categoryPercentage=0.74;
-        ds.datalabels = {
-          display: (ctx) => {
-            const raw = ctx.raw;
-            if (!Array.isArray(raw)) return false;
-            const barH = Math.abs(raw[1] - raw[0]);
-            const yMax = ctx.chart.scales.y?.max;
-            if (!yMax) return true;
-            return barH / yMax > 0.04;
-          },
-          color: '#fff',
-          anchor: 'center',
-          align: 'center',
-          clip: false,
-          font: { size: 8.5, weight: 700, family: "'JetBrains Mono',monospace" },
-          formatter: (_v, cx) => fmtKRW(cx.dataset._vals[cx.dataIndex]),
-        }; });
+        ds.datalabels = { display:true, color:c.secondary, anchor:'end', align:'top', offset:1, font:{size:9,weight:700,family:"'JetBrains Mono',monospace"}, formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]) }; });
       charts.dimWaterfall = new Chart(wctx, {
         type:'bar',
         data: { labels: wfItems.map(b=>b.name), datasets: dss },
         options: {
           responsive:true, maintainAspectRatio:false,
           plugins: {
-            legend: { position:'top', align:'start', labels:{ color:c.secondary, font:{size:10.5}, boxWidth:8, padding:22, usePointStyle:true } },
+            legend: { position:'bottom', align:'start', labels:{ color:c.secondary, font:{size:10.5}, boxWidth:8, padding:14, usePointStyle:true } },
             tooltip: { backgroundColor: c.isDark?'#0A0E14':'#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius:8, padding:10, callbacks:{ label:(it)=>` ${it.dataset.label}: ${fmtKRW(it.dataset._vals[it.dataIndex])}` } },
           },
           scales: {
@@ -4773,7 +4751,7 @@ function buildDrillCharts(){
         responsive: true, maintainAspectRatio: false,
         interaction: { mode:'index', intersect: false },
         plugins: {
-          legend: { position:'top', align:'start', labels: { color: c.secondary, font: { size: 10.5 }, boxWidth: 8, padding: 18, usePointStyle: true } },
+          legend: { position:'top', align:'start', labels: { color: c.secondary, font: { size: 10.5 }, boxWidth: 8, padding: 12, usePointStyle: true } },
           tooltip: { backgroundColor: c.isDark ? '#0A0E14' : '#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius: 8, padding: 10,
             callbacks: { label: ctx => ctx.dataset.yAxisID === 'y2' ? ` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%` : ` ${ctx.dataset.label}: ${fmtKRW(ctx.raw)}` } },
         },
@@ -4787,12 +4765,18 @@ function buildDrillCharts(){
     });
   }
 
-  // ── donut: category-aware (org/region=매출비중 / product=공헌이익비중) ──
+  // ── donut: category-aware (org=손익구조 / region=매출비중 / product=공헌이익비중) ──
   destroyChart('donut');
   const dctx = resetCanvas('donutChart');
   let labels, vals, donutColors, centerLabel, centerVal;
   const c2 = chartColors();
-  {
+  if (state.category === 'org') {
+    const k = api.kpi();
+    labels = ['매출원가', '판매관리비', '공헌이익'];
+    vals = [k.cost_of_sales, k.sga_expenses, k.operating_income];
+    donutColors = [c2.accent, c2.positive, c2.plum];
+    centerLabel = '공헌이익'; centerVal = k.operating_income;
+  } else {
     const metricKey = state.category === 'product' ? 'operating_income' : 'sales_amount';
     const max = 10;
     const dTop = breakdown.slice(0, max);
@@ -5149,10 +5133,10 @@ function buildSalesCharts(){
   const b2b = buildMetric('B2B');
   const b2c = buildMetric('B2C');
 
-  // ── TOP N + 성과요약 (공통 렌더러 사용) ──
+  // ── TOP N + 성과요약 ──
   const _salesBkd = api.breakdown() || [];
   renderTopNCards(_salesBkd);
-  renderDetailSummaryTable(_salesBkd);
+  renderSalesDetailTable({all, b2b, b2c});
 
   // ── Profit waterfall (B2B / B2C) + 매출 비중 donut ──
   buildSalesWaterfall({b2b, b2c});
@@ -5196,7 +5180,7 @@ function buildSalesCharts(){
       responsive: true, maintainAspectRatio: false,
       interaction: { mode:'index', intersect: false },
       plugins: {
-        legend: { position:'top', align:'start', labels: { color: c.secondary, font:{size:10.5}, boxWidth:8, padding:18, usePointStyle:true } },
+        legend: { position:'top', align:'start', labels: { color: c.secondary, font:{size:10.5}, boxWidth:8, padding:12, usePointStyle:true } },
         tooltip: { backgroundColor: c.isDark ? '#0A0E14' : '#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius: 8, padding: 10, callbacks: { label: ctx => ctx.dataset.yAxisID==='y2' ? ` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%` : ` ${ctx.dataset.label}: ${fmtKRW(ctx.raw)}` } },
       },
       scales: {
