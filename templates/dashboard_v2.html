@@ -3784,14 +3784,20 @@ function buildWaterfallChart(k){
               display: true,
               anchor: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
               align: (ctx) => data[ctx.dataIndex].value >= 0 ? 'end' : 'start',
-              offset: 7,
+              offset: 6,
               clip: false,
               color: (ctx) => data[ctx.dataIndex].value >= 0 ? c.positive : c.negative,
-              font: { family: "'JetBrains Mono',monospace", size: 11.5, weight: 800 },
+              font: { family: "'JetBrains Mono',monospace", size: 10.5, weight: 800 },
               formatter: (v, ctx) => fmtKRW(data[ctx.dataIndex].value),
             },
             pct: {
-              display: true,
+              display: (ctx) => {
+                const raw = ctx.raw;
+                if (!Array.isArray(raw)) return false;
+                const barH = Math.abs(raw[1] - raw[0]);
+                const yMax = ctx.chart.scales.y ? ctx.chart.scales.y.max : 1;
+                return yMax > 0 && barH / yMax > 0.08;
+              },
               anchor: 'center',
               align: 'center',
               color: (ctx) => {
@@ -3820,7 +3826,7 @@ function buildWaterfallChart(k){
           border: { display: false },
         },
       },
-      layout: { padding: { top: 24, right: 16, left: 4 } },
+      layout: { padding: { top: 40, right: 16, left: 4 } },
     },
   });
 }
@@ -4710,7 +4716,21 @@ function buildDrillCharts(){
         { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
       ];
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.92; ds.categoryPercentage=0.74;
-        ds.datalabels = { display:true, color:c.secondary, anchor:'end', align:'top', offset:1, font:{size:9,weight:700,family:"'JetBrains Mono',monospace"}, formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]) }; });
+        ds.datalabels = {
+          display: (ctx) => {
+            const raw = ctx.raw;
+            if (!Array.isArray(raw)) return false;
+            const barH = Math.abs(raw[1] - raw[0]);
+            const yMax = ctx.chart.scales.y ? ctx.chart.scales.y.max : 1;
+            return yMax > 0 && barH / yMax > 0.06;
+          },
+          color: '#fff',
+          anchor: 'center',
+          align: 'center',
+          clip: false,
+          font: { size: 8.5, weight: 700, family: "'JetBrains Mono',monospace" },
+          formatter: (_v, cx) => fmtKRW(cx.dataset._vals[cx.dataIndex]),
+        }; });
       charts.dimWaterfall = new Chart(wctx, {
         type:'bar',
         data: { labels: wfItems.map(b=>b.name), datasets: dss },
