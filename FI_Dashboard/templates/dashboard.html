@@ -5196,7 +5196,7 @@ function buildSalesCharts(){
       responsive: true, maintainAspectRatio: false,
       interaction: { mode:'index', intersect: false },
       plugins: {
-        legend: { position:'top', align:'start', labels: { color: c.secondary, font:{size:10.5}, boxWidth:8, padding:12, usePointStyle:true } },
+        legend: { position:'top', align:'start', labels: { color: c.secondary, font:{size:10.5}, boxWidth:8, padding:18, usePointStyle:true } },
         tooltip: { backgroundColor: c.isDark ? '#0A0E14' : '#0D1829', titleColor:'#fff', bodyColor:'#fff', cornerRadius: 8, padding: 10, callbacks: { label: ctx => ctx.dataset.yAxisID==='y2' ? ` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%` : ` ${ctx.dataset.label}: ${fmtKRW(ctx.raw)}` } },
       },
       scales: {
