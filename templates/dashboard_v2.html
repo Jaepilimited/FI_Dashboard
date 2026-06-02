@@ -4709,20 +4709,20 @@ function buildDrillCharts(){
       const gray = c.isDark ? '#5A6478' : '#AEB7C7';
       const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
       const dss = [
-        { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.sales_amount) },
-        { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: c.negative, _vals: wfItems.map(b=>b.cost_of_sales) },
+        { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
+        { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
         { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
-        { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.negative, _vals: wfItems.map(b=>b.sga_expenses) },
-        { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: c.negative, _vals: wfItems.map(b=>b.operating_income) },
+        { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
+        { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
       ];
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.76;
         ds.datalabels = {
           labels: {
             value: {
               display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.07; },
-              color: '#fff',
-              anchor:'end', align:'start', offset:2,
-              font:{size:9,weight:800,family:"'JetBrains Mono',monospace"},
+              color: (cx) => cx.dataset._vals[cx.dataIndex] >= 0 ? c.positive : c.negative,
+              anchor:'end', align:'end', rotation:-55, offset:3, clip:false,
+              font:{size:10,weight:800,family:"'JetBrains Mono',monospace"},
               formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]),
             },
             pct: {
@@ -4999,20 +4999,20 @@ function buildSalesWaterfall({b2b, b2c}){
   ];
   const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
   const dss = [
-    { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.sales_amount) },
-    { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: c.negative, _vals: wfItems.map(b=>b.cost_of_sales) },
+    { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
+    { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
     { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
-    { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.negative, _vals: wfItems.map(b=>b.sga_expenses) },
-    { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: c.negative, _vals: wfItems.map(b=>b.operating_income) },
+    { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
+    { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
   ];
   dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.58;
     ds.datalabels = {
       labels: {
         value: {
           display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.06; },
-          color: '#fff',
-          anchor:'end', align:'start', offset:2,
-          font:{size:10,weight:800,family:"'JetBrains Mono',monospace"},
+          color: (cx) => cx.dataset._vals[cx.dataIndex] >= 0 ? c.positive : c.negative,
+          anchor:'end', align:'end', offset:6, clip:false,
+          font:{size:11,weight:800,family:"'JetBrains Mono',monospace"},
           formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]),
         },
         pct: {
