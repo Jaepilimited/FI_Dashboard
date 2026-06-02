@@ -4300,8 +4300,7 @@ function renderMainView(){
   }
   if (window.lucide) lucide.createIcons();
   // build charts after DOM exists
-  if (state.category === 'sales') buildSalesCharts();
-  else buildDrillCharts();
+  buildDrillCharts();
   // attach interactions
   attachDrillClicks();
 }
@@ -4443,30 +4442,28 @@ function renderDrillView(){
   `;
 }
 
-/* ─── Sales view (B2B / B2C compare) ────────────────────────────────── */
+/* ─── Sales view (조직별과 동일 구성) ───────────────────────────────── */
 function renderSalesView(){
   return `
-    <div class="st-compare" id="stCompare"></div>
-
     <div class="row-grid-2">
       <div class="card">
         <div class="card-hd">
           <div>
             <div class="card-title"><i data-lucide="bar-chart-3"></i>판매유형별 손익 흐름 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">B2B · B2C 손익 구조 비교</div>
+            <div class="card-sub">B2B · B2C 매출액 · 매출원가 · 매출총이익 · 판매관리비 · 공헌이익</div>
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="stWaterfallChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="dimWaterfallChart"></canvas></div></div>
       </div>
       <div class="card">
         <div class="card-hd">
           <div>
-            <div class="card-title"><i data-lucide="pie-chart"></i>매출 비중</div>
+            <div class="card-title"><i data-lucide="pie-chart"></i>판매유형별 매출 비중 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
             <div class="card-sub">B2B · B2C 매출 점유율</div>
           </div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="stDonutChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
       </div>
     </div>
 
@@ -4479,7 +4476,7 @@ function renderSalesView(){
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="stTrendChart"></canvas></div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="dimTrendChart"></canvas></div></div>
       </div>
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
@@ -4706,7 +4703,7 @@ function buildDrillCharts(){
 
   // ── per-dimension profit waterfall (region & product) ──
   destroyChart('dimWaterfall');
-  if (state.category === 'region' || state.category === 'product' || state.category === 'org') {
+  if (state.category === 'region' || state.category === 'product' || state.category === 'org' || state.category === 'sales') {
     const wctx = resetCanvas('dimWaterfallChart');
     if (wctx) {
       const wfN = Math.min(8, breakdown.length);
