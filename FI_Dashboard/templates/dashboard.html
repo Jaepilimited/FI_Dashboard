@@ -3527,66 +3527,18 @@ function renderHeroShell(){
     </div>`;
   }).join('');
 
-  // Summary comment lines — context-aware per category/level
-  const _cmtCat = state.category;
-  const _cmtVl  = state.viewLevel?.[_cmtCat] ?? 0;
-  const _cmtDef = CATEGORY_DEFS.find(c => c.id === _cmtCat);
-  const _dimLbl = _cmtDef?.path?.[_cmtVl] || '항목';
-  const _bkd    = (!USE_MOCK && _cmtCat !== 'overview') ? (api.breakdown() || []) : [];
-  const _pbkd   = (!USE_MOCK) ? (_real.priorBreakdown || []) : [];
-  const _pmap   = Object.fromEntries(_pbkd.map(b => [b.name, b]));
-  const _hp     = _pbkd.length > 0;
-
+  // Summary comment lines
   const lines = [];
+  lines.push(`매출은 전월 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
+  if (Math.abs(dOI) > 0.5)
+    lines.push(`공헌이익은 ${formatDeltaSpan(dOI)} ${dOI >= 0 ? '증가' : '감소'}하여 수익성에 ${dOI >= 0 ? '긍정적' : '부정적'} 영향을 주었습니다.`);
+  if (Math.abs(dMgnPp) > 0.05)
+    lines.push(`공헌이익률은 ${dMgnPp >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(dMgnPp).toFixed(1)}%p</span> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
 
-  if (_cmtCat === 'overview' || !_bkd.length) {
-    // ── 요약 탭: 기존 집계 코멘트 ──
-    lines.push(`매출은 전월 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
-    if (Math.abs(dOI) > 0.5)
-      lines.push(`공헌이익은 ${formatDeltaSpan(dOI)} ${dOI >= 0 ? '증가' : '감소'}하여 수익성에 ${dOI >= 0 ? '긍정적' : '부정적'} 영향을 주었습니다.`);
-    if (Math.abs(dMgnPp) > 0.05)
-      lines.push(`공헌이익률은 ${dMgnPp >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(dMgnPp).toFixed(1)}%p</span> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
-  } else {
-    // ── 세부 탭: 현재 뷰 레벨에 맞는 차원 코멘트 ──
-    const _sorted = [..._bkd].sort((a,b) => (b.sales_amount||0) - (a.sales_amount||0));
-    const _top    = _sorted[0];
-    const _kSales = k.sales_amount || 1;
-
-    // 1. 전체 전월대비
-    lines.push(`${_dimLbl}별 매출은 전월 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
-
-    // 2. 매출 1위 항목
-    if (_top) {
-      const _share = (_top.sales_amount / _kSales * 100).toFixed(1);
-      const _pb    = _pmap[_top.name] || {};
-      const _dTop  = _hp && _pb.sales_amount ? (((_top.sales_amount - _pb.sales_amount) / Math.abs(_pb.sales_amount)) * 100) : null;
-      const _dStr  = _dTop !== null ? ` (전월비 ${_dTop >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(_dTop).toFixed(1)}%</span>)` : '';
-      lines.push(`${_dimLbl} 1위는 <b>${_top.name}</b> — 매출 ${fmtKRW(_top.sales_amount)}, 점유율 ${_share}%${_dStr}.`);
-    }
-
-    // 3. 공헌이익 증감 1위 (전월대비)
-    if (_hp) {
-      const _withD = _bkd.map(b => {
-        const pb = _pmap[b.name] || {};
-        const d  = pb.operating_income ? (b.operating_income - pb.operating_income) / Math.abs(pb.operating_income) * 100 : null;
-        return { name: b.name, oi: b.operating_income, d };
-      }).filter(b => b.d !== null);
-      const _gain = _withD.length ? [..._withD].sort((a,b) => b.d - a.d)[0] : null;
-      const _lose = _withD.filter(b => b.d < 0).length ? [..._withD].filter(b => b.d < 0).sort((a,b) => a.d - b.d)[0] : null;
-      if (_gain && Math.abs(_gain.d) > 0.5)
-        lines.push(`공헌이익 증가폭 1위: <b>${_gain.name}</b> <span class="up">▲ ${_gain.d.toFixed(1)}%</span>`);
-      if (_lose && _lose.name !== (_gain && _gain.name) && Math.abs(_lose.d) > 0.5)
-        lines.push(`공헌이익 감소폭 1위: <b>${_lose.name}</b> <span class="down">▼ ${Math.abs(_lose.d).toFixed(1)}%</span>`);
-    }
-
-    // 4. 공헌이익률 전월대비
-    if (Math.abs(dMgnPp) > 0.05)
-      lines.push(`전체 공헌이익률은 ${dMgnPp >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(dMgnPp).toFixed(1)}%p</span> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
-  }
   const commentHtml = `<div class="summary-comment">
     <div class="summary-comment-hd">
       <div class="summary-comment-title"><i data-lucide="message-square-text" class="ic"></i>요약 코멘트</div>
-      <span class="summary-comment-badge">${_cmtCat !== 'overview' && _dimLbl ? _dimLbl + '별' : 'AUTO'}</span>
+      <span class="summary-comment-badge">AUTO</span>
     </div>
     <div class="summary-comment-body">
       ${lines.map(l => `<p><span>${l}</span></p>`).join('')}
