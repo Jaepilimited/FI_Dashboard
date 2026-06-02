@@ -4718,9 +4718,16 @@ function buildDrillCharts(){
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.76;
         ds.datalabels = {
           labels: {
-            value: { display:true, color:c.positive, anchor:'end', align:'end', offset:7, clip:false, font:{size:11.5,weight:800,family:"'JetBrains Mono',monospace"}, formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]) },
+            value: {
+              display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.07; },
+              color: (cx) => cx.dataset._vals[cx.dataIndex] >= 0 ? c.positive : c.negative,
+              anchor:'end', align:'end', rotation:-55, offset:3, clip:false,
+              font:{size:10,weight:800,family:"'JetBrains Mono',monospace"},
+              formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]),
+            },
             pct: {
-              display:true, anchor:'center', align:'center',
+              display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.13; },
+              anchor:'center', align:'center',
               color: (cx)=> c.isDark ? '#E6E9EF' : '#2C3340',
               backgroundColor: c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.78)',
               borderRadius:5, padding:{top:3,bottom:3,left:6,right:6},
@@ -5001,13 +5008,20 @@ function buildSalesWaterfall({b2b, b2c}){
   dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.58;
     ds.datalabels = {
       labels: {
-        value: { display:true, color:c.secondary, anchor:'end', align:'end', rotation:-90, offset:4, font:{size:9,weight:700,family:"'JetBrains Mono',monospace"}, formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]) },
+        value: {
+          display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.06; },
+          color: (cx) => cx.dataset._vals[cx.dataIndex] >= 0 ? c.positive : c.negative,
+          anchor:'end', align:'end', offset:6, clip:false,
+          font:{size:11,weight:800,family:"'JetBrains Mono',monospace"},
+          formatter:(_v,cx)=>fmtKRW(cx.dataset._vals[cx.dataIndex]),
+        },
         pct: {
-          display:true, anchor:'center', align:'center',
+          display: (ctx) => { const r=ctx.raw; if(!Array.isArray(r)) return false; return Math.abs(r[1]-r[0])/(ctx.chart.scales.y?.max||1) > 0.10; },
+          anchor:'center', align:'center',
           color: (cx)=> c.isDark ? '#E6E9EF' : '#2C3340',
           backgroundColor: c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.78)',
-          borderRadius:4, padding:{top:1,bottom:1,left:3,right:3},
-          font:{size:8,weight:700,family:"'JetBrains Mono',monospace"},
+          borderRadius:5, padding:{top:3,bottom:3,left:6,right:6},
+          font:{size:10,weight:700,family:"'JetBrains Mono',monospace"},
           formatter:(_v,cx)=>{ const sa = wfItems[cx.dataIndex]?.sales_amount||0; return sa ? (cx.dataset._vals[cx.dataIndex]/sa*100).toFixed(0)+'%' : ''; },
         },
       },
