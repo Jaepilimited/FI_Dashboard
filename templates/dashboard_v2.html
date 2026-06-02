@@ -4446,12 +4446,14 @@ function renderDrillView(){
 /* ─── Sales view (B2B / B2C compare) ────────────────────────────────── */
 function renderSalesView(){
   return `
+    <div class="st-compare" id="stCompare"></div>
+
     <div class="row-grid-2">
       <div class="card">
         <div class="card-hd">
           <div>
             <div class="card-title"><i data-lucide="bar-chart-3"></i>판매유형별 손익 흐름 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(누적)</span></div>
-            <div class="card-sub">매출액 → 매출원가 → 매출총이익 → 판매관리비 → 공헌이익</div>
+            <div class="card-sub">B2B · B2C 손익 구조 비교</div>
           </div>
           <div class="waterfall-card-unit">단위: 억원</div>
         </div>
@@ -4467,17 +4469,22 @@ function renderSalesView(){
         <div class="card-body"><div class="chart-wrap"><canvas id="stDonutChart"></canvas></div></div>
       </div>
     </div>
-    <div class="card row-grid-full">
-      <div class="card-hd">
-        <div>
-          <div class="card-title"><i data-lucide="line-chart"></i>월별 추이</div>
-          <div class="card-sub">매출액 · 매출총이익 · 공헌이익 · 공헌이익률(%)</div>
+
+    <div class="region-row3">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <div class="card-title"><i data-lucide="line-chart"></i>월별 추이</div>
+            <div class="card-sub">매출액 · 매출총이익 · 공헌이익 · 공헌이익률(%)</div>
+          </div>
+          <div class="waterfall-card-unit">단위: 억원</div>
         </div>
-        <div class="waterfall-card-unit">단위: 억원</div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="stTrendChart"></canvas></div></div>
       </div>
-      <div class="card-body"><div class="chart-wrap"><canvas id="stTrendChart"></canvas></div></div>
+      <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
-    <div id="salesDetailTable"></div>
+
+    <div id="detailSummaryTable"></div>
   `;
 }
 
@@ -5143,8 +5150,10 @@ function buildSalesCharts(){
   const b2b = buildMetric('B2B');
   const b2c = buildMetric('B2C');
 
-  // ── Sales detail summary table (B2B + B2C + 전체) ──
-  renderSalesDetailTable({all, b2b, b2c});
+  // ── TOP N + 성과요약 (공통 렌더러 사용) ──
+  const _salesBkd = api.breakdown() || [];
+  renderTopNCards(_salesBkd);
+  renderDetailSummaryTable(_salesBkd);
 
   // ── Profit waterfall (B2B / B2C) + 매출 비중 donut ──
   buildSalesWaterfall({b2b, b2c});
