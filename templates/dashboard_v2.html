@@ -5276,12 +5276,28 @@ function renderRaw(){
   };
   const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']);
   const NUM_QTY  = new Set(['Sales_Quantity']);
-  const SKIP_COL = new Set(['Country_Flag']);
 
-  // derive columns from API response (real) or first row keys (mock)
-  const cols = (res.columns && res.columns.length)
-    ? res.columns.filter(c => !SKIP_COL.has(c))
-    : (res.rows[0] ? Object.keys(res.rows[0]).filter(c => !SKIP_COL.has(c)) : []);
+  // fixed display order (user-specified)
+  const COL_ORDER = [
+    'Year_Month',
+    'Brand',
+    'Sales_Type',
+    USE_MOCK ? 'Honbu' : 'Group',
+    USE_MOCK ? 'Team'  : 'Department',
+    'Continent1', 'Continent2', 'Country',
+    'Line', 'Category',
+    'Product_Code', 'Product_Name', 'Specification',
+    'Sales_Quantity',
+    'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit', 'SG_and_A_Expenses', 'Operating_Income',
+  ];
+
+  // available keys from data (to skip columns that don't exist in this dataset)
+  const available = new Set(
+    (res.columns && res.columns.length)
+      ? res.columns
+      : (res.rows[0] ? Object.keys(res.rows[0]) : [])
+  );
+  const cols = COL_ORDER.filter(c => available.has(c));
 
   // update thead
   const thead = $('#rawThead');
