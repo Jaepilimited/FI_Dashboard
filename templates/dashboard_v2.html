@@ -1848,6 +1848,10 @@ html.theme-dark .side-nav-bottom{border-top-color:rgba(255,255,255,0.06)}
   padding:20px 24px 60px;
   min-width:0;
 }
+body.cat-rawdata .layout-shell .wrap{
+  max-width: 100%;
+  padding:12px 16px 32px;
+}
 @media(max-width:1100px){
   .layout-shell,
   .layout-shell.no-tree,
@@ -4278,11 +4282,13 @@ function trendTipHandler(ctx){
 function renderMainView(){
   const wrap = $('#mainView');
   if (state.category === 'rawdata') {
+    document.body.classList.add('cat-rawdata');
     wrap.innerHTML = renderRawDataView();
     if (window.lucide) lucide.createIcons();
     initRawDataView();
     return;
   }
+  document.body.classList.remove('cat-rawdata');
   if (state.category === 'overview') {
     wrap.innerHTML = renderOverviewView();
     if (window.lucide) lucide.createIcons();
