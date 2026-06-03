@@ -4087,15 +4087,14 @@ function renderRawDataView(){
   const stOpts    = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
   return `<div class="raw-view">
     <div class="raw-filter-bar">
+      <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
+      <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
       <select class="select-sm" id="rawDeptSel"><option value="">전체 부서</option>${deptOpts}</select>
-      <select class="select-sm" id="rawCont1Sel"><option value="">전체 대륙1</option>${cont1Opts}</select>
-      <select class="select-sm" id="rawContSel"><option value="">전체 대륙2</option>${cont2Opts}</select>
+      <select class="select-sm" id="rawContSel"><option value="">전체 대륙</option>${cont2Opts}</select>
       <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
       <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
       <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
-      <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
-      <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
     </div>
     <div class="raw-bar">
@@ -4131,7 +4130,7 @@ function initRawDataView(){
     state.rawPage = 1;
     loadRawPage();
   };
-  ['rawGrpSel','rawDeptSel','rawCont1Sel','rawContSel','rawCtrySel','rawLineSel','rawCatSel','rawBrandSel','rawSalesSel'].forEach(id => {
+  ['rawBrandSel','rawSalesSel','rawGrpSel','rawDeptSel','rawContSel','rawCtrySel','rawLineSel','rawCatSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
