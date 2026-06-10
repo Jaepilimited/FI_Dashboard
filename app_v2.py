@@ -43,6 +43,8 @@ def run_query_cached(sql, params=None, ttl=CACHE_TTL):
     return result
 
 
+_DATE_NAME_HINTS = {'date', 'month', 'year', 'time', 'period', 'quarter', 'week', 'day'}
+
 def _get_tableau_fields():
     cache_key = '__tableau_fields__'
     with _cache_lock:
@@ -51,14 +53,20 @@ def _get_tableau_fields():
             return entry[1]
     client = get_bq_client()
     table = client.get_table(config.BQ_TABLE)
-    dimensions, measures = [], []
+    dimensions, measures, date_dims = [], [], []
     for field in table.schema:
         ftype = field.field_type.upper()
-        if ftype in ('STRING', 'DATE', 'DATETIME', 'TIMESTAMP'):
+        fname_lower = field.name.lower()
+        if ftype in ('DATE', 'DATETIME', 'TIMESTAMP'):
             dimensions.append(field.name)
+            date_dims.append(field.name)
+        elif ftype == 'STRING':
+            dimensions.append(field.name)
+            if any(hint in fname_lower for hint in _DATE_NAME_HINTS):
+                date_dims.append(field.name)
         elif ftype in ('INT64', 'INTEGER', 'FLOAT64', 'FLOAT', 'NUMERIC', 'BIGNUMERIC'):
             measures.append(field.name)
-    result = (dimensions, measures)
+    result = (dimensions, measures, date_dims)
     with _cache_lock:
         _query_cache[cache_key] = (time.time(), result)
     return result
@@ -508,8 +516,8 @@ def api_clear_cache():
 @app.route('/api/tableau/fields')
 @login_required
 def api_tableau_fields():
-    dims, meas = _get_tableau_fields()
-    return jsonify({'dimensions': dims, 'measures': meas})
+    dims, meas, date_dims = _get_tableau_fields()
+    return jsonify({'dimensions': dims, 'measures': meas, 'date_dims': date_dims})
 
 
 @app.route('/api/views')
@@ -618,7 +626,7 @@ def api_views_delete(view_id):
 def api_tableau_query():
     data = request.get_json() or {}
     cfg = data.get('config', {})
-    dims, meas_list = _get_tableau_fields()
+    dims, meas_list, _date_dims = _get_tableau_fields()
     allowed = set(dims + meas_list)
 
     rows_fields = [f for f in (cfg.get('rows') or []) if f in allowed]
@@ -684,7 +692,7 @@ def api_tableau_query():
 @login_required
 def api_tableau_filter_values():
     field = request.args.get('field', '')
-    dims, meas_list = _get_tableau_fields()
+    dims, meas_list, _date_dims = _get_tableau_fields()
     if field not in set(dims + meas_list):
         return jsonify({'error': '유효하지 않은 필드'}), 400
     sql = f"SELECT DISTINCT `{field}` FROM `{config.BQ_TABLE}` WHERE `{field}` IS NOT NULL ORDER BY `{field}` LIMIT 500"

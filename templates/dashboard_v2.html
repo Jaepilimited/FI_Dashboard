@@ -2281,6 +2281,7 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 .tbl-field-chip:active{cursor:grabbing}
 .tbl-field-chip .ic{width:12px;height:12px;stroke-width:2;flex-shrink:0}
 .tbl-field-chip.dim .ic{color:#5b9ef9}
+.tbl-field-chip.dim.date-dim .ic{color:#f7c948}
 .tbl-field-chip.meas .ic{color:#4ecb71}
 .tbl-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
 .tbl-shelves{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:6px 8px}
@@ -2644,7 +2645,7 @@ const state = {
   tableau: {
     views: [],
     currentId: null,
-    fields: { dimensions: [], measures: [] },
+    fields: { dimensions: [], measures: [], date_dims: [] },
     config: {
       chartType: 'bar', mode: 'chart',
       rows: [], columns: [], measures: [],
@@ -4494,7 +4495,7 @@ async function initTableauView(){
 async function tblLoadFields(){
   try {
     const r = await fetch('/api/tableau/fields').then(r=>r.json());
-    state.tableau.fields = r;
+    state.tableau.fields = { dimensions: r.dimensions||[], measures: r.measures||[], date_dims: r.date_dims||[] };
     tblRenderFields();
   } catch(e){ console.error('[tbl] fields load error', e); }
 }
@@ -4502,10 +4503,15 @@ async function tblLoadFields(){
 function tblRenderFields(){
   const panel = $('#tblFields');
   if (!panel) return;
-  const { dimensions, measures } = state.tableau.fields;
-  const chip = (f, type) =>
-    `<div class="tbl-field-chip ${type}" draggable="true" data-field="${f}" data-ftype="${type}">` +
-    `<i data-lucide="${type==='dim'?'tag':'hash'}" class="ic"></i>${f}</div>`;
+  const { dimensions, measures, date_dims } = state.tableau.fields;
+  const dateDimsSet = new Set(date_dims || []);
+  const chip = (f, type) => {
+    const isDate = type === 'dim' && dateDimsSet.has(f);
+    const icon = isDate ? 'calendar' : (type === 'dim' ? 'tag' : 'hash');
+    const extra = isDate ? ' date-dim' : '';
+    return `<div class="tbl-field-chip ${type}${extra}" draggable="true" data-field="${f}" data-ftype="${type}" title="${isDate?'날짜 차원':''}">` +
+           `<i data-lucide="${icon}" class="ic"></i>${f}</div>`;
+  };
   panel.innerHTML =
     `<div class="tbl-fields-section"><div class="tbl-fields-label">차원 (Dimension)</div>${dimensions.map(f=>chip(f,'dim')).join('')}</div>` +
     `<div class="tbl-fields-section"><div class="tbl-fields-label">측정값 (Measure)</div>${measures.map(f=>chip(f,'meas')).join('')}</div>`;
