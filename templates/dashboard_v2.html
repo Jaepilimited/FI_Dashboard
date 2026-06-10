@@ -2305,6 +2305,35 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 .tbl-pivot-table td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
 .tbl-pivot-table tr:hover td{background:var(--surface-hover)}
 .tbl-pivot-table .total-row td{background:var(--surface);font-weight:600}
+/* 커스텀 분석 확장 UI */
+.tbl-toolbar-row2{display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;font-size:11.5px}
+.tbl-control-label{font-size:10.5px;color:var(--text-tertiary);white-space:nowrap}
+.tbl-select{font-size:11.5px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text);cursor:pointer}
+.tbl-export-btn{display:flex;align-items:center;gap:4px;padding:3px 9px;font-size:11.5px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.tbl-export-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border-strong)}
+.tbl-export-btn .ic{width:11px;height:11px;stroke-width:2}
+.tbl-agg-badge{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(78,203,113,.15);color:#4ecb71;margin-right:2px;cursor:pointer;letter-spacing:.03em;user-select:none}
+.tbl-agg-badge:hover{background:rgba(78,203,113,.35)}
+.tbl-filter-count{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(91,158,249,.15);color:#5b9ef9;margin-left:3px;cursor:pointer}
+.tbl-agg-drop{position:fixed;background:var(--surface);border:1px solid var(--border-strong);border-radius:7px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:9999;display:none;min-width:120px}
+.tbl-agg-opt{padding:5px 14px;font-size:12px;cursor:pointer;border-radius:4px;color:var(--text);white-space:nowrap}
+.tbl-agg-opt:hover{background:var(--surface-hover)}
+.tbl-agg-opt.active{color:var(--accent);font-weight:600}
+.tbl-filter-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:none}
+.tbl-filter-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;max-height:480px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden}
+.tbl-filter-popup-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;flex-shrink:0}
+.tbl-filter-popup-hd .tbl-filter-close-btn{background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);font-size:20px;line-height:1;padding:0 2px}
+.tbl-filter-search-wrap{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.tbl-filter-search-wrap input{width:100%;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box;outline:none}
+.tbl-filter-values-list{flex:1;overflow-y:auto;padding:4px 0}
+.tbl-filter-val-row{display:flex;align-items:center;gap:8px;padding:5px 16px;font-size:12px;cursor:pointer;color:var(--text);user-select:none}
+.tbl-filter-val-row:hover{background:var(--surface-hover)}
+.tbl-filter-val-row input[type=checkbox]{width:13px;height:13px;cursor:pointer;flex-shrink:0;accent-color:var(--accent)}
+.tbl-filter-popup-ft{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--border);flex-shrink:0}
+.tbl-filter-popup-ft button{padding:4px 10px;font-size:11.5px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.tbl-filter-popup-ft button:hover{background:var(--surface-hover)}
+.tbl-filter-popup-ft .tbl-filter-apply{background:var(--accent);border-color:var(--accent);color:#fff;margin-left:auto}
+.tbl-filter-popup-ft .tbl-filter-apply:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -2620,7 +2649,7 @@ const state = {
       chartType: 'bar', mode: 'chart',
       rows: [], columns: [], measures: [],
       color: null, size: null,
-      filters: {}, sort: 'desc', limit: 500
+      filters: {}, measureAggs: {}, sort: 'desc', limit: 500
     },
     queryResult: null,
     loading: false,
@@ -4388,6 +4417,21 @@ function renderTableauView(){
       <button class="tbl-add-sheet" id="tblAddSheet" title="새 시트">+</button>
       <button class="tbl-save-btn saved" id="tblSaveBtn">저장됨</button>
     </div>
+    <div class="tbl-toolbar-row2" id="tblToolbarRow2">
+      <span class="tbl-control-label">정렬</span>
+      <select class="tbl-select" id="tblSortSel">
+        <option value="desc"${cfg.sort==='desc'?' selected':''}>내림차순</option>
+        <option value="asc"${cfg.sort==='asc'?' selected':''}>오름차순</option>
+      </select>
+      <div class="tbl-divider"></div>
+      <span class="tbl-control-label">최대 행수</span>
+      <select class="tbl-select" id="tblLimitSel">
+        ${[100,500,1000,5000].map(v=>`<option value="${v}"${cfg.limit===v?' selected':''}>${v.toLocaleString('ko-KR')}</option>`).join('')}
+      </select>
+      <div style="flex:1"></div>
+      <button class="tbl-export-btn" id="tblExportCSV"><i data-lucide="download" class="ic"></i>CSV</button>
+      <button class="tbl-export-btn" id="tblExportPNG"><i data-lucide="image" class="ic"></i>PNG</button>
+    </div>
     <div class="tbl-body">
       <div class="tbl-fields" id="tblFields">
         <div class="tbl-fields-label" style="padding:10px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)">필드 불러오는 중…</div>
@@ -4426,6 +4470,15 @@ async function initTableauView(){
       tblMarkUnsaved(); tblAutoSave(); tblRenderViz();
     };
   });
+  const sortSel = $('#tblSortSel');
+  if (sortSel) sortSel.onchange = () => { state.tableau.config.sort = sortSel.value; tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery(); };
+  const limitSel = $('#tblLimitSel');
+  if (limitSel) limitSel.onchange = () => { state.tableau.config.limit = parseInt(limitSel.value); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery(); };
+  const exportCSV = $('#tblExportCSV');
+  if (exportCSV) exportCSV.onclick = tblExportCSV;
+  const exportPNG = $('#tblExportPNG');
+  if (exportPNG) exportPNG.onclick = tblExportPNG;
+  if (window.lucide) lucide.createIcons({nodes: [exportCSV, exportPNG].filter(Boolean)});
   const saveBtn = $('#tblSaveBtn');
   if (saveBtn) saveBtn.onclick = async () => {
     const id = state.tableau.currentId;
@@ -4489,7 +4542,13 @@ function tblAddToShelf(shelf, fieldName){
     if (!cfg.filters[fieldName]) cfg.filters[fieldName] = [];
   } else {
     if (!cfg[shelf]) cfg[shelf] = [];
-    if (!cfg[shelf].includes(fieldName)) cfg[shelf].push(fieldName);
+    if (!cfg[shelf].includes(fieldName)) {
+      cfg[shelf].push(fieldName);
+      if (shelf === 'measures') {
+        if (!cfg.measureAggs) cfg.measureAggs = {};
+        if (!cfg.measureAggs[fieldName]) cfg.measureAggs[fieldName] = 'SUM';
+      }
+    }
   }
   tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
 }
@@ -4502,6 +4561,7 @@ function tblRemoveFromShelf(shelf, fieldName){
     delete cfg.filters[fieldName];
   } else {
     cfg[shelf] = (cfg[shelf] || []).filter(f => f !== fieldName);
+    if (shelf === 'measures' && cfg.measureAggs) delete cfg.measureAggs[fieldName];
   }
   tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
 }
@@ -4513,13 +4573,32 @@ function tblRenderShelfChips(){
   const renderChips = (shelf, items) => {
     const el = $(`#tblChips_${shelf}`);
     if (!el) return;
-    el.innerHTML = items.map(f =>
-      `<span class="tbl-s-chip ${isDim(f)?'dim':'meas'}" data-shelf="${shelf}" data-field="${f}">${f}` +
-      `<span class="tbl-s-chip-del" data-shelf="${shelf}" data-field="${f}">×</span></span>`
-    ).join('');
+    el.innerHTML = items.map(f => {
+      const chipCls = isDim(f) ? 'dim' : 'meas';
+      let inner = '';
+      if (shelf === 'measures') {
+        const agg = (cfg.measureAggs || {})[f] || 'SUM';
+        inner = `<span class="tbl-agg-badge" data-field="${f}">${agg}</span>${f}`;
+      } else if (shelf === 'filters') {
+        const cnt = ((cfg.filters || {})[f] || []).length;
+        inner = `${f}<span class="tbl-filter-count">${cnt ? cnt+'개 선택' : 'ALL'}</span>`;
+      } else {
+        inner = f;
+      }
+      return `<span class="tbl-s-chip ${chipCls}" data-shelf="${shelf}" data-field="${f}">${inner}<span class="tbl-s-chip-del" data-shelf="${shelf}" data-field="${f}">×</span></span>`;
+    }).join('');
     el.querySelectorAll('.tbl-s-chip-del').forEach(btn => {
-      btn.onclick = () => tblRemoveFromShelf(btn.dataset.shelf, btn.dataset.field);
+      btn.onclick = (e) => { e.stopPropagation(); tblRemoveFromShelf(btn.dataset.shelf, btn.dataset.field); };
     });
+    el.querySelectorAll('.tbl-agg-badge').forEach(badge => {
+      badge.onclick = (e) => { e.stopPropagation(); tblShowAggSelector(e, badge.dataset.field); };
+    });
+    if (shelf === 'filters') {
+      el.querySelectorAll('.tbl-s-chip').forEach(chip => {
+        chip.style.cursor = 'pointer';
+        chip.onclick = (e) => { if (!e.target.classList.contains('tbl-s-chip-del')) tblShowFilterPicker(e, chip.dataset.field); };
+      });
+    }
   };
   renderChips('rows',    cfg.rows || []);
   renderChips('columns', cfg.columns || []);
@@ -4695,6 +4774,8 @@ function tblApplyViewConfig(cfg){
   c.rows=prune(c.rows);c.columns=prune(c.columns);c.measures=prune(c.measures);
   if(c.color&&allowed.size&&!allowed.has(c.color))c.color=null;
   if(c.size&&allowed.size&&!allowed.has(c.size))c.size=null;
+  if(c.measureAggs){Object.keys(c.measureAggs).forEach(f=>{if(allowed.size&&!allowed.has(f))delete c.measureAggs[f];});}
+  else{c.measureAggs={};}
   state.tableau.config=c;
 }
 
@@ -4732,7 +4813,7 @@ function tblRenderSheetTabs(){
   const addBtn=$('#tblAddSheet');
   if(addBtn)addBtn.onclick=async()=>{
     const name=`시트 ${state.tableau.views.length+1}`;
-    const emptyConfig={chartType:'bar',mode:'chart',rows:[],columns:[],measures:[],color:null,size:null,filters:{},sort:'desc',limit:500};
+    const emptyConfig={chartType:'bar',mode:'chart',rows:[],columns:[],measures:[],color:null,size:null,filters:{},measureAggs:{},sort:'desc',limit:500};
     const newView=await fetch('/api/views',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,config:emptyConfig})}).then(r=>r.json());
     state.tableau.views.push(newView);state.tableau.currentId=newView.id;state.tableau.config=JSON.parse(JSON.stringify(emptyConfig));
     tblRenderSheetTabs();tblRenderShelfChips();tblRenderViz();
@@ -4754,6 +4835,97 @@ function tblAutoSave(){
     const v=state.tableau.views.find(v=>v.id===id);if(v)v.config=JSON.parse(JSON.stringify(state.tableau.config));
     const btn=$('#tblSaveBtn');if(btn){btn.textContent='저장됨';btn.classList.add('saved');}
   },3000);
+}
+
+function tblShowAggSelector(event, fieldName){
+  let drop=$('#tblAggDrop');
+  if(!drop){drop=document.createElement('div');drop.id='tblAggDrop';drop.className='tbl-agg-drop';document.body.appendChild(drop);}
+  const aggs=['SUM','AVG','MIN','MAX','COUNT','COUNTD'];
+  const labels={COUNTD:'COUNTD (고유값수)'};
+  const current=(state.tableau.config.measureAggs||{})[fieldName]||'SUM';
+  drop.innerHTML=aggs.map(a=>`<div class="tbl-agg-opt${a===current?' active':''}" data-agg="${a}">${labels[a]||a}</div>`).join('');
+  drop.querySelectorAll('.tbl-agg-opt').forEach(opt=>{
+    opt.onclick=()=>{
+      if(!state.tableau.config.measureAggs)state.tableau.config.measureAggs={};
+      state.tableau.config.measureAggs[fieldName]=opt.dataset.agg;
+      drop.style.display='none';
+      tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+    };
+  });
+  const r=event.target.getBoundingClientRect();
+  drop.style.left=r.left+'px';drop.style.top=(r.bottom+4)+'px';drop.style.display='block';
+  setTimeout(()=>{
+    const close=(e)=>{if(!drop.contains(e.target)){drop.style.display='none';document.removeEventListener('click',close);}};
+    document.addEventListener('click',close);
+  },0);
+}
+
+async function tblShowFilterPicker(event, fieldName){
+  let overlay=$('#tblFilterOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');overlay.id='tblFilterOverlay';overlay.className='tbl-filter-overlay';
+    overlay.innerHTML=`<div class="tbl-filter-popup"><div class="tbl-filter-popup-hd"><span id="tblFiltFieldName" style="color:var(--accent)"></span><button class="tbl-filter-close-btn" id="tblFiltClose">×</button></div><div class="tbl-filter-search-wrap"><input type="text" id="tblFiltSearch" placeholder="값 검색…"></div><div class="tbl-filter-values-list" id="tblFiltValList"></div><div class="tbl-filter-popup-ft"><button id="tblFiltSelAll">전체</button><button id="tblFiltSelNone">해제</button><button class="tbl-filter-apply" id="tblFiltApply">적용</button></div></div>`;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display='block';
+  document.getElementById('tblFiltFieldName').textContent=fieldName+' 필터';
+  document.getElementById('tblFiltSearch').value='';
+  document.getElementById('tblFiltValList').innerHTML='<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px">값 불러오는 중…</div>';
+  let allValues=[];
+  let currentSel=new Set(((state.tableau.config.filters||{})[fieldName])||[]);
+  const renderList=(filter)=>{
+    const list=document.getElementById('tblFiltValList');
+    if(!list)return;
+    const filtered=filter?allValues.filter(v=>v.toLowerCase().includes(filter.toLowerCase())):allValues;
+    if(!filtered.length){list.innerHTML='<div style="padding:12px;text-align:center;color:var(--text-tertiary);font-size:12px">값 없음</div>';return;}
+    const escHtml=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    list.innerHTML=filtered.map(v=>`<label class="tbl-filter-val-row"><input type="checkbox" value="${escHtml(v)}" ${currentSel.has(v)?'checked':''}>${escHtml(v)}</label>`).join('');
+    list.querySelectorAll('input[type=checkbox]').forEach(cb=>{cb.onchange=()=>{if(cb.checked)currentSel.add(cb.value);else currentSel.delete(cb.value);};});
+  };
+  document.getElementById('tblFiltClose').onclick=()=>{overlay.style.display='none';};
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.style.display='none';};
+  document.getElementById('tblFiltSearch').oninput=(e)=>renderList(e.target.value);
+  document.getElementById('tblFiltSelAll').onclick=()=>{currentSel=new Set(allValues);renderList(document.getElementById('tblFiltSearch').value);};
+  document.getElementById('tblFiltSelNone').onclick=()=>{currentSel.clear();renderList(document.getElementById('tblFiltSearch').value);};
+  document.getElementById('tblFiltApply').onclick=()=>{
+    if(!state.tableau.config.filters)state.tableau.config.filters={};
+    state.tableau.config.filters[fieldName]=[...currentSel];
+    overlay.style.display='none';
+    tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+  };
+  try{
+    const r=await fetch(`/api/tableau/filter-values?field=${encodeURIComponent(fieldName)}`).then(r=>r.json());
+    allValues=r.values||[];
+    renderList('');
+  }catch(e){
+    const list=document.getElementById('tblFiltValList');
+    if(list)list.innerHTML='<div style="padding:12px;text-align:center;color:var(--danger,#f87171);font-size:12px">값 로드 실패</div>';
+  }
+}
+
+function tblExportCSV(){
+  const result=state.tableau.queryResult;
+  if(!result||!result.rows||!result.rows.length){alert('내보낼 데이터가 없습니다');return;}
+  const cols=result.columns||[];
+  let csv=cols.join(',')+'\n';
+  result.rows.forEach(row=>{
+    csv+=cols.map(c=>{const v=row[c]??'';const s=String(v);return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')+'\n';
+  });
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`커스텀분석_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+function tblExportPNG(){
+  const inst=state.tableau.echartsInst;
+  if(!inst){alert('저장할 차트가 없습니다 (피벗 모드에서는 PNG 저장이 불가합니다)');return;}
+  try{
+    const url=inst.getDataURL({type:'png',pixelRatio:2,backgroundColor:document.documentElement.classList.contains('theme-dark')?'#1e2027':'#ffffff'});
+    const a=document.createElement('a');a.href=url;a.download=`커스텀분석_${new Date().toISOString().slice(0,10)}.png`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){alert('PNG 저장 실패: '+e.message);}
 }
 
 /* ═════════════════════════════════════════════════════════════════════

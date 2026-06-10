@@ -633,8 +633,15 @@ def api_tableau_query():
         rows_fields + cols_fields + ([color_field] if color_field else [])
     ))
     select_parts = [f'`{f}`' for f in group_by]
+    _valid_aggs = {'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNTD'}
+    measure_aggs = cfg.get('measureAggs') or {}
     for m in measures:
-        select_parts.append(f'SUM(`{m}`) AS `{m}`')
+        raw_agg = str(measure_aggs.get(m, 'SUM')).upper()
+        agg = raw_agg if raw_agg in _valid_aggs else 'SUM'
+        if agg == 'COUNTD':
+            select_parts.append(f'COUNT(DISTINCT `{m}`) AS `{m}`')
+        else:
+            select_parts.append(f'{agg}(`{m}`) AS `{m}`')
 
     conditions, params = [], []
     for idx, (field, values) in enumerate((cfg.get('filters') or {}).items()):
@@ -669,6 +676,22 @@ def api_tableau_query():
             'group_by': group_by,
             'measures': measures
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tableau/filter-values')
+@login_required
+def api_tableau_filter_values():
+    field = request.args.get('field', '')
+    dims, meas_list = _get_tableau_fields()
+    if field not in set(dims + meas_list):
+        return jsonify({'error': '유효하지 않은 필드'}), 400
+    sql = f"SELECT DISTINCT `{field}` FROM `{config.BQ_TABLE}` WHERE `{field}` IS NOT NULL ORDER BY `{field}` LIMIT 500"
+    try:
+        rows = run_query_cached(sql, [], ttl=300)
+        values = [str(r[field]) for r in rows if r[field] is not None]
+        return jsonify({'values': values})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

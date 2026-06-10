@@ -35,3 +35,14 @@ def test_views_delete_auth_check(client):
     authed(client)
     resp = client.delete('/api/views/99999')
     assert resp.status_code == 403
+
+
+def test_filter_values_requires_login(client):
+    resp = client.get('/api/tableau/filter-values?field=Revenue')
+    assert resp.status_code == 302
+
+
+def test_filter_values_invalid_field(client):
+    authed(client)
+    resp = client.get('/api/tableau/filter-values?field=__injection__')
+    assert resp.status_code == 400
