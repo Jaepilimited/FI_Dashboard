@@ -6440,7 +6440,7 @@ function getChartStyleOpts(){
    ═════════════════════════════════════════════════════════════════════ */
 async function applyAll(){
   if(!USE_MOCK){
-    if(state.category !== 'rawdata'){
+    if(state.category !== 'rawdata' && state.category !== 'tableau'){
       const strip = document.getElementById('kpiStrip');
       if(strip) strip.innerHTML='<div class="spinner-wrap" style="grid-column:1/-1"><div class="spinner"></div>불러오는 중…</div>';
       try{ await RealApi.prefetch(); } catch(e){ console.error('prefetch failed',e); }
