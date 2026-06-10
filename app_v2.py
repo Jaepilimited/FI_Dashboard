@@ -43,6 +43,27 @@ def run_query_cached(sql, params=None, ttl=CACHE_TTL):
     return result
 
 
+def _get_tableau_fields():
+    cache_key = '__tableau_fields__'
+    with _cache_lock:
+        entry = _query_cache.get(cache_key)
+        if entry and time.time() - entry[0] < 3600:
+            return entry[1]
+    client = get_bq_client()
+    table = client.get_table(config.BQ_TABLE)
+    dimensions, measures = [], []
+    for field in table.schema:
+        ftype = field.field_type.upper()
+        if ftype in ('STRING', 'DATE', 'DATETIME', 'TIMESTAMP'):
+            dimensions.append(field.name)
+        elif ftype in ('INT64', 'INTEGER', 'FLOAT64', 'FLOAT', 'NUMERIC', 'BIGNUMERIC'):
+            measures.append(field.name)
+    result = (dimensions, measures)
+    with _cache_lock:
+        _query_cache[cache_key] = (time.time(), result)
+    return result
+
+
 def _warm_cache():
     """서버 시작 시 백그라운드에서 주요 쿼리 결과를 미리 캐시에 적재."""
     time.sleep(8)  # Flask 완전 기동 대기
@@ -144,6 +165,18 @@ def init_db():
                     token VARCHAR(64) NOT NULL UNIQUE,
                     expires_at DATETIME NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS user_views (
+                    id          INT AUTO_INCREMENT PRIMARY KEY,
+                    username    VARCHAR(100) NOT NULL,
+                    name        VARCHAR(100) NOT NULL DEFAULT '시트 1',
+                    config      JSON NOT NULL,
+                    sort_order  INT NOT NULL DEFAULT 0,
+                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_uv_username (username)
                 )
             """)
         db.commit()
@@ -402,6 +435,12 @@ def dashboard():
     return render_template('dashboard_v2.html', user=session['user'])
 
 
+@app.route('/report')
+@login_required
+def report():
+    return render_template('report.html', user=session['user'])
+
+
 # ─── BigQuery 필터 빌더 ────────────────────────────────────────────
 def build_bq_filters(args):
     conditions = []
@@ -463,6 +502,175 @@ def api_clear_cache():
         _query_cache.clear()
     print(f'[cache] 수동 초기화: {count}개 항목 삭제')
     return jsonify({'ok': True, 'cleared': count})
+
+
+# ─── Tableau Builder API ───────────────────────────────────────────
+@app.route('/api/tableau/fields')
+@login_required
+def api_tableau_fields():
+    dims, meas = _get_tableau_fields()
+    return jsonify({'dimensions': dims, 'measures': meas})
+
+
+@app.route('/api/views')
+@login_required
+def api_views_list():
+    username = session['user']['username']
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, config, sort_order FROM user_views "
+                "WHERE username=%s ORDER BY sort_order ASC, id ASC",
+                (username,)
+            )
+            rows = cur.fetchall()
+        for r in rows:
+            if isinstance(r['config'], str):
+                r['config'] = json.loads(r['config'])
+        return jsonify({'views': rows})
+    finally:
+        db.close()
+
+
+@app.route('/api/views', methods=['POST'])
+@login_required
+def api_views_create():
+    username = session['user']['username']
+    data = request.get_json() or {}
+    name = data.get('name', '시트 1')
+    cfg = data.get('config', {
+        'chartType': 'bar', 'mode': 'chart',
+        'rows': [], 'columns': [], 'measures': [],
+        'color': None, 'size': None, 'filters': {},
+        'sort': 'desc', 'limit': 500
+    })
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_ord "
+                "FROM user_views WHERE username=%s", (username,)
+            )
+            next_ord = (cur.fetchone() or {}).get('next_ord', 0)
+            cur.execute(
+                "INSERT INTO user_views (username, name, config, sort_order) "
+                "VALUES (%s,%s,%s,%s)",
+                (username, name, json.dumps(cfg), next_ord)
+            )
+            new_id = cur.lastrowid
+        db.commit()
+        return jsonify({'id': new_id, 'name': name, 'config': cfg, 'sort_order': next_ord})
+    finally:
+        db.close()
+
+
+@app.route('/api/views/<int:view_id>', methods=['PUT'])
+@login_required
+def api_views_update(view_id):
+    username = session['user']['username']
+    data = request.get_json() or {}
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM user_views WHERE id=%s AND username=%s",
+                (view_id, username)
+            )
+            if not cur.fetchone():
+                return jsonify({'error': '권한 없음'}), 403
+            parts, vals = [], []
+            if 'name' in data:
+                parts.append('name=%s'); vals.append(data['name'])
+            if 'config' in data:
+                parts.append('config=%s'); vals.append(json.dumps(data['config']))
+            if parts:
+                vals.append(view_id)
+                cur.execute(f"UPDATE user_views SET {', '.join(parts)} WHERE id=%s", vals)
+        db.commit()
+        return jsonify({'ok': True})
+    finally:
+        db.close()
+
+
+@app.route('/api/views/<int:view_id>', methods=['DELETE'])
+@login_required
+def api_views_delete(view_id):
+    username = session['user']['username']
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM user_views WHERE id=%s AND username=%s",
+                (view_id, username)
+            )
+            if not cur.fetchone():
+                return jsonify({'error': '권한 없음'}), 403
+            cur.execute("DELETE FROM user_views WHERE id=%s", (view_id,))
+        db.commit()
+        return jsonify({'ok': True})
+    finally:
+        db.close()
+
+
+@app.route('/api/tableau/query', methods=['POST'])
+@login_required
+def api_tableau_query():
+    data = request.get_json() or {}
+    cfg = data.get('config', {})
+    dims, meas_list = _get_tableau_fields()
+    allowed = set(dims + meas_list)
+
+    rows_fields = [f for f in (cfg.get('rows') or []) if f in allowed]
+    cols_fields  = [f for f in (cfg.get('columns') or []) if f in allowed]
+    measures     = [f for f in (cfg.get('measures') or []) if f in allowed]
+    color_field  = cfg.get('color') if cfg.get('color') in allowed else None
+
+    if not measures:
+        return jsonify({'error': '측정값을 선택하세요'}), 400
+
+    group_by = list(dict.fromkeys(
+        rows_fields + cols_fields + ([color_field] if color_field else [])
+    ))
+    select_parts = [f'`{f}`' for f in group_by]
+    for m in measures:
+        select_parts.append(f'SUM(`{m}`) AS `{m}`')
+
+    conditions, params = [], []
+    for idx, (field, values) in enumerate((cfg.get('filters') or {}).items()):
+        if field not in allowed or not values:
+            continue
+        pname = f'tf_{idx}'
+        conditions.append(f'`{field}` IN UNNEST(@{pname})')
+        params.append(bigquery.ArrayQueryParameter(pname, 'STRING', [str(v) for v in values]))
+
+    where_clause = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+    group_clause = ('GROUP BY ' + ', '.join(f'`{f}`' for f in group_by)) if group_by else ''
+    limit = min(10000, max(1, int(cfg.get('limit', 500))))
+    sort_dir = 'DESC' if cfg.get('sort', 'desc') == 'desc' else 'ASC'
+    order_clause = (f'ORDER BY `{measures[0]}` {sort_dir}') if group_by and measures else ''
+
+    sql = (
+        f"SELECT {', '.join(select_parts)} "
+        f"FROM `{config.BQ_TABLE}` "
+        f"{where_clause} {group_clause} {order_clause} LIMIT {limit}"
+    )
+    try:
+        result = run_query_cached(sql, params, ttl=300)
+        out = []
+        for row in result:
+            r = {}
+            for k, v in row.items():
+                r[k] = float(v) if isinstance(v, (int, float)) else (v or '')
+            out.append(r)
+        return jsonify({
+            'columns': group_by + measures,
+            'rows': out,
+            'group_by': group_by,
+            'measures': measures
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/filters')
