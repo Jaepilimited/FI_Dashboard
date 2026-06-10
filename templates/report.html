@@ -155,6 +155,15 @@ tbody tr:hover td{background:#fafafa}
 </div>
 
 <script>
+function esc(s) {
+  if (s == null) return '—';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function getPrevMonth(ym) {
   const [y, m] = ym.split('-').map(Number);
   if (m === 1) return `${y - 1}-12`;
@@ -181,15 +190,18 @@ function diffClass(v, invert) {
 }
 
 function fmtDiff(curr, prev, isPp, invert) {
-  if (curr == null || prev == null || prev === 0) return { text: '—', cls: 'neu' };
+  if (curr == null || prev == null) return { text: '—', cls: 'neu' };
+  if (!isPp && prev === 0) return { text: '—', cls: 'neu' };
   if (isPp) {
     const diff = curr - prev;
-    const sign = diff > 0 ? '▲' : (diff < 0 ? '▼' : '');
-    return { text: `${sign} ${Math.abs(diff).toFixed(1)}pp`, cls: diffClass(diff, invert) };
+    const sign = diff > 0 ? '▲' : diff < 0 ? '▼' : '';
+    const text = sign ? `${sign} ${Math.abs(diff).toFixed(1)}pp` : '0.0pp';
+    return { text, cls: diffClass(diff, invert) };
   }
   const pct = ((curr - prev) / Math.abs(prev)) * 100;
-  const sign = pct > 0 ? '▲' : (pct < 0 ? '▼' : '');
-  return { text: `${sign} ${Math.abs(pct).toFixed(1)}%`, cls: diffClass(pct, invert) };
+  const sign = pct > 0 ? '▲' : pct < 0 ? '▼' : '';
+  const text = sign ? `${sign} ${Math.abs(pct).toFixed(1)}%` : '0.0%';
+  return { text, cls: diffClass(pct, invert) };
 }
 
 function rankBadge(i) {
@@ -225,6 +237,13 @@ async function init() {
   const qm = params.get('month');
   if (qm && months.includes(qm)) sel.value = qm;
   else if (months.length) sel.value = months[months.length - 1];
+
+  if (!months.length) {
+    ['kpiGrid', 'deptBody', 'salesTypeBody', 'lineBody', 'countryBody'].forEach(id => {
+      document.getElementById(id).innerHTML = errorHtml('월 데이터를 불러올 수 없습니다');
+    });
+    return;
+  }
 
   sel.addEventListener('change', () => {
     const url = new URL(location.href);
@@ -299,7 +318,7 @@ async function loadDept() {
     const p = prevMap[r.Department];
     const d = fmtDiff(r.sales_amount, p?.sales_amount, false, false);
     return `<tr>
-      <td>${rankBadge(i)}${r.Department ?? '—'}</td>
+      <td>${rankBadge(i)}${esc(r.Department)}</td>
       <td>${fmtAmt(r.sales_amount)}</td>
       <td class="${d.cls}">${d.text}</td>
       <td>${fmtPct(r.operating_margin)}</td>
@@ -312,7 +331,7 @@ async function loadDept() {
 
 async function loadSalesType() {
   const el = document.getElementById('salesTypeBody');
-  el.innerHTML = `<table><thead><tr><th>유형</th><th>매출</th><th>비중</th><th>전월比</th><th>이익률</th></tr></thead><tbody>${skeletonRows(2, 5)}</tbody></table>`;
+  el.innerHTML = `<table><thead><tr><th>유형</th><th>매출</th><th>비중</th><th>전월比</th><th>영업이익률</th></tr></thead><tbody>${skeletonRows(2, 5)}</tbody></table>`;
 
   const [cur, prv, catCur] = await Promise.all([
     fetch(`/api/sales-type?months=${currentMonth}`).then(r => r.json()).catch(() => null),
@@ -330,7 +349,7 @@ async function loadSalesType() {
     const d = fmtDiff(r.sales_amount, p?.sales_amount, false, false);
     const pct = total ? (r.sales_amount / total * 100) : 0;
     return `<tr>
-      <td><span class="rank rank-1" style="font-size:8px">${(r.Sales_Type ?? '').slice(0, 3)}</span>${r.Sales_Type ?? '—'}</td>
+      <td><span class="rank rank-1" style="font-size:8px">${esc(r.Sales_Type).slice(0, 3)}</span>${esc(r.Sales_Type)}</td>
       <td>${fmtAmt(r.sales_amount)}</td>
       <td><div class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(0)}%"></div></div><span class="bar-pct">${pct.toFixed(0)}%</span></div></td>
       <td class="${d.cls}">${d.text}</td>
@@ -341,7 +360,7 @@ async function loadSalesType() {
   let catHtml = '';
   if (catCur?.length) {
     const catRows = catCur.slice(0, 5).map((r, i) =>
-      `<tr><td>${rankBadge(i)}${r.Category ?? '—'}</td><td>${fmtAmt(r.sales_amount)}</td><td>${fmtPct(r.gross_margin)}</td></tr>`
+      `<tr><td>${rankBadge(i)}${esc(r.Category)}</td><td>${fmtAmt(r.sales_amount)}</td><td>${fmtPct(r.gross_margin)}</td></tr>`
     ).join('');
     catHtml = `<div class="sub-table-wrap">
       <div class="sub-table-label">카테고리별</div>
@@ -350,8 +369,8 @@ async function loadSalesType() {
     </div>`;
   }
 
-  el.innerHTML = `<table><thead><tr><th>유형</th><th>매출</th><th>비중</th><th>전월比</th><th>이익률</th></tr></thead>
-    <tbody>${rows}</tbody></table>${catHtml}`;
+  el.innerHTML = `<table><thead><tr><th>유형</th><th>매출</th><th>비중</th><th>전월比</th><th>영업이익률</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="5" class="section-error">데이터 없음</td></tr>'}</tbody></table>${catHtml}`;
 }
 
 async function loadLine() {
@@ -373,7 +392,7 @@ async function loadLine() {
     const d = fmtDiff(r.sales_amount, p?.sales_amount, false, false);
     const pct = total ? (r.sales_amount / total * 100) : 0;
     return `<tr>
-      <td>${rankBadge(i)}${r.Line ?? '—'}</td>
+      <td>${rankBadge(i)}${esc(r.Line)}</td>
       <td>${fmtAmt(r.sales_amount)}</td>
       <td><div class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(0)}%"></div></div><span class="bar-pct">${pct.toFixed(0)}%</span></div></td>
       <td class="${d.cls}">${d.text}</td>
@@ -401,8 +420,8 @@ async function loadCountry() {
     const p = prevMap[r.Country];
     const d = fmtDiff(r.sales_amount, p?.sales_amount, false, false);
     return `<tr>
-      <td>${rankBadge(i)}${r.Country ?? '—'}</td>
-      <td style="color:#9ca3af;font-weight:400">${r.Continent ?? '—'}</td>
+      <td>${rankBadge(i)}${esc(r.Country)}</td>
+      <td style="color:#9ca3af;font-weight:400">${esc(r.Continent)}</td>
       <td>${fmtAmt(r.sales_amount)}</td>
       <td class="${d.cls}">${d.text}</td>
       <td>${fmtPct(r.operating_margin)}</td>
