@@ -567,6 +567,7 @@ def api_country():
     sql = f"""
         SELECT
             Country,
+            Continent,
             SUM(Sales_Amount)      AS sales_amount,
             SUM(Gross_Profit)      AS gross_profit,
             SUM(Operating_Income)  AS operating_income,
@@ -574,7 +575,7 @@ def api_country():
             SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
         FROM `{config.BQ_TABLE}`
         {where}
-        GROUP BY Country ORDER BY sales_amount DESC
+        GROUP BY Country, Continent ORDER BY sales_amount DESC
         LIMIT 30
     """
     return jsonify(run_query(sql, params))
