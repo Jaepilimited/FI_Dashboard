@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js"></script>
   <script>if(typeof Chart!=='undefined'){Chart.defaults.animation.duration=320;Chart.defaults.font.family="'Pretendard Variable','Pretendard',sans-serif";if(window.ChartDataLabels){Chart.register(window.ChartDataLabels);Chart.defaults.plugins.datalabels.display=false;}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -2236,6 +2237,65 @@ html.theme-light[data-tone="synthex"] .tweaks-panel{
 }
 /* Chips/pills: cleaner ghost look */
 html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
+
+/* ─── 커스텀 분석 (Tableau Builder) ──────────────────────────────── */
+.tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}
+.tbl-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
+.tbl-chart-btns{display:flex;gap:3px;align-items:center}
+.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
+.tbl-chart-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border)}
+.tbl-chart-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tbl-chart-btn .ic{width:14px;height:14px;stroke-width:1.75}
+.tbl-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+.tbl-mode-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.tbl-mode-btn{padding:4px 10px;font-size:11.5px;font-weight:500;background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);transition:all 0.15s}
+.tbl-mode-btn:hover{background:var(--surface-hover);color:var(--text)}
+.tbl-mode-btn.active{background:var(--accent-soft);color:var(--accent)}
+.tbl-sheet-tabs{display:flex;align-items:flex-end;gap:0;overflow-x:auto;max-width:40%}
+.tbl-sheet-tab{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11.5px;border:1px solid var(--border);border-bottom:none;border-radius:5px 5px 0 0;background:var(--surface-hover);color:var(--text-tertiary);cursor:pointer;white-space:nowrap;position:relative;top:1px;user-select:none}
+.tbl-sheet-tab.active{background:var(--bg);color:var(--text);border-color:var(--border-strong);z-index:1}
+.tbl-sheet-tab:hover:not(.active){background:var(--surface)}
+.tbl-sheet-tab-name{outline:none}
+.tbl-sheet-tab-del{opacity:0;font-size:13px;line-height:1;cursor:pointer;color:var(--text-tertiary);margin-left:2px}
+.tbl-sheet-tab:hover .tbl-sheet-tab-del,.tbl-sheet-tab.active .tbl-sheet-tab-del{opacity:1}
+.tbl-add-sheet{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
+.tbl-add-sheet:hover{background:var(--surface-hover);color:var(--text)}
+.tbl-save-btn{padding:4px 12px;font-size:11.5px;font-weight:600;border-radius:5px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
+.tbl-save-btn:hover{opacity:0.85}
+.tbl-save-btn.saved{background:transparent;color:var(--accent)}
+.tbl-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.tbl-fields{width:190px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:8px 0;background:var(--surface)}
+.tbl-fields-section{padding:0 0 8px}
+.tbl-fields-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);padding:8px 12px 4px}
+.tbl-field-chip{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:11.5px;cursor:grab;user-select:none;color:var(--text);transition:background 0.1s}
+.tbl-field-chip:hover{background:var(--surface-hover)}
+.tbl-field-chip:active{cursor:grabbing}
+.tbl-field-chip .ic{width:12px;height:12px;stroke-width:2;flex-shrink:0}
+.tbl-field-chip.dim .ic{color:#5b9ef9}
+.tbl-field-chip.meas .ic{color:#4ecb71}
+.tbl-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
+.tbl-shelves{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:6px 8px}
+.tbl-shelf{display:flex;align-items:center;gap:4px;min-height:30px;min-width:160px;border:1px solid var(--border);border-radius:5px;padding:3px 6px;background:var(--bg);flex:1;transition:border-color 0.15s,background 0.15s}
+.tbl-shelf.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.tbl-shelf-label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap;padding-right:4px;flex-shrink:0}
+.tbl-shelf-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1}
+.tbl-s-chip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:11px;background:var(--surface-hover);border:1px solid var(--border);cursor:default}
+.tbl-s-chip.dim{border-color:#5b9ef955;color:#5b9ef9}
+.tbl-s-chip.meas{border-color:#4ecb7155;color:#4ecb71}
+.tbl-s-chip-del{cursor:pointer;opacity:0.6;font-size:12px;line-height:1;padding:0 1px}
+.tbl-s-chip-del:hover{opacity:1}
+.tbl-viz{flex:1;min-height:0;overflow:auto;padding:12px;position:relative}
+.tbl-viz-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);text-align:center;gap:8px}
+.tbl-viz-empty .ic{width:40px;height:40px;stroke-width:1;opacity:0.3}
+.tbl-viz-empty p{font-size:13px}
+.tbl-echarts{width:100%;min-height:400px}
+.tbl-pivot-wrap{overflow:auto;height:100%}
+.tbl-pivot-table{border-collapse:separate;border-spacing:0;font-size:11.5px;width:100%}
+.tbl-pivot-table th{background:var(--surface);border:1px solid var(--border);padding:5px 8px;font-weight:600;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
+.tbl-pivot-table td{border:1px solid var(--border);padding:4px 8px;white-space:nowrap}
+.tbl-pivot-table td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.tbl-pivot-table tr:hover td{background:var(--surface-hover)}
+.tbl-pivot-table .total-row td{background:var(--surface);font-weight:600}
 </style>
 </head>
 <body>
@@ -2522,6 +2582,7 @@ const CATEGORY_DEFS = [
   { id:'product',  label:'상품별',    icon:'package',        path:['라인','카테고리','SKU'],     startLevel:0 },
   { id:'sales',    label:'판매유형별', icon:'shopping-bag',   path:['전체','B2B/B2C'],           startLevel:0 },
   { id:'rawdata',  label:'원시데이터', icon:'table-2',        path:[]                          },
+  { id:'tableau',  label:'커스텀 분석', icon:'layout-dashboard', path:[]                        },
 ];
 
 /* ─── State ─────────────────────────────────────────────────────────── */
@@ -3303,7 +3364,7 @@ function renderCrumb(){
   const wrap = $('#crumbTrail');
   const cat = CATEGORY_DEFS.find(c => c.id === state.category);
 
-  if (state.category === 'rawdata' || state.category === 'overview') { wrap.innerHTML = ''; return; }
+  if (state.category === 'rawdata' || state.category === 'overview' || state.category === 'tableau') { wrap.innerHTML = ''; return; }
   if (state.category === 'sales') {
     wrap.innerHTML = `
       <span class="crumb-item crumb-root">${cat.label}</span>
@@ -3473,7 +3534,7 @@ const METRIC_FORMULAS = {
 function renderHeroShell(){
   const shell = $('#heroShell');
   if (!shell) return;
-  if (state.category === 'rawdata') { shell.style.display = 'none'; return; }
+  if (state.category === 'rawdata' || state.category === 'tableau') { shell.style.display = 'none'; return; }
   shell.style.display = '';
 
   const k = api.kpi();
@@ -3659,7 +3720,7 @@ function changeFactorCardHtml(){
 function renderWaterfallShell(){
   const shell = $('#waterfallShell');
   if (!shell) return;
-  if (state.category === 'rawdata' || state.category === 'org' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
+  if (state.category === 'rawdata' || state.category === 'tableau' || state.category === 'org' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
   shell.style.display = '';
 
   const k = api.kpi();
@@ -5585,7 +5646,7 @@ function renderTreeRail(){
 function renderCatFilters(){
   const wrap = $('#catFilters');
   const cat = state.category;
-  if (cat === 'sales' || cat === 'rawdata' || cat === 'overview') { wrap.innerHTML = ''; return; }
+  if (cat === 'sales' || cat === 'rawdata' || cat === 'overview' || cat === 'tableau') { wrap.innerHTML = ''; return; }
 
   const d = state.drill[cat];
   let levels = [];
@@ -5849,7 +5910,7 @@ async function applyAll(){
   renderCatFilters();
   renderCrumb();
   // Page title per category
-  const _titleMap = { overview:'손익 요약 대시보드', org:'조직별 손익 대시보드', region:'지역별 손익 대시보드', product:'상품별 손익 대시보드', sales:'판매유형별 손익 대시보드', rawdata:'원시 데이터' };
+  const _titleMap = { overview:'손익 요약 대시보드', org:'조직별 손익 대시보드', region:'지역별 손익 대시보드', product:'상품별 손익 대시보드', sales:'판매유형별 손익 대시보드', rawdata:'원시 데이터', tableau:'커스텀 분석' };
   const _pt = $('#pageTitle'); if (_pt) _pt.textContent = _titleMap[state.category] || '손익 대시보드';
   renderHeroShell();
   renderWaterfallShell();
