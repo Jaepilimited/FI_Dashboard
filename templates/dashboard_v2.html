@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js"></script>
   <script>if(typeof Chart!=='undefined'){Chart.defaults.animation.duration=320;Chart.defaults.font.family="'Pretendard Variable','Pretendard',sans-serif";if(window.ChartDataLabels){Chart.register(window.ChartDataLabels);Chart.defaults.plugins.datalabels.display=false;}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -2245,6 +2246,65 @@ html.theme-light[data-tone="synthex"] .tweaks-panel{
 }
 /* Chips/pills: cleaner ghost look */
 html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
+
+/* ─── 커스텀 분석 (Tableau Builder) ──────────────────────────────── */
+.tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}
+.tbl-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
+.tbl-chart-btns{display:flex;gap:3px;align-items:center}
+.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
+.tbl-chart-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border)}
+.tbl-chart-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tbl-chart-btn .ic{width:14px;height:14px;stroke-width:1.75}
+.tbl-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+.tbl-mode-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.tbl-mode-btn{padding:4px 10px;font-size:11.5px;font-weight:500;background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);transition:all 0.15s}
+.tbl-mode-btn:hover{background:var(--surface-hover);color:var(--text)}
+.tbl-mode-btn.active{background:var(--accent-soft);color:var(--accent)}
+.tbl-sheet-tabs{display:flex;align-items:flex-end;gap:0;overflow-x:auto;max-width:40%}
+.tbl-sheet-tab{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11.5px;border:1px solid var(--border);border-bottom:none;border-radius:5px 5px 0 0;background:var(--surface-hover);color:var(--text-tertiary);cursor:pointer;white-space:nowrap;position:relative;top:1px;user-select:none}
+.tbl-sheet-tab.active{background:var(--bg);color:var(--text);border-color:var(--border-strong);z-index:1}
+.tbl-sheet-tab:hover:not(.active){background:var(--surface)}
+.tbl-sheet-tab-name{outline:none}
+.tbl-sheet-tab-del{opacity:0;font-size:13px;line-height:1;cursor:pointer;color:var(--text-tertiary);margin-left:2px}
+.tbl-sheet-tab:hover .tbl-sheet-tab-del,.tbl-sheet-tab.active .tbl-sheet-tab-del{opacity:1}
+.tbl-add-sheet{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
+.tbl-add-sheet:hover{background:var(--surface-hover);color:var(--text)}
+.tbl-save-btn{padding:4px 12px;font-size:11.5px;font-weight:600;border-radius:5px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
+.tbl-save-btn:hover{opacity:0.85}
+.tbl-save-btn.saved{background:transparent;color:var(--accent)}
+.tbl-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.tbl-fields{width:190px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:8px 0;background:var(--surface)}
+.tbl-fields-section{padding:0 0 8px}
+.tbl-fields-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);padding:8px 12px 4px}
+.tbl-field-chip{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:11.5px;cursor:grab;user-select:none;color:var(--text);transition:background 0.1s}
+.tbl-field-chip:hover{background:var(--surface-hover)}
+.tbl-field-chip:active{cursor:grabbing}
+.tbl-field-chip .ic{width:12px;height:12px;stroke-width:2;flex-shrink:0}
+.tbl-field-chip.dim .ic{color:#5b9ef9}
+.tbl-field-chip.meas .ic{color:#4ecb71}
+.tbl-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
+.tbl-shelves{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:6px 8px}
+.tbl-shelf{display:flex;align-items:center;gap:4px;min-height:30px;min-width:160px;border:1px solid var(--border);border-radius:5px;padding:3px 6px;background:var(--bg);flex:1;transition:border-color 0.15s,background 0.15s}
+.tbl-shelf.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.tbl-shelf-label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap;padding-right:4px;flex-shrink:0}
+.tbl-shelf-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1}
+.tbl-s-chip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:11px;background:var(--surface-hover);border:1px solid var(--border);cursor:default}
+.tbl-s-chip.dim{border-color:#5b9ef955;color:#5b9ef9}
+.tbl-s-chip.meas{border-color:#4ecb7155;color:#4ecb71}
+.tbl-s-chip-del{cursor:pointer;opacity:0.6;font-size:12px;line-height:1;padding:0 1px}
+.tbl-s-chip-del:hover{opacity:1}
+.tbl-viz{flex:1;min-height:0;overflow:auto;padding:12px;position:relative}
+.tbl-viz-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);text-align:center;gap:8px}
+.tbl-viz-empty .ic{width:40px;height:40px;stroke-width:1;opacity:0.3}
+.tbl-viz-empty p{font-size:13px}
+.tbl-echarts{width:100%;min-height:400px}
+.tbl-pivot-wrap{overflow:auto;height:100%}
+.tbl-pivot-table{border-collapse:separate;border-spacing:0;font-size:11.5px;width:100%}
+.tbl-pivot-table th{background:var(--surface);border:1px solid var(--border);padding:5px 8px;font-weight:600;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
+.tbl-pivot-table td{border:1px solid var(--border);padding:4px 8px;white-space:nowrap}
+.tbl-pivot-table td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.tbl-pivot-table tr:hover td{background:var(--surface-hover)}
+.tbl-pivot-table .total-row td{background:var(--surface);font-weight:600}
 </style>
 </head>
 <body>
@@ -2531,6 +2591,7 @@ const CATEGORY_DEFS = [
   { id:'product',  label:'상품별',    icon:'package',        path:['라인','카테고리','SKU'],     startLevel:0 },
   { id:'sales',    label:'판매유형별', icon:'shopping-bag',   path:['전체','B2B/B2C'],           startLevel:0 },
   { id:'rawdata',  label:'원시데이터', icon:'table-2',        path:[]                          },
+  { id:'tableau',  label:'커스텀 분석', icon:'layout-dashboard', path:[]                        },
 ];
 
 /* ─── State ─────────────────────────────────────────────────────────── */
@@ -2551,6 +2612,22 @@ const state = {
   rangeEnd: 0,
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false,
   rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'' },
+  tableau: {
+    views: [],
+    currentId: null,
+    fields: { dimensions: [], measures: [] },
+    config: {
+      chartType: 'bar', mode: 'chart',
+      rows: [], columns: [], measures: [],
+      color: null, size: null,
+      filters: {}, sort: 'desc', limit: 500
+    },
+    queryResult: null,
+    loading: false,
+    saveTimer: null,
+    echartsInst: null,
+    dragField: null,
+  },
 };
 function fsArr(cat, lv){ const s = state.filterSel[cat]; return s && s[lv] && s[lv].size ? [...s[lv]] : []; }
 function fsDepth(cat){ const s = state.filterSel[cat]; if(!s) return 0; for(let i=2;i>=0;i--){ if(s[i]&&s[i].size) return i+1; } return 0; }
@@ -3312,7 +3389,7 @@ function renderCrumb(){
   const wrap = $('#crumbTrail');
   const cat = CATEGORY_DEFS.find(c => c.id === state.category);
 
-  if (state.category === 'rawdata' || state.category === 'overview') { wrap.innerHTML = ''; return; }
+  if (state.category === 'rawdata' || state.category === 'overview' || state.category === 'tableau') { wrap.innerHTML = ''; return; }
   if (state.category === 'sales') {
     wrap.innerHTML = `
       <span class="crumb-item crumb-root">${cat.label}</span>
@@ -3482,7 +3559,7 @@ const METRIC_FORMULAS = {
 function renderHeroShell(){
   const shell = $('#heroShell');
   if (!shell) return;
-  if (state.category === 'rawdata') { shell.style.display = 'none'; return; }
+  if (state.category === 'rawdata' || state.category === 'tableau') { shell.style.display = 'none'; return; }
   shell.style.display = '';
 
   const k = api.kpi();
@@ -3668,7 +3745,7 @@ function changeFactorCardHtml(){
 function renderWaterfallShell(){
   const shell = $('#waterfallShell');
   if (!shell) return;
-  if (state.category === 'rawdata' || state.category === 'org' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
+  if (state.category === 'rawdata' || state.category === 'tableau' || state.category === 'org' || state.category === 'region' || state.category === 'product' || state.category === 'sales') { shell.style.display = 'none'; return; }
   shell.style.display = '';
 
   const k = api.kpi();
@@ -4278,10 +4355,419 @@ function trendTipHandler(ctx){
 }
 
 /* ═════════════════════════════════════════════════════════════════════
+   TABLEAU BUILDER VIEW
+   ═════════════════════════════════════════════════════════════════════ */
+function renderTableauView(){
+  const cfg = state.tableau.config;
+  const chartDefs = [
+    ['bar','bar-chart-2','막대'],['stacked_bar','layers','누적막대'],
+    ['line','trending-up','선'],['area','activity','영역'],
+    ['stacked_area','align-justify','누적영역'],
+    ['pie','pie-chart','원형'],['donut','disc','도넛'],
+    ['waterfall','bar-chart','폭포수'],
+    ['scatter','circle','산점도'],['bubble','git-commit','버블'],
+    ['heatmap','grid','히트맵'],['treemap','layout','트리맵'],
+    ['combo','bar-chart-4','콤보'],
+  ];
+  const shelfDefs = [
+    ['rows','행'],['columns','열'],['measures','측정값'],
+    ['color','색상'],['size','크기'],['filters','필터'],
+  ];
+  return `<div class="tbl-wrap" id="tblWrap">
+    <div class="tbl-toolbar" id="tblToolbar">
+      <div class="tbl-chart-btns" id="tblChartBtns">
+        ${chartDefs.map(([t,ic,lb])=>`<button class="tbl-chart-btn${cfg.chartType===t?' active':''}" data-type="${t}" title="${lb}"><i data-lucide="${ic}" class="ic"></i></button>`).join('')}
+      </div>
+      <div class="tbl-divider"></div>
+      <div class="tbl-mode-toggle">
+        <button class="tbl-mode-btn${cfg.mode==='chart'?' active':''}" data-mode="chart">차트</button>
+        <button class="tbl-mode-btn${cfg.mode==='pivot'?' active':''}" data-mode="pivot">피벗</button>
+      </div>
+      <div class="tbl-divider"></div>
+      <div class="tbl-sheet-tabs" id="tblSheetTabs"></div>
+      <button class="tbl-add-sheet" id="tblAddSheet" title="새 시트">+</button>
+      <button class="tbl-save-btn saved" id="tblSaveBtn">저장됨</button>
+    </div>
+    <div class="tbl-body">
+      <div class="tbl-fields" id="tblFields">
+        <div class="tbl-fields-label" style="padding:10px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)">필드 불러오는 중…</div>
+      </div>
+      <div class="tbl-right">
+        <div class="tbl-shelves" id="tblShelves">
+          ${shelfDefs.map(([s,lb])=>`<div class="tbl-shelf" id="tblShelf_${s}" data-shelf="${s}"><span class="tbl-shelf-label">${lb}</span><div class="tbl-shelf-chips" id="tblChips_${s}"></div></div>`).join('')}
+        </div>
+        <div class="tbl-viz" id="tblViz">
+          <div class="tbl-viz-empty">
+            <i data-lucide="layout-dashboard" class="ic"></i>
+            <p>필드를 드래그해서 행·열·측정값에 놓으세요</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function initTableauView(){
+  await tblLoadFields();
+  await tblLoadViews();
+  tblInitDnD();
+  tblRenderShelfChips();
+  $$('#tblChartBtns .tbl-chart-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.tableau.config.chartType = btn.dataset.type;
+      $$('#tblChartBtns .tbl-chart-btn').forEach(b => b.classList.toggle('active', b===btn));
+      tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+    };
+  });
+  $$('.tbl-mode-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.tableau.config.mode = btn.dataset.mode;
+      $$('.tbl-mode-btn').forEach(b => b.classList.toggle('active', b===btn));
+      tblMarkUnsaved(); tblAutoSave(); tblRenderViz();
+    };
+  });
+  const saveBtn = $('#tblSaveBtn');
+  if (saveBtn) saveBtn.onclick = async () => {
+    const id = state.tableau.currentId;
+    if (!id) return;
+    clearTimeout(state.tableau.saveTimer);
+    await fetch(`/api/views/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:state.tableau.config})});
+    const v = state.tableau.views.find(v=>v.id===id);
+    if (v) v.config = JSON.parse(JSON.stringify(state.tableau.config));
+    saveBtn.textContent = '저장됨'; saveBtn.classList.add('saved');
+  };
+}
+
+async function tblLoadFields(){
+  try {
+    const r = await fetch('/api/tableau/fields').then(r=>r.json());
+    state.tableau.fields = r;
+    tblRenderFields();
+  } catch(e){ console.error('[tbl] fields load error', e); }
+}
+
+function tblRenderFields(){
+  const panel = $('#tblFields');
+  if (!panel) return;
+  const { dimensions, measures } = state.tableau.fields;
+  const chip = (f, type) =>
+    `<div class="tbl-field-chip ${type}" draggable="true" data-field="${f}" data-ftype="${type}">` +
+    `<i data-lucide="${type==='dim'?'tag':'hash'}" class="ic"></i>${f}</div>`;
+  panel.innerHTML =
+    `<div class="tbl-fields-section"><div class="tbl-fields-label">차원 (Dimension)</div>${dimensions.map(f=>chip(f,'dim')).join('')}</div>` +
+    `<div class="tbl-fields-section"><div class="tbl-fields-label">측정값 (Measure)</div>${measures.map(f=>chip(f,'meas')).join('')}</div>`;
+  if (window.lucide) lucide.createIcons();
+  tblInitDnD();
+}
+
+function tblInitDnD(){
+  $$('#tblFields .tbl-field-chip').forEach(chip => {
+    chip.ondragstart = e => {
+      state.tableau.dragField = { name: chip.dataset.field, ftype: chip.dataset.ftype };
+      e.dataTransfer.effectAllowed = 'copy';
+    };
+    chip.ondragend = () => { state.tableau.dragField = null; };
+  });
+  $$('.tbl-shelf').forEach(shelf => {
+    shelf.ondragover = e => { e.preventDefault(); shelf.classList.add('drag-over'); };
+    shelf.ondragleave = () => shelf.classList.remove('drag-over');
+    shelf.ondrop = e => {
+      e.preventDefault();
+      shelf.classList.remove('drag-over');
+      const f = state.tableau.dragField;
+      if (!f) return;
+      tblAddToShelf(shelf.dataset.shelf, f.name);
+    };
+  });
+}
+
+function tblAddToShelf(shelf, fieldName){
+  const cfg = state.tableau.config;
+  if (shelf === 'color' || shelf === 'size') {
+    cfg[shelf] = fieldName;
+  } else if (shelf === 'filters') {
+    if (!cfg.filters[fieldName]) cfg.filters[fieldName] = [];
+  } else {
+    if (!cfg[shelf]) cfg[shelf] = [];
+    if (!cfg[shelf].includes(fieldName)) cfg[shelf].push(fieldName);
+  }
+  tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+}
+
+function tblRemoveFromShelf(shelf, fieldName){
+  const cfg = state.tableau.config;
+  if (shelf === 'color' || shelf === 'size') {
+    cfg[shelf] = null;
+  } else if (shelf === 'filters') {
+    delete cfg.filters[fieldName];
+  } else {
+    cfg[shelf] = (cfg[shelf] || []).filter(f => f !== fieldName);
+  }
+  tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+}
+
+function tblRenderShelfChips(){
+  const cfg = state.tableau.config;
+  const { dimensions } = state.tableau.fields;
+  const isDim = f => dimensions.includes(f);
+  const renderChips = (shelf, items) => {
+    const el = $(`#tblChips_${shelf}`);
+    if (!el) return;
+    el.innerHTML = items.map(f =>
+      `<span class="tbl-s-chip ${isDim(f)?'dim':'meas'}" data-shelf="${shelf}" data-field="${f}">${f}` +
+      `<span class="tbl-s-chip-del" data-shelf="${shelf}" data-field="${f}">×</span></span>`
+    ).join('');
+    el.querySelectorAll('.tbl-s-chip-del').forEach(btn => {
+      btn.onclick = () => tblRemoveFromShelf(btn.dataset.shelf, btn.dataset.field);
+    });
+  };
+  renderChips('rows',    cfg.rows || []);
+  renderChips('columns', cfg.columns || []);
+  renderChips('measures',cfg.measures || []);
+  renderChips('color',   cfg.color ? [cfg.color] : []);
+  renderChips('size',    cfg.size  ? [cfg.size]  : []);
+  renderChips('filters', Object.keys(cfg.filters || {}));
+}
+
+async function tblExecuteQuery(){
+  const cfg = state.tableau.config;
+  if (!cfg.measures || !cfg.measures.length) { tblRenderViz(); return; }
+  state.tableau.loading = true;
+  tblSetVizLoading(true);
+  try {
+    const r = await fetch('/api/tableau/query', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:cfg})}).then(r=>r.json());
+    if (r.error) { tblSetVizError(r.error); return; }
+    state.tableau.queryResult = r;
+    tblRenderViz();
+  } catch(e) { tblSetVizError('쿼리 실패: ' + e); }
+  finally { state.tableau.loading = false; }
+}
+
+function tblSetVizLoading(on){
+  const viz = $('#tblViz');
+  if (!viz||!on) return;
+  viz.innerHTML = '<div class="tbl-viz-empty"><div class="spinner"></div><p>쿼리 실행 중…</p></div>';
+}
+
+function tblSetVizError(msg){
+  const viz = $('#tblViz');
+  if (viz) viz.innerHTML = `<div class="tbl-viz-empty"><i data-lucide="alert-circle" class="ic"></i><p style="color:var(--danger,#f87171)">${msg}</p></div>`;
+  if (window.lucide) lucide.createIcons();
+}
+
+function tblRenderViz(){
+  const viz = $('#tblViz');
+  if (!viz) return;
+  const cfg = state.tableau.config;
+  const result = state.tableau.queryResult;
+  if (!result || !result.rows || !result.rows.length) {
+    viz.innerHTML = '<div class="tbl-viz-empty"><i data-lucide="layout-dashboard" class="ic"></i><p>필드를 드래그해서 행·열·측정값에 놓으세요</p></div>';
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+  if (cfg.mode === 'pivot') { tblRenderPivot(viz, result, cfg); return; }
+  tblRenderEChart(viz, result, cfg);
+}
+
+function tblFmtNum(v){
+  if (typeof v !== 'number') return String(v||'');
+  if (Math.abs(v)>=1e9) return (v/1e9).toFixed(1)+'B';
+  if (Math.abs(v)>=1e6) return (v/1e6).toFixed(1)+'M';
+  if (Math.abs(v)>=1e3) return (v/1e3).toFixed(1)+'K';
+  return v.toFixed(0);
+}
+
+function tblRenderEChart(viz, result, cfg){
+  viz.innerHTML = '<div class="tbl-echarts" id="tblEChartsEl" style="height:100%;min-height:360px"></div>';
+  const el = $('#tblEChartsEl');
+  if (!el||!window.echarts){ viz.innerHTML='<div class="tbl-viz-empty"><p>ECharts 로딩 실패</p></div>'; return; }
+  if (state.tableau.echartsInst) { try{state.tableau.echartsInst.dispose();}catch(e){} }
+  const isDark = document.documentElement.classList.contains('theme-dark');
+  const inst = echarts.init(el, isDark?'dark':null, {renderer:'canvas'});
+  state.tableau.echartsInst = inst;
+  const rows=result.rows, measures=result.measures||[], groupBy=result.group_by||[];
+  const labelField=groupBy[0]||null, colorField=cfg.color&&groupBy.includes(cfg.color)?cfg.color:null;
+  const type=cfg.chartType;
+  const palette=['#5b9ef9','#4ecb71','#f7c948','#f9784b','#a78bfa','#34d399','#f472b6','#60a5fa','#fb923c','#a3e635'];
+  const meas=measures[0]||'';
+  const labels=labelField?[...new Set(rows.map(r=>String(r[labelField]??'')))]:[];
+  let option={};
+  if (type==='pie'||type==='donut') {
+    option={tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{orient:'vertical',right:10,top:'center',textStyle:{color:isDark?'#ccc':'#333'}},
+      series:[{type:'pie',radius:type==='donut'?['45%','70%']:'60%',data:rows.map(r=>({name:String(r[labelField]||''),value:r[meas]||0})),emphasis:{itemStyle:{shadowBlur:10}}}]};
+  } else if (type==='scatter'||type==='bubble') {
+    const xF=measures[0]||'',yF=measures[1]||measures[0]||'',sF=measures[2]||measures[0]||'';
+    const maxS=Math.max(...rows.map(r=>r[sF]||0),1);
+    option={tooltip:{trigger:'item',formatter:p=>`${p.data[3]}<br/>${xF}: ${tblFmtNum(p.data[0])}<br/>${yF}: ${tblFmtNum(p.data[1])}`},
+      xAxis:{type:'value',name:xF,axisLabel:{color:isDark?'#aaa':'#666'}},yAxis:{type:'value',name:yF,axisLabel:{color:isDark?'#aaa':'#666'}},
+      series:[{type:'scatter',data:rows.map(r=>[r[xF]||0,r[yF]||0,r[sF]||0,String(r[labelField]||'')]),
+        symbolSize:type==='bubble'?d=>Math.max(8,Math.sqrt(d[2]/maxS)*60):10,itemStyle:{color:p=>palette[p.dataIndex%palette.length]}}]};
+  } else if (type==='heatmap') {
+    const xF=groupBy[0]||'',yF=groupBy[1]||groupBy[0]||'';
+    const xs=[...new Set(rows.map(r=>String(r[xF]||'')))],ys=[...new Set(rows.map(r=>String(r[yF]||'')))];
+    const hData=rows.map(r=>[xs.indexOf(String(r[xF]||'')),ys.indexOf(String(r[yF]||'')),r[meas]||0]);
+    const maxV=Math.max(...hData.map(d=>d[2]),1);
+    option={tooltip:{position:'top',formatter:p=>`${xs[p.data[0]]} / ${ys[p.data[1]]}<br/>${meas}: ${tblFmtNum(p.data[2])}`},
+      xAxis:{type:'category',data:xs,axisLabel:{rotate:45,color:isDark?'#aaa':'#666'}},yAxis:{type:'category',data:ys,axisLabel:{color:isDark?'#aaa':'#666'}},
+      visualMap:{min:0,max:maxV,calculable:true,orient:'horizontal',bottom:5,left:'center',inRange:{color:['#f0f0f0','#5b9ef9','#1a3a6e']}},
+      series:[{type:'heatmap',data:hData,label:{show:true,formatter:p=>tblFmtNum(p.data[2])},emphasis:{itemStyle:{shadowBlur:10}}}]};
+  } else if (type==='treemap') {
+    option={tooltip:{formatter:p=>`${p.name}: ${tblFmtNum(p.value)}`},
+      series:[{type:'treemap',data:rows.map(r=>({name:String(r[labelField]||''),value:r[meas]||0})),label:{show:true,formatter:'{b}\n{c}'},levels:[{itemStyle:{borderWidth:2}}]}]};
+  } else if (type==='waterfall') {
+    const wfVals=rows.map(r=>r[meas]||0);
+    const helperArr=wfVals.map((_,i)=>i===0?0:wfVals.slice(0,i).reduce((s,v)=>s+v,0));
+    option={tooltip:{trigger:'axis'},
+      xAxis:{type:'category',data:rows.map(r=>String(r[labelField]||'')),axisLabel:{color:isDark?'#aaa':'#666'}},
+      yAxis:{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}},
+      series:[{type:'bar',stack:'wf',data:helperArr.map(v=>({value:v,itemStyle:{opacity:0}})),tooltip:{show:false}},
+        {type:'bar',stack:'wf',data:wfVals,itemStyle:{color:p=>wfVals[p.dataIndex]>=0?'#4ecb71':'#f9784b'},label:{show:true,position:'top',formatter:p=>tblFmtNum(p.value)}}]};
+  } else {
+    const isLine=type==='line'||type==='area'||type==='stacked_area';
+    const isStacked=type==='stacked_bar'||type==='stacked_area';
+    const isArea=type==='area'||type==='stacked_area';
+    const isCombo=type==='combo';
+    const colorGroups=colorField?[...new Set(rows.map(r=>String(r[colorField]||'')))]:null;
+    let series=[];
+    if (colorGroups) {
+      series=colorGroups.map((grp,gi)=>{
+        const gRows=rows.filter(r=>String(r[colorField]||'')===grp);
+        const data=labels.map(lb=>{const r=gRows.find(r=>String(r[labelField]||'')===lb);return r?(r[meas]||0):0;});
+        const t=isCombo&&gi>0?'line':(isLine?'line':'bar');
+        return{name:grp,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,itemStyle:{color:palette[gi%palette.length]}};
+      });
+    } else {
+      measures.forEach((m,mi)=>{
+        const t=isCombo&&mi>0?'line':(isLine?'line':'bar');
+        series.push({name:m,type:t,data:rows.map(r=>r[m]||0),stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,yAxisIndex:isCombo&&mi>0?1:0,itemStyle:{color:palette[mi%palette.length]}});
+      });
+    }
+    const yAxes=isCombo&&measures.length>1
+      ?[{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}},{type:'value',alignTicks:true,axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}}]
+      :[{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}}];
+    option={tooltip:{trigger:'axis'},legend:{show:series.length>1,textStyle:{color:isDark?'#ccc':'#333'}},
+      grid:{left:'3%',right:'4%',bottom:'3%',containLabel:true},
+      xAxis:{type:'category',data:labels,axisLabel:{color:isDark?'#aaa':'#666',rotate:labels.length>12?30:0}},
+      yAxis:yAxes,series};
+  }
+  if (isDark) option.backgroundColor='transparent';
+  inst.setOption(option);
+  window.addEventListener('resize',()=>{if(inst&&!inst.isDisposed())inst.resize();});
+}
+
+function tblRenderPivot(viz, result, cfg){
+  viz.innerHTML='<div class="tbl-pivot-wrap"><table class="tbl-pivot-table" id="tblPivotTbl"></table></div>';
+  const tbl=$('#tblPivotTbl');
+  if (!tbl||!result.rows.length){viz.innerHTML='<div class="tbl-viz-empty"><p>데이터 없음</p></div>';return;}
+  const measures=result.measures||[],groupBy=result.group_by||[],allCols=[...groupBy,...measures];
+  const thead=tbl.createTHead(),hrow=thead.insertRow();
+  allCols.forEach(col=>{const th=document.createElement('th');th.textContent=col;hrow.appendChild(th);});
+  const tbody=tbl.createTBody();
+  result.rows.forEach(row=>{
+    const tr=tbody.insertRow();
+    allCols.forEach(col=>{const td=tr.insertCell();const val=row[col];if(measures.includes(col)&&typeof val==='number'){td.className='num';td.textContent=val.toLocaleString('ko-KR');}else{td.textContent=val??'';}});
+  });
+  if (measures.length){
+    const trow=tbody.insertRow();trow.className='total-row';
+    allCols.forEach((col,i)=>{const td=trow.insertCell();if(measures.includes(col)){td.className='num';td.textContent=result.rows.reduce((s,r)=>s+(typeof r[col]==='number'?r[col]:0),0).toLocaleString('ko-KR');}else{td.textContent=i===0?'합계':'';}});
+  }
+}
+
+async function tblLoadViews(){
+  try {
+    const r=await fetch('/api/views').then(r=>r.json());
+    state.tableau.views=r.views||[];
+    if (!state.tableau.views.length){
+      const newView=await fetch('/api/views',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'시트 1',config:state.tableau.config})}).then(r=>r.json());
+      state.tableau.views=[newView];state.tableau.currentId=newView.id;
+    } else {
+      state.tableau.currentId=state.tableau.views[0].id;
+      tblApplyViewConfig(state.tableau.views[0].config);
+    }
+    tblRenderSheetTabs(); tblRenderShelfChips(); tblExecuteQuery();
+  } catch(e){console.error('[tbl] views load error',e);}
+}
+
+function tblApplyViewConfig(cfg){
+  const allowed=new Set([...state.tableau.fields.dimensions,...state.tableau.fields.measures]);
+  const prune=arr=>(arr||[]).filter(f=>allowed.size===0||allowed.has(f));
+  const c=JSON.parse(JSON.stringify(cfg));
+  c.rows=prune(c.rows);c.columns=prune(c.columns);c.measures=prune(c.measures);
+  if(c.color&&allowed.size&&!allowed.has(c.color))c.color=null;
+  if(c.size&&allowed.size&&!allowed.has(c.size))c.size=null;
+  state.tableau.config=c;
+}
+
+function tblRenderSheetTabs(){
+  const bar=$('#tblSheetTabs');
+  if(!bar)return;
+  bar.innerHTML=state.tableau.views.map(v=>
+    `<div class="tbl-sheet-tab${v.id===state.tableau.currentId?' active':''}" data-id="${v.id}">` +
+    `<span class="tbl-sheet-tab-name" contenteditable="false">${v.name}</span>` +
+    `<span class="tbl-sheet-tab-del" data-id="${v.id}">×</span></div>`
+  ).join('');
+  $$('#tblSheetTabs .tbl-sheet-tab').forEach(tab=>{
+    tab.onclick=e=>{if(e.target.classList.contains('tbl-sheet-tab-del'))return;const id=parseInt(tab.dataset.id);if(id===state.tableau.currentId)return;tblSwitchView(id);};
+    const nameEl=tab.querySelector('.tbl-sheet-tab-name');
+    nameEl.ondblclick=function(){
+      this.contentEditable='true';this.focus();
+      const sel=window.getSelection(),range=document.createRange();range.selectNodeContents(this);sel.removeAllRanges();sel.addRange(range);
+      const finish=async()=>{this.contentEditable='false';const newName=this.textContent.trim()||'시트';const id=parseInt(tab.dataset.id);
+        await fetch(`/api/views/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
+        const v=state.tableau.views.find(v=>v.id===id);if(v)v.name=newName;};
+      this.onblur=finish;this.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();this.blur();}};
+    };
+  });
+  $$('#tblSheetTabs .tbl-sheet-tab-del').forEach(btn=>{
+    btn.onclick=async()=>{
+      const id=parseInt(btn.dataset.id);
+      if(state.tableau.views.length<=1){alert('마지막 시트는 삭제할 수 없습니다');return;}
+      if(!confirm('이 시트를 삭제할까요?'))return;
+      await fetch(`/api/views/${id}`,{method:'DELETE'});
+      state.tableau.views=state.tableau.views.filter(v=>v.id!==id);
+      if(state.tableau.currentId===id){state.tableau.currentId=state.tableau.views[0].id;tblApplyViewConfig(state.tableau.views[0].config);}
+      tblRenderSheetTabs();tblRenderShelfChips();tblExecuteQuery();
+    };
+  });
+  const addBtn=$('#tblAddSheet');
+  if(addBtn)addBtn.onclick=async()=>{
+    const name=`시트 ${state.tableau.views.length+1}`;
+    const emptyConfig={chartType:'bar',mode:'chart',rows:[],columns:[],measures:[],color:null,size:null,filters:{},sort:'desc',limit:500};
+    const newView=await fetch('/api/views',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,config:emptyConfig})}).then(r=>r.json());
+    state.tableau.views.push(newView);state.tableau.currentId=newView.id;state.tableau.config=JSON.parse(JSON.stringify(emptyConfig));
+    tblRenderSheetTabs();tblRenderShelfChips();tblRenderViz();
+  };
+}
+
+function tblSwitchView(id){
+  const v=state.tableau.views.find(v=>v.id===id);if(!v)return;
+  state.tableau.currentId=id;tblApplyViewConfig(v.config);tblRenderSheetTabs();tblRenderShelfChips();tblExecuteQuery();
+}
+
+function tblMarkUnsaved(){const btn=$('#tblSaveBtn');if(btn){btn.textContent='저장';btn.classList.remove('saved');}}
+
+function tblAutoSave(){
+  clearTimeout(state.tableau.saveTimer);
+  state.tableau.saveTimer=setTimeout(async()=>{
+    const id=state.tableau.currentId;if(!id)return;
+    await fetch(`/api/views/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:state.tableau.config})});
+    const v=state.tableau.views.find(v=>v.id===id);if(v)v.config=JSON.parse(JSON.stringify(state.tableau.config));
+    const btn=$('#tblSaveBtn');if(btn){btn.textContent='저장됨';btn.classList.add('saved');}
+  },3000);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
    MAIN VIEW
    ═════════════════════════════════════════════════════════════════════ */
 function renderMainView(){
   const wrap = $('#mainView');
+  if (state.category === 'tableau') {
+    document.body.classList.remove('cat-rawdata');
+    wrap.innerHTML = renderTableauView();
+    if (window.lucide) lucide.createIcons();
+    initTableauView();
+    return;
+  }
   if (state.category === 'rawdata') {
     document.body.classList.add('cat-rawdata');
     wrap.innerHTML = renderRawDataView();
@@ -5691,7 +6177,7 @@ function renderTreeRail(){
 function renderCatFilters(){
   const wrap = $('#catFilters');
   const cat = state.category;
-  if (cat === 'sales' || cat === 'rawdata' || cat === 'overview') { wrap.innerHTML = ''; return; }
+  if (cat === 'sales' || cat === 'rawdata' || cat === 'overview' || cat === 'tableau') { wrap.innerHTML = ''; return; }
 
   const d = state.drill[cat];
   let levels = [];
@@ -5944,7 +6430,7 @@ function getChartStyleOpts(){
    ═════════════════════════════════════════════════════════════════════ */
 async function applyAll(){
   if(!USE_MOCK){
-    if(state.category !== 'rawdata'){
+    if(state.category !== 'rawdata' && state.category !== 'tableau'){
       const strip = document.getElementById('kpiStrip');
       if(strip) strip.innerHTML='<div class="spinner-wrap" style="grid-column:1/-1"><div class="spinner"></div>불러오는 중…</div>';
       try{ await RealApi.prefetch(); } catch(e){ console.error('prefetch failed',e); }
@@ -5955,7 +6441,7 @@ async function applyAll(){
   renderCatFilters();
   renderCrumb();
   // Page title per category
-  const _titleMap = { overview:'손익 요약 대시보드', org:'조직별 손익 대시보드', region:'지역별 손익 대시보드', product:'상품별 손익 대시보드', sales:'판매유형별 손익 대시보드', rawdata:'원시 데이터' };
+  const _titleMap = { overview:'손익 요약 대시보드', org:'조직별 손익 대시보드', region:'지역별 손익 대시보드', product:'상품별 손익 대시보드', sales:'판매유형별 손익 대시보드', rawdata:'원시 데이터', tableau:'커스텀 분석' };
   const _pt = $('#pageTitle'); if (_pt) _pt.textContent = _titleMap[state.category] || '손익 대시보드';
   renderHeroShell();
   renderWaterfallShell();
