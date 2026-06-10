@@ -300,6 +300,12 @@ def dashboard():
     return render_template('dashboard.html', user=session['user'])
 
 
+@app.route('/report')
+@login_required
+def report():
+    return render_template('report.html', user=session['user'])
+
+
 # ─── BigQuery 필터 빌더 ────────────────────────────────────────────
 def build_bq_filters(args):
     conditions = []
