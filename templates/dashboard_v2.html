@@ -2311,6 +2311,18 @@ html.theme-dark .tbl-s-chip.meas{color:#4ecb71}
 .tbl-viz-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);text-align:center;gap:12px;border:1.5px dashed var(--border);border-radius:14px}
 .tbl-viz-empty .ic{width:46px;height:46px;stroke-width:1;opacity:0.35;padding:14px;box-sizing:content-box;border-radius:50%;background:var(--surface-hover)}
 .tbl-viz-empty p{font-size:13px;letter-spacing:-0.01em}
+/* 빈 상태 — 원클릭 시작 템플릿 */
+.tbl-qs{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;border:1.5px dashed var(--border);border-radius:14px;padding:24px}
+.tbl-qs-title{font-size:14px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.01em}
+.tbl-qs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,210px));gap:10px;justify-content:center;width:100%;max-width:920px}
+.tbl-qs-card{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s,transform .15s}
+.tbl-qs-card:hover{border-color:var(--accent);box-shadow:0 4px 14px -6px rgba(91,158,249,.35);transform:translateY(-2px)}
+.tbl-qs-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tbl-qs-card .ic{width:18px;height:18px;stroke-width:1.75;color:var(--accent)}
+.tbl-qs-card-name{font-size:12.5px;font-weight:600;color:var(--text)}
+.tbl-qs-card-desc{font-size:11px;color:var(--text-tertiary);line-height:1.45}
+.tbl-qs-hint{font-size:11.5px;color:var(--text-tertiary)}
+.tbl-qs-hint b{color:var(--text-secondary);font-weight:600}
 .tbl-echarts{width:100%;min-height:400px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(0,0,0,.10)}
 .tbl-pivot-wrap{overflow:auto;height:100%}
 .tbl-pivot-table{border-collapse:separate;border-spacing:0;font-size:11.5px;width:100%}
@@ -5108,13 +5120,60 @@ function tblSetVizError(msg){
   if (window.lucide) lucide.createIcons();
 }
 
+/* ─── 빈 상태 원클릭 시작 템플릿 ─── */
+const TBL_TEMPLATES = [
+  {icon:'bar-chart-2', name:'브랜드별 영업이익', desc:'브랜드 × 월별 영업이익 비교',
+   cfg:{chartType:'bar', rows:['Brand'], columns:['Year_Month'], measures:['Operating_Income'],
+        fieldSorts:[{field:'Year_Month',dir:'asc'}]}},
+  {icon:'trending-up', name:'월별 매출·이익 추이', desc:'매출과 영업이익의 시간 흐름',
+   cfg:{chartType:'combo', columns:['Year_Month'], measures:['Sales_Amount','Operating_Income'],
+        fieldSorts:[{field:'Year_Month',dir:'asc'}]}},
+  {icon:'globe', name:'국가별 매출 TOP 10', desc:'매출 상위 10개 국가',
+   cfg:{chartType:'bar', rows:['Country'], measures:['Sales_Amount'],
+        topN:{n:10, measure:'Sales_Amount', dir:'desc'}}},
+  {icon:'pie-chart', name:'카테고리 매출 구성', desc:'카테고리별 매출 비중',
+   cfg:{chartType:'donut', rows:['Category'], measures:['Sales_Amount']}},
+];
+
+function tblApplyTemplate(idx){
+  const t = TBL_TEMPLATES[idx];
+  if (!t) return;
+  const c = state.tableau.config;
+  Object.assign(c, {
+    mode:'chart', rows:[], columns:[], measures:[], color:null, size:null, label:null, detail:[],
+    filters:{}, measureAggs:{}, tableCalcs:{}, fieldSorts:[], sort:'desc',
+    dateGranularity:{}, showRefLine:false, topN:null,
+  }, JSON.parse(JSON.stringify(t.cfg)));
+  if (state.tableau._pushHistory) state.tableau._pushHistory();
+  tblRenderShelfChips(); tblSyncToolbar(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+}
+
+function tblQuickStartHTML(){
+  return `<div class="tbl-qs">
+    <div class="tbl-qs-title">템플릿으로 바로 시작하거나, 필드를 선반에 끌어다 놓으세요</div>
+    <div class="tbl-qs-grid">${TBL_TEMPLATES.map((t,i)=>
+      `<button class="tbl-qs-card" data-tpl="${i}">
+        <i data-lucide="${t.icon}" class="ic"></i>
+        <span class="tbl-qs-card-name">${t.name}</span>
+        <span class="tbl-qs-card-desc">${t.desc}</span>
+      </button>`).join('')}</div>
+    <div class="tbl-qs-hint">왼쪽 필드를 <b>행 · 열 · 측정값</b> 선반으로 드래그하면 직접 구성할 수 있습니다</div>
+  </div>`;
+}
+
 function tblRenderViz(){
   const viz = $('#tblViz');
   if (!viz) return;
   const cfg = state.tableau.config;
   const result = state.tableau.queryResult;
+  if (!cfg.measures || !cfg.measures.length) {
+    viz.innerHTML = tblQuickStartHTML();
+    viz.querySelectorAll('.tbl-qs-card').forEach(b => b.onclick = () => tblApplyTemplate(parseInt(b.dataset.tpl)));
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
   if (!result || !result.rows || !result.rows.length) {
-    viz.innerHTML = '<div class="tbl-viz-empty"><i data-lucide="layout-dashboard" class="ic"></i><p>필드를 드래그해서 행·열·측정값에 놓으세요</p></div>';
+    viz.innerHTML = '<div class="tbl-viz-empty"><i data-lucide="search-x" class="ic"></i><p>조건에 맞는 데이터가 없습니다 — 필터를 확인해 보세요</p></div>';
     if (window.lucide) lucide.createIcons();
     return;
   }
