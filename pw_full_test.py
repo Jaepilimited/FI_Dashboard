@@ -148,8 +148,8 @@ with sync_playwright() as p:
     }''')
     time.sleep(2.5)
 
-    # 선반 8개
-    for shelf in ['rows','columns','measures','color','size','label','detail','filters']:
+    # 선반 7개 — 세부정보(detail) 선반은 2026-06-11 UI에서 제거됨 (서버 API는 유지)
+    for shelf in ['rows','columns','measures','color','size','label','filters']:
         check(f'선반: {shelf}', page.locator(f'[data-shelf="{shelf}"]').count()>0)
 
     # 툴바 버튼

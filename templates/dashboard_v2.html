@@ -2293,7 +2293,7 @@ main.wrap:has(.tbl-wrap){padding-bottom:14px}
 /* 주요 선반(행/열/측정값/필터)은 더 넓게 */
 .tbl-shelf[data-shelf="rows"],.tbl-shelf[data-shelf="columns"],.tbl-shelf[data-shelf="measures"],.tbl-shelf[data-shelf="filters"]{flex:1.6;min-width:200px}
 /* 보조 선반(색상/크기/레이블/세부정보)은 좁게 */
-.tbl-shelf[data-shelf="color"],.tbl-shelf[data-shelf="size"],.tbl-shelf[data-shelf="label"],.tbl-shelf[data-shelf="detail"]{flex:0.9;min-width:130px}
+.tbl-shelf[data-shelf="color"],.tbl-shelf[data-shelf="size"],.tbl-shelf[data-shelf="label"]{flex:0.9;min-width:130px}
 .tbl-shelf.drag-over{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(91,158,249,.15)}
 .tbl-shelf-label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap;padding-right:4px;flex-shrink:0}
 /* 선반 아이콘 컬러 코딩 */
@@ -4527,7 +4527,7 @@ function renderTableauView(){
   const shelfDefs = [
     ['rows','행','rows'],['columns','열','columns'],['measures','측정값','hash'],
     ['color','색상','palette'],['size','크기','move'],
-    ['label','레이블','tag'],['detail','세부정보','info'],
+    ['label','레이블','tag'],
     ['filters','필터','filter'],
   ];
   return `<div class="tbl-wrap" id="tblWrap">
@@ -5032,7 +5032,6 @@ function tblRenderShelfChips(){
   renderChips('color',   cfg.color ? [cfg.color] : []);
   renderChips('size',    cfg.size  ? [cfg.size]  : []);
   renderChips('label',   cfg.label ? [cfg.label] : []);
-  renderChips('detail',  cfg.detail || []);
   /* 와일드카드(__wc__) 키는 일반 칩 목록에서 제외 — 별도 렌더 */
   renderChips('filters', Object.keys(cfg.filters || {}).filter(k => !k.startsWith('__wc__')));
   /* 와일드카드 필터 칩 추가 렌더 */
@@ -5092,6 +5091,8 @@ function tblUpdateSortControls(){
 async function tblExecuteQuery(){
   if (state.tableau._pushHistory) state.tableau._pushHistory();
   const cfg = state.tableau.config;
+  /* 세부정보 선반 제거됨 — 과거 저장 뷰에 남은 detail 설정 정리 */
+  if (Array.isArray(cfg.detail) && cfg.detail.length) cfg.detail = [];
   if (!cfg.measures || !cfg.measures.length) { tblRenderViz(); tblSetVizFooter(null); return; }
   state.tableau.loading = true;
   state.tableau.pivotClientSort = null;
