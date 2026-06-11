@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FI Monthly Report — Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f3f4f6; padding: 20px; color: #111827; }
+
+  .report-wrap { max-width: 960px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+
+  /* ── Header ── */
+  .report-header { padding: 20px 28px 16px; border-bottom: 2px solid #111827; display: flex; justify-content: space-between; align-items: flex-end; }
+  .report-title { font-size: 18px; font-weight: 800; letter-spacing: .3px; }
+  .report-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .report-meta { text-align: right; }
+  .month-badge { display: inline-block; background: #111827; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 4px; }
+  .report-generated { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+  .month-selector { display: flex; align-items: center; gap: 8px; }
+  .month-selector select { font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; color: #374151; background: #f9fafb; cursor: pointer; }
+
+  /* ── Body ── */
+  .report-body { padding: 20px 28px; }
+
+  /* ── KPI Row ── */
+  .kpi-section { margin-bottom: 20px; }
+  .section-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .kpi-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 10px; text-align: center; }
+  .kpi-name { font-size: 10px; color: #6b7280; margin-bottom: 6px; }
+  .kpi-value { font-size: 16px; font-weight: 800; color: #111827; }
+  .kpi-diff { font-size: 11px; font-weight: 600; margin-top: 4px; }
+  .kpi-prev { font-size: 9px; color: #9ca3af; margin-top: 2px; }
+  .up { color: #16a34a; }
+  .dn { color: #dc2626; }
+  .neu { color: #6b7280; }
+
+  /* ── Divider ── */
+  .divider { border: none; border-top: 1px solid #f3f4f6; margin: 4px 0 20px; }
+
+  /* ── 2x2 Grid ── */
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .analysis-card { border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+  .analysis-card-header { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .analysis-card-title { font-size: 11px; font-weight: 700; color: #374151; }
+  .analysis-card-body { padding: 0; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { padding: 7px 10px; text-align: right; color: #6b7280; font-weight: 600; font-size: 10px; background: #fafafa; border-bottom: 1px solid #e5e7eb; }
+  th:first-child { text-align: left; }
+  td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #f9fafb; color: #374151; }
+  td:first-child { text-align: left; font-weight: 600; color: #111827; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9fafb; }
+
+  /* rank badge */
+  .rank { display: inline-block; width: 16px; height: 16px; border-radius: 3px; background: #f3f4f6; color: #6b7280; font-size: 9px; font-weight: 700; text-align: center; line-height: 16px; margin-right: 4px; }
+  .rank-1 { background: #111827; color: #fff; }
+  .rank-2 { background: #374151; color: #fff; }
+  .rank-3 { background: #6b7280; color: #fff; }
+
+  /* ── Footer ── */
+  .report-footer { padding: 12px 28px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .footer-note { font-size: 10px; color: #9ca3af; }
+  .footer-logo { font-size: 11px; font-weight: 700; color: #d1d5db; letter-spacing: .5px; }
+
+  /* tag */
+  .tag { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+  .tag-up { background: #dcfce7; color: #16a34a; }
+  .tag-dn { background: #fee2e2; color: #dc2626; }
+
+  /* mini bar */
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-bg { flex: 1; height: 5px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #374151; border-radius: 3px; }
+  .bar-label { font-size: 9px; color: #9ca3af; min-width: 28px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div style="text-align:center;margin-bottom:12px;font-size:12px;color:#6b7280;">
+  ✦ 목업 미리보기 — 실제 데이터로 자동 계산됩니다 ✦
+</div>
+
+<div class="report-wrap">
+
+  <!-- ── HEADER ── -->
+  <div class="report-header">
+    <div>
+      <div class="report-title">월간 재무 성과 리포트</div>
+      <div class="report-sub">Financial Intelligence Monthly Scorecard</div>
+    </div>
+    <div class="report-meta">
+      <div class="month-selector">
+        <span style="font-size:10px;color:#6b7280;">기준 월:</span>
+        <select>
+          <option>2026-05</option>
+          <option>2026-04</option>
+          <option>2026-03</option>
+        </select>
+      </div>
+      <div class="report-generated">전월 대비 · Generated 2026-06-10</div>
+    </div>
+  </div>
+
+  <!-- ── BODY ── -->
+  <div class="report-body">
+
+    <!-- KPI Section -->
+    <div class="kpi-section">
+      <div class="section-label">핵심 지표 (전월 대비)</div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-name">매출</div>
+          <div class="kpi-value">4,200M</div>
+          <div class="kpi-diff up">▲ 8.3%</div>
+          <div class="kpi-prev">전월 3,880M</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-name">매출원가</div>
+          <div class="kpi-value">2,400M</div>
+          <div class="kpi-diff dn">▲ 9.1%</div>
+          <div class="kpi-prev">전월 2,200M</div>
+        </div>
+        <div class="kpi-card" style="border-top:2px solid #16a34a;">
+          <div class="kpi-name">매출총이익률</div>
+          <div class="kpi-value">42.9%</div>
+          <div class="kpi-diff up">▲ 0.8pp</div>
+          <div class="kpi-prev">전월 42.1%</div>
+        </div>
+        <div class="kpi-card" style="border-top:2px solid #dc2626;">
+          <div class="kpi-name">판관비</div>
+          <div class="kpi-value">880M</div>
+          <div class="kpi-diff dn">▲ 11.0%</div>
+          <div class="kpi-prev">전월 793M</div>
+        </div>
+        <div class="kpi-card" style="border-top:2px solid #dc2626;">
+          <div class="kpi-name">영업이익률</div>
+          <div class="kpi-value">21.9%</div>
+          <div class="kpi-diff dn">▼ 0.8pp</div>
+          <div class="kpi-prev">전월 22.7%</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 2x2 Analysis Grid -->
+    <div class="section-label" style="margin-bottom:12px;">분석 섹션</div>
+    <div class="analysis-grid">
+
+      <!-- 조직별 -->
+      <div class="analysis-card">
+        <div class="analysis-card-header">
+          <div class="analysis-card-title">조직별 (Department)</div>
+          <span style="font-size:9px;color:#9ca3af;">매출 기준</span>
+        </div>
+        <div class="analysis-card-body">
+          <table>
+            <thead><tr>
+              <th>조직</th><th>매출</th><th>전월比</th><th>영업이익률</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="rank rank-1">1</span>사업부 A</td><td>1,820M</td><td class="up">▲ 15.2%</td><td>24.1%</td></tr>
+              <tr><td><span class="rank rank-2">2</span>사업부 B</td><td>1,240M</td><td class="up">▲ 6.8%</td><td>19.3%</td></tr>
+              <tr><td><span class="rank rank-3">3</span>사업부 C</td><td>780M</td><td class="dn">▼ 3.1%</td><td>18.7%</td></tr>
+              <tr><td><span class="rank">4</span>사업부 D</td><td>360M</td><td class="neu">— 0.4%</td><td>22.0%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- B2B / B2C -->
+      <div class="analysis-card">
+        <div class="analysis-card-header">
+          <div class="analysis-card-title">판매유형 (B2B / B2C)</div>
+          <span style="font-size:9px;color:#9ca3af;">매출 기준</span>
+        </div>
+        <div class="analysis-card-body">
+          <table>
+            <thead><tr>
+              <th>유형</th><th>매출</th><th>비중</th><th>전월比</th><th>이익률</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="rank rank-1">B</span>B2B</td>
+                <td>2,730M</td>
+                <td>
+                  <div class="bar-wrap">
+                    <div class="bar-bg"><div class="bar-fill" style="width:65%;"></div></div>
+                    <div class="bar-label">65%</div>
+                  </div>
+                </td>
+                <td class="up">▲ 9.4%</td><td>23.2%</td>
+              </tr>
+              <tr>
+                <td><span class="rank rank-2">C</span>B2C</td>
+                <td>1,470M</td>
+                <td>
+                  <div class="bar-wrap">
+                    <div class="bar-bg"><div class="bar-fill" style="width:35%;background:#9ca3af;"></div></div>
+                    <div class="bar-label">35%</div>
+                  </div>
+                </td>
+                <td class="up">▲ 6.5%</td><td>19.8%</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="padding:10px 14px;border-top:1px solid #f3f4f6;">
+            <div style="font-size:10px;color:#6b7280;">카테고리별 상세</div>
+            <table style="margin-top:4px;">
+              <tbody>
+                <tr><td><span class="rank rank-1">1</span>카테고리 A</td><td>1,200M</td><td class="up">▲ 12%</td><td>25.1%</td></tr>
+                <tr><td><span class="rank rank-2">2</span>카테고리 B</td><td>860M</td><td class="up">▲ 5%</td><td>21.4%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 제품라인 -->
+      <div class="analysis-card">
+        <div class="analysis-card-header">
+          <div class="analysis-card-title">제품라인 / 카테고리 (Line)</div>
+          <span style="font-size:9px;color:#9ca3af;">매출 기준</span>
+        </div>
+        <div class="analysis-card-body">
+          <table>
+            <thead><tr>
+              <th>라인</th><th>매출</th><th>비중</th><th>전월比</th><th>총이익률</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="rank rank-1">1</span>라인 A</td><td>1,650M</td>
+                <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:39%;"></div></div><div class="bar-label">39%</div></div></td>
+                <td class="up">▲ 11.2%</td><td>45.3%</td></tr>
+              <tr><td><span class="rank rank-2">2</span>라인 B</td><td>1,120M</td>
+                <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:27%;"></div></div><div class="bar-label">27%</div></div></td>
+                <td class="up">▲ 7.8%</td><td>41.2%</td></tr>
+              <tr><td><span class="rank rank-3">3</span>라인 C</td><td>890M</td>
+                <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:21%;"></div></div><div class="bar-label">21%</div></div></td>
+                <td class="dn">▼ 1.4%</td><td>38.9%</td></tr>
+              <tr><td><span class="rank">4</span>기타</td><td>540M</td>
+                <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:13%;"></div></div><div class="bar-label">13%</div></div></td>
+                <td class="up">▲ 4.1%</td><td>37.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 국가/대륙 -->
+      <div class="analysis-card">
+        <div class="analysis-card-header">
+          <div class="analysis-card-title">국가 / 대륙별 (Country)</div>
+          <span style="font-size:9px;color:#9ca3af;">매출 기준 Top 5</span>
+        </div>
+        <div class="analysis-card-body">
+          <table>
+            <thead><tr>
+              <th>국가</th><th>대륙</th><th>매출</th><th>전월比</th><th>이익률</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="rank rank-1">1</span>한국</td><td style="color:#9ca3af;">아시아</td><td>1,800M</td><td class="up">▲ 7.2%</td><td>23.4%</td></tr>
+              <tr><td><span class="rank rank-2">2</span>미국</td><td style="color:#9ca3af;">북미</td><td>920M</td><td class="up">▲ 12.1%</td><td>22.1%</td></tr>
+              <tr><td><span class="rank rank-3">3</span>베트남</td><td style="color:#9ca3af;">아시아</td><td>480M</td><td class="up">▲ 22.3%</td><td>18.7%</td></tr>
+              <tr><td><span class="rank">4</span>독일</td><td style="color:#9ca3af;">유럽</td><td>340M</td><td class="dn">▼ 4.5%</td><td>20.2%</td></tr>
+              <tr><td><span class="rank">5</span>일본</td><td style="color:#9ca3af;">아시아</td><td>280M</td><td class="up">▲ 3.8%</td><td>21.9%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div class="report-footer">
+    <div class="footer-note">※ 수치는 목업 샘플입니다. 실제 리포트는 BigQuery에서 자동 계산됩니다.</div>
+    <div class="footer-logo">FI DASHBOARD</div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+<h2>스코어카드 스타일 — 3가지 테마</h2>
+<p class="subtitle">리포트 전체의 색상 방향을 선택해주세요</p>
+
+<div class="cards">
+
+  <!-- Theme A: Dark Corporate -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;border-radius:6px;font-family:'Segoe UI',sans-serif;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="color:#f1f5f9;font-size:11px;font-weight:700;letter-spacing:.5px;">FI MONTHLY REPORT</div>
+        <div style="color:#475569;font-size:8px;">2026 · 05</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:8px;">
+        <tr style="border-bottom:1px solid #1e293b;">
+          <th style="padding:5px 4px;text-align:left;color:#475569;font-weight:500;letter-spacing:.5px;">KPI</th>
+          <th style="padding:5px 4px;text-align:right;color:#475569;">당월</th>
+          <th style="padding:5px 4px;text-align:right;color:#475569;">전월比</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;">
+          <td style="padding:5px 4px;color:#e2e8f0;">매출</td>
+          <td style="padding:5px 4px;text-align:right;color:#f1f5f9;font-weight:600;">4,200M</td>
+          <td style="padding:5px 4px;text-align:right;color:#22c55e;font-weight:600;">▲ 8.3%</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;background:#0d1526;">
+          <td style="padding:5px 4px;color:#e2e8f0;">영업이익률</td>
+          <td style="padding:5px 4px;text-align:right;color:#f1f5f9;font-weight:600;">21.9%</td>
+          <td style="padding:5px 4px;text-align:right;color:#ef4444;font-weight:600;">▼ 0.8pp</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b;">
+          <td style="padding:5px 4px;color:#e2e8f0;">판관비</td>
+          <td style="padding:5px 4px;text-align:right;color:#f1f5f9;font-weight:600;">880M</td>
+          <td style="padding:5px 4px;text-align:right;color:#ef4444;font-weight:600;">▲ 11.0%</td>
+        </tr>
+      </table>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <div style="flex:1;background:#1e293b;border-left:2px solid #22c55e;padding:5px 7px;border-radius:0 3px 3px 0;">
+          <div style="color:#94a3b8;font-size:7px;">TOP 조직</div>
+          <div style="color:#f1f5f9;font-size:9px;font-weight:600;">사업부 A</div>
+        </div>
+        <div style="flex:1;background:#1e293b;border-left:2px solid #3b82f6;padding:5px 7px;border-radius:0 3px 3px 0;">
+          <div style="color:#94a3b8;font-size:7px;">TOP 국가</div>
+          <div style="color:#f1f5f9;font-size:9px;font-weight:600;">한국</div>
+        </div>
+        <div style="flex:1;background:#1e293b;border-left:2px solid #f59e0b;padding:5px 7px;border-radius:0 3px 3px 0;">
+          <div style="color:#94a3b8;font-size:7px;">TOP 채널</div>
+          <div style="color:#f1f5f9;font-size:9px;font-weight:600;">B2B 65%</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 다크 코퍼릿 (Dark)</h3>
+      <p>검정 배경 + 녹색/빨간 증감 표시. 프리미엄하고 강렬한 인상. 화면으로 볼 때 눈에 잘 띔.</p>
+    </div>
+  </div>
+
+  <!-- Theme B: Clean White -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#ffffff;padding:16px;border-radius:6px;font-family:'Segoe UI',sans-serif;border:1px solid #e5e7eb;">
+      <div style="border-bottom:2px solid #111827;padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end;">
+        <div style="font-size:11px;font-weight:800;color:#111827;letter-spacing:.5px;">FI MONTHLY REPORT</div>
+        <div style="font-size:8px;color:#6b7280;">2026 · 05</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:8px;">
+        <tr style="background:#f9fafb;">
+          <th style="padding:5px 4px;text-align:left;color:#6b7280;font-weight:500;">KPI</th>
+          <th style="padding:5px 4px;text-align:right;color:#6b7280;">당월</th>
+          <th style="padding:5px 4px;text-align:right;color:#6b7280;">전월比</th>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:5px 4px;color:#374151;">매출</td>
+          <td style="padding:5px 4px;text-align:right;color:#111827;font-weight:600;">4,200M</td>
+          <td style="padding:5px 4px;text-align:right;color:#16a34a;font-weight:600;">▲ 8.3%</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;background:#fafafa;">
+          <td style="padding:5px 4px;color:#374151;">영업이익률</td>
+          <td style="padding:5px 4px;text-align:right;color:#111827;font-weight:600;">21.9%</td>
+          <td style="padding:5px 4px;text-align:right;color:#dc2626;font-weight:600;">▼ 0.8pp</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:5px 4px;color:#374151;">판관비</td>
+          <td style="padding:5px 4px;text-align:right;color:#111827;font-weight:600;">880M</td>
+          <td style="padding:5px 4px;text-align:right;color:#dc2626;font-weight:600;">▲ 11.0%</td>
+        </tr>
+      </table>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <div style="flex:1;border:1px solid #e5e7eb;border-top:2px solid #16a34a;padding:5px 7px;border-radius:3px;">
+          <div style="color:#9ca3af;font-size:7px;">TOP 조직</div>
+          <div style="color:#111827;font-size:9px;font-weight:600;">사업부 A</div>
+        </div>
+        <div style="flex:1;border:1px solid #e5e7eb;border-top:2px solid #2563eb;padding:5px 7px;border-radius:3px;">
+          <div style="color:#9ca3af;font-size:7px;">TOP 국가</div>
+          <div style="color:#111827;font-size:9px;font-weight:600;">한국</div>
+        </div>
+        <div style="flex:1;border:1px solid #e5e7eb;border-top:2px solid #d97706;padding:5px 7px;border-radius:3px;">
+          <div style="color:#9ca3af;font-size:7px;">TOP 채널</div>
+          <div style="color:#111827;font-size:9px;font-weight:600;">B2B 65%</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 클린 화이트 (Light)</h3>
+      <p>흰 배경 + 깔끔한 선. 출력/PDF에 적합. 가장 무난하고 읽기 편함. 이메일 배포에 최적.</p>
+    </div>
+  </div>
+
+  <!-- Theme C: Blue Accent -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8faff;padding:16px;border-radius:6px;font-family:'Segoe UI',sans-serif;border:1px solid #dbeafe;">
+      <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:8px 10px;border-radius:4px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;">FI MONTHLY REPORT</div>
+        <div style="color:#bfdbfe;font-size:8px;">2026 · 05</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:8px;">
+        <tr style="background:#eff6ff;">
+          <th style="padding:5px 4px;text-align:left;color:#1e40af;font-weight:600;">KPI</th>
+          <th style="padding:5px 4px;text-align:right;color:#1e40af;">당월</th>
+          <th style="padding:5px 4px;text-align:right;color:#1e40af;">전월比</th>
+        </tr>
+        <tr style="border-bottom:1px solid #dbeafe;">
+          <td style="padding:5px 4px;color:#1e3a8a;">매출</td>
+          <td style="padding:5px 4px;text-align:right;color:#1e3a8a;font-weight:600;">4,200M</td>
+          <td style="padding:5px 4px;text-align:right;color:#16a34a;font-weight:700;">▲ 8.3%</td>
+        </tr>
+        <tr style="border-bottom:1px solid #dbeafe;background:#eff6ff;">
+          <td style="padding:5px 4px;color:#1e3a8a;">영업이익률</td>
+          <td style="padding:5px 4px;text-align:right;color:#1e3a8a;font-weight:600;">21.9%</td>
+          <td style="padding:5px 4px;text-align:right;color:#dc2626;font-weight:700;">▼ 0.8pp</td>
+        </tr>
+        <tr style="border-bottom:1px solid #dbeafe;">
+          <td style="padding:5px 4px;color:#1e3a8a;">판관비</td>
+          <td style="padding:5px 4px;text-align:right;color:#1e3a8a;font-weight:600;">880M</td>
+          <td style="padding:5px 4px;text-align:right;color:#dc2626;font-weight:700;">▲ 11.0%</td>
+        </tr>
+      </table>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <div style="flex:1;background:#dbeafe;padding:5px 7px;border-radius:3px;text-align:center;">
+          <div style="color:#3b82f6;font-size:7px;">TOP 조직</div>
+          <div style="color:#1e40af;font-size:9px;font-weight:700;">사업부 A</div>
+        </div>
+        <div style="flex:1;background:#dbeafe;padding:5px 7px;border-radius:3px;text-align:center;">
+          <div style="color:#3b82f6;font-size:7px;">TOP 국가</div>
+          <div style="color:#1e40af;font-size:9px;font-weight:700;">한국</div>
+        </div>
+        <div style="flex:1;background:#dbeafe;padding:5px 7px;border-radius:3px;text-align:center;">
+          <div style="color:#3b82f6;font-size:7px;">TOP 채널</div>
+          <div style="color:#1e40af;font-size:9px;font-weight:700;">B2B 65%</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 블루 코퍼릿 (Blue)</h3>
+      <p>파란 헤더 + 연파란 배경 계열. 신뢰감 있는 기업 보고서 느낌. 화면·출력 모두 괜찮음.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">클릭하거나 터미널에서 선택해주세요.</p>

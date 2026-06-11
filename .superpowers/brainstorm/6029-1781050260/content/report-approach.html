@@ -1,0 +1,177 @@
+<h2>월간 리포트 구조 — 3가지 접근법</h2>
+<p class="subtitle">어떤 방향이 가장 잘 맞는지 선택해주세요</p>
+
+<div class="cards">
+
+  <!-- Approach A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;border-radius:6px;font-family:sans-serif;">
+      <!-- KPI Row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+        <div style="background:#1e293b;border-radius:4px;padding:8px;text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">매출</div>
+          <div style="color:#f1f5f9;font-size:13px;font-weight:700;">₩4.2B</div>
+          <div style="color:#22c55e;font-size:9px;">▲ 8.3%</div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">매출총이익</div>
+          <div style="color:#f1f5f9;font-size:13px;font-weight:700;">₩1.8B</div>
+          <div style="color:#22c55e;font-size:9px;">▲ 5.1%</div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">영업이익</div>
+          <div style="color:#f1f5f9;font-size:13px;font-weight:700;">₩920M</div>
+          <div style="color:#ef4444;font-size:9px;">▼ 2.1%</div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">영업이익률</div>
+          <div style="color:#f1f5f9;font-size:13px;font-weight:700;">21.9%</div>
+          <div style="color:#ef4444;font-size:9px;">▼ 0.8pp</div>
+        </div>
+      </div>
+      <!-- 4 Section Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div style="background:#1e293b;border-radius:4px;padding:8px;">
+          <div style="color:#64748b;font-size:8px;margin-bottom:4px;">조직별</div>
+          <div style="height:40px;display:flex;align-items:flex-end;gap:3px;">
+            <div style="width:12px;background:#3b82f6;height:80%;border-radius:2px 2px 0 0;"></div>
+            <div style="width:12px;background:#3b82f6;height:60%;border-radius:2px 2px 0 0;opacity:.7"></div>
+            <div style="width:12px;background:#3b82f6;height:45%;border-radius:2px 2px 0 0;opacity:.5"></div>
+            <div style="width:12px;background:#3b82f6;height:30%;border-radius:2px 2px 0 0;opacity:.4"></div>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;">
+          <div style="color:#64748b;font-size:8px;margin-bottom:4px;">B2B / B2C</div>
+          <div style="display:flex;align-items:center;gap:4px;height:40px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#3b82f6 0 65%,#f59e0b 65% 100%);"></div>
+            <div style="font-size:8px;color:#94a3b8;">B2B 65%<br>B2C 35%</div>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;">
+          <div style="color:#64748b;font-size:8px;margin-bottom:4px;">제품라인별</div>
+          <div style="height:40px;display:flex;align-items:flex-end;gap:3px;">
+            <div style="width:12px;background:#8b5cf6;height:100%;border-radius:2px 2px 0 0;"></div>
+            <div style="width:12px;background:#8b5cf6;height:70%;border-radius:2px 2px 0 0;opacity:.7"></div>
+            <div style="width:12px;background:#8b5cf6;height:50%;border-radius:2px 2px 0 0;opacity:.5"></div>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:4px;padding:8px;">
+          <div style="color:#64748b;font-size:8px;margin-bottom:4px;">대륙별</div>
+          <div style="height:40px;display:flex;align-items:center;gap:2px;">
+            <div style="flex:3;background:#06b6d4;height:10px;border-radius:2px;"></div>
+            <div style="flex:2;background:#06b6d4;height:10px;border-radius:2px;opacity:.7"></div>
+            <div style="flex:1;background:#06b6d4;height:10px;border-radius:2px;opacity:.5"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 대시보드형 (Dashboard)</h3>
+      <p>KPI 4개 상단 배치 → 4개 분석 섹션 그리드. 수치 중심, 한눈에 파악. 가장 임원 친화적인 구조.</p>
+    </div>
+  </div>
+
+  <!-- Approach B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fafafa;padding:16px;border-radius:6px;font-family:sans-serif;border:1px solid #e5e7eb;">
+      <!-- Header -->
+      <div style="border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px;">
+        <div style="font-size:8px;color:#6b7280;letter-spacing:1px;">MONTHLY FINANCIAL REPORT · MAY 2026</div>
+        <div style="font-size:14px;font-weight:800;color:#111;">전월 대비 매출 +8.3% 성장, 영업이익률 소폭 하락</div>
+      </div>
+      <!-- Executive Summary Box -->
+      <div style="background:#f3f4f6;border-left:3px solid #111;padding:6px 8px;margin-bottom:8px;border-radius:0 4px 4px 0;">
+        <div style="font-size:8px;color:#374151;line-height:1.5;">📌 핵심: A사업부 매출 전월比 +15%, B2B 채널 견인.<br>동남아 매출 급증 (+22%), 판관비 증가 주의.</div>
+      </div>
+      <!-- Mini metrics -->
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;padding:6px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;">
+          <div style="font-size:9px;color:#6b7280;">매출</div>
+          <div style="font-size:12px;font-weight:700;">₩4.2B</div>
+          <div style="font-size:8px;color:#16a34a;">▲ 8.3%</div>
+        </div>
+        <div style="flex:1;padding:6px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;">
+          <div style="font-size:9px;color:#6b7280;">영업이익</div>
+          <div style="font-size:12px;font-weight:700;">₩920M</div>
+          <div style="font-size:8px;color:#dc2626;">▼ 2.1%</div>
+        </div>
+        <div style="flex:1;padding:6px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;">
+          <div style="font-size:9px;color:#6b7280;">판관비</div>
+          <div style="font-size:12px;font-weight:700;">₩880M</div>
+          <div style="font-size:8px;color:#dc2626;">▲ 11%</div>
+        </div>
+      </div>
+      <!-- Chart placeholder -->
+      <div style="background:#f9fafb;border:1px dashed #d1d5db;border-radius:4px;height:40px;display:flex;align-items:center;justify-content:center;">
+        <div style="font-size:8px;color:#9ca3af;">월별 트렌드 차트</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 뉴스레터형 (Editorial)</h3>
+      <p>헤드라인 제목 + 핵심 인사이트 텍스트 박스 → KPI → 차트. 스토리가 있어 읽기 좋음. 배포용에 적합.</p>
+    </div>
+  </div>
+
+  <!-- Approach C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fff;padding:16px;border-radius:6px;font-family:sans-serif;border:1px solid #e5e7eb;">
+      <!-- Header bar -->
+      <div style="background:#1d4ed8;padding:6px 10px;border-radius:4px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="color:#fff;font-size:10px;font-weight:700;">FI MONTHLY SCORECARD · 2026-05</div>
+        <div style="color:#bfdbfe;font-size:8px;">전월 대비</div>
+      </div>
+      <!-- Scorecard table -->
+      <table style="width:100%;border-collapse:collapse;font-size:8px;">
+        <tr style="background:#eff6ff;">
+          <th style="padding:4px;text-align:left;color:#1e40af;">지표</th>
+          <th style="padding:4px;text-align:right;color:#1e40af;">당월</th>
+          <th style="padding:4px;text-align:right;color:#1e40af;">전월</th>
+          <th style="padding:4px;text-align:right;color:#1e40af;">증감</th>
+          <th style="padding:4px;text-align:center;color:#1e40af;">상태</th>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:4px;color:#374151;">매출</td>
+          <td style="padding:4px;text-align:right;">4,200</td>
+          <td style="padding:4px;text-align:right;color:#6b7280;">3,880</td>
+          <td style="padding:4px;text-align:right;color:#16a34a;">+8.3%</td>
+          <td style="padding:4px;text-align:center;">🟢</td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa;">
+          <td style="padding:4px;color:#374151;">매출총이익률</td>
+          <td style="padding:4px;text-align:right;">42.9%</td>
+          <td style="padding:4px;text-align:right;color:#6b7280;">42.1%</td>
+          <td style="padding:4px;text-align:right;color:#16a34a;">+0.8pp</td>
+          <td style="padding:4px;text-align:center;">🟢</td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:4px;color:#374151;">영업이익률</td>
+          <td style="padding:4px;text-align:right;">21.9%</td>
+          <td style="padding:4px;text-align:right;color:#6b7280;">22.7%</td>
+          <td style="padding:4px;text-align:right;color:#dc2626;">-0.8pp</td>
+          <td style="padding:4px;text-align:center;">🔴</td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;background:#fafafa;">
+          <td style="padding:4px;color:#374151;">판관비</td>
+          <td style="padding:4px;text-align:right;">880</td>
+          <td style="padding:4px;text-align:right;color:#6b7280;">793</td>
+          <td style="padding:4px;text-align:right;color:#dc2626;">+11.0%</td>
+          <td style="padding:4px;text-align:center;">🔴</td>
+        </tr>
+        <tr>
+          <td style="padding:4px;color:#374151;">판매수량</td>
+          <td style="padding:4px;text-align:right;">12,400</td>
+          <td style="padding:4px;text-align:right;color:#6b7280;">11,200</td>
+          <td style="padding:4px;text-align:right;color:#16a34a;">+10.7%</td>
+          <td style="padding:4px;text-align:center;">🟢</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card-body">
+      <h3>C. 스코어카드형 (Scorecard)</h3>
+      <p>표 중심, 지표별 🟢🔴 상태 표시. 빠른 스캔에 최적화. 차트보다 숫자를 선호하는 임원에게 적합.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">클릭해서 선택하거나, 터미널에서 답변해주세요.</p>

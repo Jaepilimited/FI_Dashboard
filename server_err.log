@@ -1,0 +1,121 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.16.1.250:5000
+Press CTRL+C to quit
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 102-925-982
+ * Detected change in 'C:\\Users\\DB_PC\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\playwright\\_impl\\_connection.py', reloading
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 102-925-982
+172.16.1.250 - - [10/Jun/2026 17:31:38] "GET /login HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:39] "POST /login HTTP/1.1" 302 -
+172.16.1.250 - - [10/Jun/2026 17:31:39] "GET /dashboard HTTP/1.1" 200 -
+ * Detected change in 'C:\\Users\\DB_PC\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\playwright\\_impl\\_waiter.py', reloading
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 102-925-982
+172.16.1.250 - - [10/Jun/2026 17:31:46] "GET /api/filters HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:47] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:48] "GET /api/tableau/fields HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:49] "GET /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:51] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:52] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:31:53] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:02] "GET /api/tableau/filter-values?field=Year_Month HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:02] "PUT /api/views/1 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:05] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:06] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:08] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:09] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:11] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:48] "GET /login HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:49] "POST /login HTTP/1.1" 302 -
+172.16.1.250 - - [10/Jun/2026 17:32:49] "GET /dashboard HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:49] "GET /api/filters HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:49] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:52] "GET /api/tableau/fields HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:52] "GET /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:52] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:32:54] "POST /api/tableau/query HTTP/1.1" 200 -
+ * Detected change in 'C:\\Users\\DB_PC\\Desktop\\python_bcj\\FI Dashboard\\pw_full_test.py', reloading
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 102-925-982
+172.16.1.250 - - [10/Jun/2026 17:33:55] "GET /login HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:33:56] "POST /login HTTP/1.1" 302 -
+172.16.1.250 - - [10/Jun/2026 17:33:56] "GET /dashboard HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:01] "GET /api/filters HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:03] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:04] "GET /api/tableau/fields HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:04] "GET /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:05] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:07] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:09] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:10] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:17] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:18] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:19] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:19] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:25] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:27] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:28] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:30] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:34:31] "POST /api/tableau/query HTTP/1.1" 200 -
+ * Detected change in 'C:\\Users\\DB_PC\\Desktop\\python_bcj\\FI Dashboard\\pw_full_test.py', reloading
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 102-925-982
+172.16.1.250 - - [10/Jun/2026 17:35:27] "GET /login HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:28] "POST /login HTTP/1.1" 302 -
+172.16.1.250 - - [10/Jun/2026 17:35:28] "GET /dashboard HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:33] "GET /api/filters HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:34] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:35] "GET /api/tableau/fields HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:35] "GET /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:37] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:39] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:41] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:41] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:48] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:50] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:51] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:51] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:57] "GET /api/tableau/filter-values?field=Sales_Type HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:57] "PUT /api/views/1 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:35:59] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:36:01] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:36:02] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:36:04] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:36:05] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:10] "GET /login HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:11] "POST /login HTTP/1.1" 302 -
+172.16.1.250 - - [10/Jun/2026 17:37:11] "GET /dashboard HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:11] "GET /api/filters HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:11] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:14] "GET /api/tableau/fields HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:14] "GET /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:14] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:16] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:20] "POST /api/tableau/query HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:20] "POST /api/views HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:24] "DELETE /api/views/4 HTTP/1.1" 200 -
+172.16.1.250 - - [10/Jun/2026 17:37:24] "POST /api/tableau/query HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:22] "GET /dashboard HTTP/1.1" 302 -
+10.10.51.168 - - [10/Jun/2026 18:51:22] "GET /login HTTP/1.1" 302 -
+10.10.51.168 - - [10/Jun/2026 18:51:23] "GET /dashboard HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:23] "GET /api/filters HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:23] "GET /favicon.ico HTTP/1.1" 204 -
+10.10.51.168 - - [10/Jun/2026 18:51:23] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:26] "GET /api/tableau/fields HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:26] "GET /api/views HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:34] "PUT /api/views/3 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:36] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:44] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=org&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:58] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=region&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:51:59] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=product&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:52:01] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=sales&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:52:01] "GET /api/prefetch?months=2026-01&months=2026-02&months=2026-03&months=2026-04&cat=overview&vl=0 HTTP/1.1" 200 -
+10.10.51.168 - - [10/Jun/2026 18:52:16] "GET /api/prefetch?months=2026-04&prior_months=2026-03&cat=overview&vl=0 HTTP/1.1" 200 -

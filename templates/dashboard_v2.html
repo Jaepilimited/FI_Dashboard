@@ -2250,16 +2250,16 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 /* ─── 커스텀 분석 (Tableau Builder) ──────────────────────────────── */
 .tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}
 .tbl-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
-.tbl-chart-btns{display:flex;gap:3px;align-items:center}
-.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
-.tbl-chart-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border)}
-.tbl-chart-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tbl-chart-btns{display:flex;gap:2px;align-items:center;background:var(--surface-hover);border:1px solid var(--border);border-radius:8px;padding:2px}
+.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:28px;height:26px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
+.tbl-chart-btn:hover{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tbl-chart-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 6px -1px rgba(91,158,249,.5)}
 .tbl-chart-btn .ic{width:14px;height:14px;stroke-width:1.75}
 .tbl-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
-.tbl-mode-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.tbl-mode-btn{padding:4px 10px;font-size:11.5px;font-weight:500;background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);transition:all 0.15s}
-.tbl-mode-btn:hover{background:var(--surface-hover);color:var(--text)}
-.tbl-mode-btn.active{background:var(--accent-soft);color:var(--accent)}
+.tbl-mode-toggle{display:flex;gap:2px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface-hover);padding:2px}
+.tbl-mode-btn{padding:3px 12px;font-size:11.5px;font-weight:600;background:transparent;border:none;border-radius:6px;cursor:pointer;color:var(--text-tertiary);transition:all 0.15s}
+.tbl-mode-btn:hover{background:var(--surface);color:var(--text)}
+.tbl-mode-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 6px -1px rgba(91,158,249,.5)}
 .tbl-sheet-tabs{display:flex;align-items:flex-end;gap:0;overflow-x:auto;max-width:40%}
 .tbl-sheet-tab{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11.5px;border:1px solid var(--border);border-bottom:none;border-radius:5px 5px 0 0;background:var(--surface-hover);color:var(--text-tertiary);cursor:pointer;white-space:nowrap;position:relative;top:1px;user-select:none}
 .tbl-sheet-tab.active{background:var(--bg);color:var(--text);border-color:var(--border-strong);z-index:1}
@@ -2269,57 +2269,95 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 .tbl-sheet-tab:hover .tbl-sheet-tab-del,.tbl-sheet-tab.active .tbl-sheet-tab-del{opacity:1}
 .tbl-add-sheet{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
 .tbl-add-sheet:hover{background:var(--surface-hover);color:var(--text)}
-.tbl-save-btn{padding:4px 12px;font-size:11.5px;font-weight:600;border-radius:5px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
+.tbl-save-btn{padding:4px 13px;font-size:11.5px;font-weight:600;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;transition:opacity 0.15s,box-shadow .15s;flex-shrink:0;box-shadow:0 2px 6px -1px rgba(91,158,249,.4)}
 .tbl-save-btn:hover{opacity:0.85}
-.tbl-save-btn.saved{background:transparent;color:var(--accent)}
+.tbl-save-btn.saved{background:transparent;color:var(--accent);box-shadow:none}
 .tbl-body{display:flex;flex:1;min-height:0;overflow:hidden}
 .tbl-fields{width:190px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:8px 0;background:var(--surface)}
 .tbl-fields-section{padding:0 0 8px}
 .tbl-fields-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);padding:8px 12px 4px}
-.tbl-field-chip{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:11.5px;cursor:grab;user-select:none;color:var(--text);transition:background 0.1s}
-.tbl-field-chip:hover{background:var(--surface-hover)}
+.tbl-field-chip{display:flex;align-items:center;gap:6px;padding:4px 12px;margin:0 4px;border-radius:6px;font-size:11.5px;cursor:grab;user-select:none;color:var(--text);transition:background 0.1s,padding-left 0.12s}
+.tbl-field-chip:hover{background:var(--surface-hover);padding-left:15px}
 .tbl-field-chip:active{cursor:grabbing}
 .tbl-field-chip .ic{width:12px;height:12px;stroke-width:2;flex-shrink:0}
 .tbl-field-chip.dim .ic{color:#5b9ef9}
 .tbl-field-chip.dim.date-dim .ic{color:#f7c948}
 .tbl-field-chip.meas .ic{color:#4ecb71}
 .tbl-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
-.tbl-shelves{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:6px 8px}
-.tbl-shelf{display:flex;align-items:center;gap:4px;min-height:30px;min-width:160px;border:1px solid var(--border);border-radius:5px;padding:3px 6px;background:var(--bg);flex:1;transition:border-color 0.15s,background 0.15s}
-.tbl-shelf.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.tbl-shelves{display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:7px 10px}
+.tbl-shelf{display:flex;align-items:center;gap:4px;min-height:32px;min-width:150px;border:1px solid var(--border);border-radius:8px;padding:3px 8px;background:var(--bg);flex:1;transition:border-color 0.15s,background 0.15s,box-shadow 0.15s;overflow:hidden}
+.tbl-shelf:hover{border-color:var(--border-strong)}
+/* 주요 선반(행/열/측정값/필터)은 더 넓게 */
+.tbl-shelf[data-shelf="rows"],.tbl-shelf[data-shelf="columns"],.tbl-shelf[data-shelf="measures"],.tbl-shelf[data-shelf="filters"]{flex:1.6;min-width:200px}
+/* 보조 선반(색상/크기/레이블/세부정보)은 좁게 */
+.tbl-shelf[data-shelf="color"],.tbl-shelf[data-shelf="size"],.tbl-shelf[data-shelf="label"],.tbl-shelf[data-shelf="detail"]{flex:0.9;min-width:130px}
+.tbl-shelf.drag-over{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(91,158,249,.15)}
 .tbl-shelf-label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap;padding-right:4px;flex-shrink:0}
-.tbl-shelf-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1}
-.tbl-s-chip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:11px;background:var(--surface-hover);border:1px solid var(--border);cursor:default}
-.tbl-s-chip.dim{border-color:#5b9ef955;color:#5b9ef9}
-.tbl-s-chip.meas{border-color:#4ecb7155;color:#4ecb71}
-.tbl-s-chip-del{cursor:pointer;opacity:0.6;font-size:12px;line-height:1;padding:0 1px}
-.tbl-s-chip-del:hover{opacity:1}
-.tbl-viz{flex:1;min-height:0;overflow:auto;padding:12px;position:relative}
-.tbl-viz-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);text-align:center;gap:8px}
-.tbl-viz-empty .ic{width:40px;height:40px;stroke-width:1;opacity:0.3}
-.tbl-viz-empty p{font-size:13px}
-.tbl-echarts{width:100%;min-height:400px}
+/* 선반 아이콘 컬러 코딩 */
+.tbl-shelf[data-shelf="color"] .tbl-shelf-icon{color:#f472b6}
+.tbl-shelf[data-shelf="size"] .tbl-shelf-icon{color:#a78bfa}
+.tbl-shelf[data-shelf="label"] .tbl-shelf-icon{color:#f7c948}
+.tbl-shelf[data-shelf="filters"] .tbl-shelf-icon{color:#60a5fa}
+.tbl-shelf[data-shelf="measures"] .tbl-shelf-icon{color:#4ecb71}
+.tbl-shelf-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0}
+.tbl-s-chip{display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;background:var(--surface-hover);border:1px solid var(--border);cursor:default;white-space:nowrap;max-width:100%;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.tbl-s-chip .tbl-chip-txt{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tbl-s-chip.dim{border-color:#5b9ef955;color:#5b9ef9;background:rgba(91,158,249,.08)}
+.tbl-s-chip.meas{border-color:#4ecb7155;color:#3cb863;background:rgba(78,203,113,.08)}
+html.theme-dark .tbl-s-chip.meas{color:#4ecb71}
+.tbl-s-chip-del{cursor:pointer;opacity:0.5;font-size:12px;line-height:1;padding:0 2px;border-radius:50%;flex-shrink:0;transition:opacity .12s}
+.tbl-s-chip-del:hover{opacity:1;color:#f87171}
+.tbl-viz{flex:1;min-height:0;overflow:auto;padding:14px 16px;position:relative;background:var(--bg)}
+.tbl-viz-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);text-align:center;gap:12px;border:1.5px dashed var(--border);border-radius:14px}
+.tbl-viz-empty .ic{width:46px;height:46px;stroke-width:1;opacity:0.35;padding:14px;box-sizing:content-box;border-radius:50%;background:var(--surface-hover)}
+.tbl-viz-empty p{font-size:13px;letter-spacing:-0.01em}
+.tbl-echarts{width:100%;min-height:400px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -16px rgba(0,0,0,.10)}
 .tbl-pivot-wrap{overflow:auto;height:100%}
 .tbl-pivot-table{border-collapse:separate;border-spacing:0;font-size:11.5px;width:100%}
 .tbl-pivot-table th{background:var(--surface);border:1px solid var(--border);padding:5px 8px;font-weight:600;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
 .tbl-pivot-table td{border:1px solid var(--border);padding:4px 8px;white-space:nowrap}
 .tbl-pivot-table td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.tbl-pivot-table td.num.neg{color:#f9784b}
 .tbl-pivot-table tr:hover td{background:var(--surface-hover)}
 .tbl-pivot-table .total-row td{background:var(--surface);font-weight:600}
 /* 커스텀 분석 확장 UI */
-.tbl-toolbar-row2{display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;font-size:11.5px}
+.tbl-toolbar-row2{display:flex;align-items:center;gap:6px;padding:5px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;font-size:11.5px}
 .tbl-control-label{font-size:10.5px;color:var(--text-tertiary);white-space:nowrap}
-.tbl-select{font-size:11.5px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text);cursor:pointer}
-.tbl-export-btn{display:flex;align-items:center;gap:4px;padding:3px 9px;font-size:11.5px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s}
-.tbl-export-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border-strong)}
+.tbl-select{font-size:11.5px;padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text);cursor:pointer;transition:border-color .15s}
+.tbl-select:hover{border-color:var(--border-strong)}
+.tbl-export-btn{display:flex;align-items:center;gap:4px;padding:3px 10px;font-size:11.5px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.tbl-export-btn:hover{background:var(--surface-hover);color:var(--text);border-color:var(--border-strong);box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .tbl-export-btn .ic{width:11px;height:11px;stroke-width:2}
 .tbl-agg-badge{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(78,203,113,.15);color:#4ecb71;margin-right:2px;cursor:pointer;letter-spacing:.03em;user-select:none}
 .tbl-agg-badge:hover{background:rgba(78,203,113,.35)}
-.tbl-filter-count{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(91,158,249,.15);color:#5b9ef9;margin-left:3px;cursor:pointer}
-.tbl-agg-drop{position:fixed;background:var(--surface);border:1px solid var(--border-strong);border-radius:7px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:9999;display:none;min-width:120px}
+.tbl-filter-count{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(91,158,249,.15);color:#5b9ef9;margin-left:3px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tbl-agg-drop{position:fixed;background:var(--surface);border:1px solid var(--border-strong);border-radius:7px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:9999;display:none;min-width:150px}
 .tbl-agg-opt{padding:5px 14px;font-size:12px;cursor:pointer;border-radius:4px;color:var(--text);white-space:nowrap}
 .tbl-agg-opt:hover{background:var(--surface-hover)}
 .tbl-agg-opt.active{color:var(--accent);font-weight:600}
+.tbl-agg-section-label{padding:3px 14px;font-size:10px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+/* Granularity badge on date chips */
+.tbl-gran-badge{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(247,201,72,.2);color:#f7c948;margin-right:3px;cursor:pointer;user-select:none}
+.tbl-gran-badge:hover{background:rgba(247,201,72,.35)}
+.tbl-calc-badge{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;background:rgba(167,139,250,.2);color:#a78bfa;margin-left:3px}
+/* Tool buttons (undo/redo/swap/refline) */
+.tbl-tool-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:transparent;border:1px solid transparent;border-radius:5px;font-size:11px;color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.tbl-tool-btn:hover{background:var(--surface-hover);border-color:var(--border);color:var(--text)}
+.tbl-tool-btn.active{background:rgba(91,158,249,.12);border-color:rgba(91,158,249,.4);color:var(--accent)}
+.tbl-tool-btn:disabled{opacity:.35;pointer-events:none}
+/* 피벗 모드: 차트 전용 컨트롤 비활성화 표시 */
+.tbl-wrap.pivot-mode .tbl-chart-btns,
+.tbl-wrap.pivot-mode #tblRefLine,
+.tbl-wrap.pivot-mode #tblExportPNG{opacity:.35;pointer-events:none}
+/* 허용되지 않는 필드 드롭 시 빨간 플래시 */
+.tbl-shelf.reject{border-color:#f87171!important;background:rgba(248,113,113,.1)!important;transition:none}
+/* 칩을 필드 패널로 끌어 제거할 때 하이라이트 */
+#tblFields.drag-remove{outline:2px dashed #f87171;outline-offset:-2px;background:rgba(248,113,113,.04)}
+/* Filter tabs */
+.tbl-filter-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 8px}
+.tbl-ftab{flex:1;padding:7px 4px;font-size:11px;background:none;border:none;cursor:pointer;color:var(--text-tertiary);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tbl-ftab:hover{color:var(--text)}
+.tbl-ftab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 .tbl-filter-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:none}
 .tbl-filter-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;max-height:480px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden}
 .tbl-filter-popup-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;flex-shrink:0}
@@ -2335,6 +2373,50 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 .tbl-filter-popup-ft button:hover{background:var(--surface-hover)}
 .tbl-filter-popup-ft .tbl-filter-apply{background:var(--accent);border-color:var(--accent);color:#fff;margin-left:auto}
 .tbl-filter-popup-ft .tbl-filter-apply:hover{opacity:.85}
+/* Field panel search */
+.tbl-field-search-wrap{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:1}
+.tbl-field-search-icon{width:12px;height:12px;color:var(--text-tertiary);flex-shrink:0}
+.tbl-field-search-inp{flex:1;background:transparent;border:none;outline:none;font-size:11.5px;color:var(--text);caret-color:var(--accent)}
+.tbl-field-search-inp::placeholder{color:var(--text-tertiary)}
+/* Shelf icons + placeholder */
+.tbl-shelf-icon{width:11px;height:11px;stroke-width:2;color:var(--text-tertiary);flex-shrink:0;margin-right:2px}
+.tbl-shelf-chips:empty::before{content:'드래그';font-size:9.5px;color:var(--text-tertiary);opacity:0.35;pointer-events:none}
+/* Cross-tab pivot table improvements */
+.tbl-pivot-table{table-layout:auto}
+.tbl-pivot-table td:first-child,.tbl-pivot-table th:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+.tbl-pivot-table thead th:first-child{z-index:2;background:var(--surface-2)}
+.tbl-pivot-table thead th.col-total{background:var(--surface-2);font-weight:700;color:var(--accent)}
+.tbl-pivot-table .total-row td{background:var(--surface-2);font-weight:600;color:var(--text)}
+.tbl-pivot-table .total-row td:first-child{color:var(--accent)}
+.tbl-crosstab-info{font-size:11px;color:var(--text-tertiary);padding:2px 12px 6px;text-align:right}
+/* Sortable pivot headers */
+.tbl-pivot-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.tbl-pivot-table th.sortable:hover{background:var(--surface-hover)}
+.tbl-sort-ind{font-size:9.5px;margin-left:3px;opacity:0.3;transition:opacity .15s}
+.tbl-sort-ind.active{opacity:1;color:var(--accent);font-weight:700}
+/* Chip sort button */
+.tbl-sort-btn{display:inline-flex;align-items:center;justify-content:center;gap:1px;height:14px;padding:0 2px;font-size:10px;line-height:1;cursor:pointer;opacity:0.3;user-select:none;transition:opacity .15s,color .15s;border-radius:2px;flex-shrink:0}
+.tbl-sort-btn:hover{opacity:0.8}
+.tbl-sort-btn.sorted{opacity:1;color:var(--accent);font-weight:700}
+.tbl-sort-priority{font-size:8px;opacity:0.8;line-height:1}
+/* Shelf chip drag-to-reorder */
+.tbl-s-chip.dragging{opacity:0.35;cursor:grabbing}
+.tbl-s-chip.drag-over{outline:2px solid var(--accent);outline-offset:-1px}
+/* Shelf clear button */
+.tbl-shelf-clear-btn{display:none;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-tertiary);opacity:0;padding:1px 3px;border-radius:2px;transition:opacity .15s,color .15s;flex-shrink:0;line-height:1}
+.tbl-shelf:hover .tbl-shelf-clear-btn{opacity:0.7}
+.tbl-shelf-clear-btn:hover{opacity:1 !important;color:var(--negative)}
+/* Viz footer */
+.tbl-viz-footer{height:22px;padding:0 10px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text-tertiary);flex-shrink:0;background:var(--surface)}
+.tbl-viz-footer .tbl-vf-sep{width:1px;height:10px;background:var(--border)}
+/* Sort reset in toolbar */
+.tbl-sort-reset{display:none;align-items:center;gap:3px;background:none;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:10.5px;padding:3px 8px;cursor:pointer;opacity:.85;transition:opacity .15s}
+.tbl-sort-reset:hover{opacity:1}
+.tbl-sort-reset .ic{width:10px;height:10px}
+/* 전체 초기화 버튼 — 위험 액션 고스트 스타일 */
+.tbl-reset-btn{display:inline-flex;align-items:center;gap:4px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-size:11px;padding:3px 9px;cursor:pointer;transition:all .15s}
+.tbl-reset-btn:hover{border-color:#f87171;color:#f87171;background:rgba(248,113,113,.08)}
+.tbl-reset-btn .ic{width:11px;height:11px;stroke-width:2}
 </style>
 </head>
 <body>
@@ -2649,14 +2731,22 @@ const state = {
     config: {
       chartType: 'bar', mode: 'chart',
       rows: [], columns: [], measures: [],
-      color: null, size: null,
-      filters: {}, measureAggs: {}, sort: 'desc', limit: 500
+      color: null, size: null, label: null, detail: [],
+      filters: {}, measureAggs: {}, fieldSorts: [], sortMeasure: null, sort: 'desc', limit: 500,
+      dateGranularity: {},   // {fieldName: 'YEAR'|'QUARTER'|'MONTH'|'DAY'}
+      tableCalcs: {},        // {fieldName: 'pct_total'|'running_sum'|'diff_prev'}
+      showRefLine: false,    // 평균 기준선 표시
+      topN: null,            // {n:10, measure:'Operating_Income', dir:'desc'}
     },
     queryResult: null,
     loading: false,
     saveTimer: null,
     echartsInst: null,
     dragField: null,
+    dragChip: null,
+    pivotClientSort: null,
+    history: [],             // undo/redo config 스택
+    historyIndex: -1,
   },
 };
 function fsArr(cat, lv){ const s = state.filterSel[cat]; return s && s[lv] && s[lv].size ? [...s[lv]] : []; }
@@ -4400,8 +4490,10 @@ function renderTableauView(){
     ['combo','bar-chart-4','콤보'],
   ];
   const shelfDefs = [
-    ['rows','행'],['columns','열'],['measures','측정값'],
-    ['color','색상'],['size','크기'],['filters','필터'],
+    ['rows','행','rows'],['columns','열','columns'],['measures','측정값','hash'],
+    ['color','색상','palette'],['size','크기','move'],
+    ['label','레이블','tag'],['detail','세부정보','info'],
+    ['filters','필터','filter'],
   ];
   return `<div class="tbl-wrap" id="tblWrap">
     <div class="tbl-toolbar" id="tblToolbar">
@@ -4419,6 +4511,11 @@ function renderTableauView(){
       <button class="tbl-save-btn saved" id="tblSaveBtn">저장됨</button>
     </div>
     <div class="tbl-toolbar-row2" id="tblToolbarRow2">
+      <button class="tbl-tool-btn" id="tblUndo" title="실행 취소 (Ctrl+Z)" disabled><i data-lucide="undo-2" class="ic"></i></button>
+      <button class="tbl-tool-btn" id="tblRedo" title="다시 실행 (Ctrl+Y)" disabled><i data-lucide="redo-2" class="ic"></i></button>
+      <div class="tbl-divider"></div>
+      <button class="tbl-tool-btn" id="tblSwapAxes" title="행/열 교환"><i data-lucide="arrow-left-right" class="ic"></i></button>
+      <div class="tbl-divider"></div>
       <span class="tbl-control-label">정렬</span>
       <select class="tbl-select" id="tblSortSel">
         <option value="desc"${cfg.sort==='desc'?' selected':''}>내림차순</option>
@@ -4430,16 +4527,25 @@ function renderTableauView(){
         ${[100,500,1000,5000].map(v=>`<option value="${v}"${cfg.limit===v?' selected':''}>${v.toLocaleString('ko-KR')}</option>`).join('')}
       </select>
       <div style="flex:1"></div>
+      <button class="tbl-tool-btn${cfg.showRefLine?' active':''}" id="tblRefLine" title="평균 기준선 표시/숨김"><i data-lucide="minus" class="ic"></i>기준선</button>
+      <button class="tbl-sort-reset" id="tblClearSorts"><i data-lucide="x-circle" class="ic"></i>정렬 초기화</button>
+      <button class="tbl-reset-btn" id="tblResetAll" title="모든 선반·필터·설정을 비웁니다"><i data-lucide="rotate-ccw" class="ic"></i>전체 초기화</button>
       <button class="tbl-export-btn" id="tblExportCSV"><i data-lucide="download" class="ic"></i>CSV</button>
       <button class="tbl-export-btn" id="tblExportPNG"><i data-lucide="image" class="ic"></i>PNG</button>
     </div>
     <div class="tbl-body">
       <div class="tbl-fields" id="tblFields">
-        <div class="tbl-fields-label" style="padding:10px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary)">필드 불러오는 중…</div>
+        <div class="tbl-field-search-wrap">
+          <i data-lucide="search" class="ic tbl-field-search-icon"></i>
+          <input type="text" id="tblFieldSearch" class="tbl-field-search-inp" placeholder="필드 검색…" autocomplete="off">
+        </div>
+        <div id="tblFieldsContent">
+          <div class="tbl-fields-label" style="padding:10px 12px 4px;font-size:10px;color:var(--text-tertiary)">불러오는 중…</div>
+        </div>
       </div>
       <div class="tbl-right">
         <div class="tbl-shelves" id="tblShelves">
-          ${shelfDefs.map(([s,lb])=>`<div class="tbl-shelf" id="tblShelf_${s}" data-shelf="${s}"><span class="tbl-shelf-label">${lb}</span><div class="tbl-shelf-chips" id="tblChips_${s}"></div></div>`).join('')}
+          ${shelfDefs.map(([s,lb,ic])=>`<div class="tbl-shelf" id="tblShelf_${s}" data-shelf="${s}"><span class="tbl-shelf-label"><i data-lucide="${ic}" class="ic tbl-shelf-icon"></i>${lb}</span><div class="tbl-shelf-chips" id="tblChips_${s}"></div><button class="tbl-shelf-clear-btn" id="tblShelfClear_${s}" data-shelf="${s}" title="${lb} 지우기">✕</button></div>`).join('')}
         </div>
         <div class="tbl-viz" id="tblViz">
           <div class="tbl-viz-empty">
@@ -4447,6 +4553,7 @@ function renderTableauView(){
             <p>필드를 드래그해서 행·열·측정값에 놓으세요</p>
           </div>
         </div>
+        <div class="tbl-viz-footer" id="tblVizFooter"></div>
       </div>
     </div>
   </div>`;
@@ -4468,18 +4575,123 @@ async function initTableauView(){
     btn.onclick = () => {
       state.tableau.config.mode = btn.dataset.mode;
       $$('.tbl-mode-btn').forEach(b => b.classList.toggle('active', b===btn));
+      const wrap = $('#tblWrap');
+      if (wrap) wrap.classList.toggle('pivot-mode', btn.dataset.mode === 'pivot');
       tblMarkUnsaved(); tblAutoSave(); tblRenderViz();
     };
   });
+  { const wrap = $('#tblWrap'); if (wrap) wrap.classList.toggle('pivot-mode', state.tableau.config.mode === 'pivot'); }
   const sortSel = $('#tblSortSel');
   if (sortSel) sortSel.onchange = () => { state.tableau.config.sort = sortSel.value; tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery(); };
   const limitSel = $('#tblLimitSel');
   if (limitSel) limitSel.onchange = () => { state.tableau.config.limit = parseInt(limitSel.value); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery(); };
+  const fieldSearch = $('#tblFieldSearch');
+  if (fieldSearch) fieldSearch.oninput = () => tblRenderFields(fieldSearch.value.trim().toLowerCase());
+  const clearSorts = $('#tblClearSorts');
+  if (clearSorts) clearSorts.onclick = () => {
+    state.tableau.config.fieldSorts = [];
+    tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+  };
+  const resetAll = $('#tblResetAll');
+  if (resetAll) resetAll.onclick = () => {
+    if (!confirm('현재 시트의 모든 선반·필터·설정을 초기화할까요?\n(실행 취소 Ctrl+Z 로 되돌릴 수 있습니다)')) return;
+    state.tableau.config = tblEmptyConfig();
+    state.tableau.queryResult = null;
+    tblRenderShelfChips(); tblSyncToolbar(); tblUpdateSortControls();
+    tblMarkUnsaved(); tblAutoSave(); tblRenderViz(); tblSetVizFooter(null);
+    if (state.tableau._pushHistory) state.tableau._pushHistory();
+  };
+  $$('.tbl-shelf-clear-btn').forEach(btn => {
+    btn.onclick = () => {
+      const s = btn.dataset.shelf;
+      const cfg = state.tableau.config;
+      if (s === 'color' || s === 'size' || s === 'label') { cfg[s] = null; }
+      else if (s === 'filters') { cfg.filters = {}; }
+      else if (s === 'detail') { cfg.detail = []; }
+      else {
+        if ((s === 'rows' || s === 'columns') && Array.isArray(cfg.fieldSorts)) {
+          const removing = new Set(cfg[s] || []);
+          cfg.fieldSorts = cfg.fieldSorts.filter(fs => !removing.has(fs.field));
+        }
+        cfg[s] = [];
+      }
+      tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+    };
+  });
   const exportCSV = $('#tblExportCSV');
   if (exportCSV) exportCSV.onclick = tblExportCSV;
   const exportPNG = $('#tblExportPNG');
   if (exportPNG) exportPNG.onclick = tblExportPNG;
-  if (window.lucide) lucide.createIcons({nodes: [exportCSV, exportPNG].filter(Boolean)});
+
+  /* ── Undo / Redo ── */
+  function tblPushHistory() {
+    const st = state.tableau;
+    const snap = JSON.stringify(st.config);
+    if (st.history[st.historyIndex] === snap) return;
+    st.history = st.history.slice(0, st.historyIndex + 1);
+    st.history.push(snap);
+    if (st.history.length > 50) { st.history.shift(); } else { st.historyIndex++; }
+    tblUpdateUndoRedo();
+  }
+  function tblUpdateUndoRedo() {
+    const st = state.tableau;
+    const u = $('#tblUndo'), r = $('#tblRedo');
+    if (u) u.disabled = st.historyIndex <= 0;
+    if (r) r.disabled = st.historyIndex >= st.history.length - 1;
+  }
+  state.tableau._pushHistory = tblPushHistory;
+  /* undo/redo 공통: 복원 → 정규화 config로 항목 교체(redo 보존) → 툴바 동기화 → 저장 */
+  const tblRestoreHistory = (idx) => {
+    const st = state.tableau;
+    st.config = JSON.parse(st.history[idx]);
+    tblApplyViewConfig(st.config);
+    st.history[idx] = JSON.stringify(st.config); /* 정규화 반영 — push 가드가 redo 스택을 자르지 않도록 */
+    st.historyIndex = idx;
+    tblRenderShelfChips(); tblSyncToolbar(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery(); tblUpdateUndoRedo();
+  };
+  const undoBtn = $('#tblUndo');
+  if (undoBtn) undoBtn.onclick = () => {
+    const st = state.tableau;
+    if (st.historyIndex > 0) tblRestoreHistory(st.historyIndex - 1);
+  };
+  const redoBtn = $('#tblRedo');
+  if (redoBtn) redoBtn.onclick = () => {
+    const st = state.tableau;
+    if (st.historyIndex < st.history.length - 1) tblRestoreHistory(st.historyIndex + 1);
+  };
+  /* keydown은 전역 1회만 등록 (탭 재진입 시 누적 방지) — 현재 DOM의 버튼을 동적 조회 */
+  if (!state.tableau._keysBound) {
+    state.tableau._keysBound = true;
+    document.addEventListener('keydown', e => {
+      if (state.category !== 'tableau') return;
+      /* 입력 필드 안에서는 네이티브 텍스트 undo 우선 */
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); $('#tblUndo')?.click(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); $('#tblRedo')?.click(); }
+    });
+  }
+  tblPushHistory(); // seed initial state
+
+  /* ── Swap rows/cols ── */
+  const swapBtn = $('#tblSwapAxes');
+  if (swapBtn) swapBtn.onclick = () => {
+    tblPushHistory();
+    const cfg = state.tableau.config;
+    [cfg.rows, cfg.columns] = [cfg.columns, cfg.rows];
+    tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+  };
+
+  /* ── Reference line toggle ── */
+  const refBtn = $('#tblRefLine');
+  if (refBtn) refBtn.onclick = () => {
+    tblPushHistory();
+    state.tableau.config.showRefLine = !state.tableau.config.showRefLine;
+    refBtn.classList.toggle('active', state.tableau.config.showRefLine);
+    tblMarkUnsaved(); tblAutoSave(); tblRenderViz();
+  };
+
+  if (window.lucide) lucide.createIcons();
   const saveBtn = $('#tblSaveBtn');
   if (saveBtn) saveBtn.onclick = async () => {
     const id = state.tableau.currentId;
@@ -4500,27 +4712,35 @@ async function tblLoadFields(){
   } catch(e){ console.error('[tbl] fields load error', e); }
 }
 
-function tblRenderFields(){
-  const panel = $('#tblFields');
+function tblRenderFields(filter){
+  const panel = $('#tblFieldsContent');
   if (!panel) return;
   const { dimensions, measures, date_dims } = state.tableau.fields;
   const dateDimsSet = new Set(date_dims || []);
+  const q = (filter || '').toLowerCase();
   const chip = (f, type) => {
     const isDate = type === 'dim' && dateDimsSet.has(f);
     const icon = isDate ? 'calendar' : (type === 'dim' ? 'tag' : 'hash');
     const extra = isDate ? ' date-dim' : '';
-    return `<div class="tbl-field-chip ${type}${extra}" draggable="true" data-field="${f}" data-ftype="${type}" title="${isDate?'날짜 차원':''}">` +
+    return `<div class="tbl-field-chip ${type}${extra}" draggable="true" data-field="${f}" data-ftype="${type}">` +
            `<i data-lucide="${icon}" class="ic"></i>${f}</div>`;
   };
-  panel.innerHTML =
-    `<div class="tbl-fields-section"><div class="tbl-fields-label">차원 (Dimension)</div>${dimensions.map(f=>chip(f,'dim')).join('')}</div>` +
-    `<div class="tbl-fields-section"><div class="tbl-fields-label">측정값 (Measure)</div>${measures.map(f=>chip(f,'meas')).join('')}</div>`;
-  if (window.lucide) lucide.createIcons();
+  const match = f => !q || f.toLowerCase().includes(q);
+  const dateDimFields = dimensions.filter(f => dateDimsSet.has(f) && match(f));
+  const pureDimFields = dimensions.filter(f => !dateDimsSet.has(f) && match(f));
+  const measFields = measures.filter(match);
+  let html = '';
+  if (dateDimFields.length) html += `<div class="tbl-fields-section"><div class="tbl-fields-label"><i data-lucide="calendar" class="ic" style="width:10px;height:10px;margin-right:3px"></i>날짜 차원</div>${dateDimFields.map(f=>chip(f,'dim')).join('')}</div>`;
+  if (pureDimFields.length) html += `<div class="tbl-fields-section"><div class="tbl-fields-label"><i data-lucide="tag" class="ic" style="width:10px;height:10px;margin-right:3px"></i>차원</div>${pureDimFields.map(f=>chip(f,'dim')).join('')}</div>`;
+  if (measFields.length) html += `<div class="tbl-fields-section"><div class="tbl-fields-label"><i data-lucide="hash" class="ic" style="width:10px;height:10px;margin-right:3px"></i>측정값</div>${measFields.map(f=>chip(f,'meas')).join('')}</div>`;
+  if (!html) html = `<div style="padding:12px;font-size:11px;color:var(--text-tertiary);text-align:center">검색 결과 없음</div>`;
+  panel.innerHTML = html;
+  if (window.lucide) lucide.createIcons({nodes:[panel]});
   tblInitDnD();
 }
 
 function tblInitDnD(){
-  $$('#tblFields .tbl-field-chip').forEach(chip => {
+  $$('#tblFieldsContent .tbl-field-chip').forEach(chip => {
     chip.ondragstart = e => {
       state.tableau.dragField = { name: chip.dataset.field, ftype: chip.dataset.ftype };
       e.dataTransfer.effectAllowed = 'copy';
@@ -4533,17 +4753,88 @@ function tblInitDnD(){
     shelf.ondrop = e => {
       e.preventDefault();
       shelf.classList.remove('drag-over');
+      /* 선반 간 칩 이동 (Tableau 스타일) */
+      const dc = state.tableau.dragChip;
+      if (dc) {
+        if (dc.shelf !== shelf.dataset.shelf) tblMoveBetweenShelves(dc.shelf, dc.field, shelf.dataset.shelf);
+        return;
+      }
       const f = state.tableau.dragField;
       if (!f) return;
       tblAddToShelf(shelf.dataset.shelf, f.name);
     };
   });
+  /* 칩을 필드 패널로 끌어내면 선반에서 제거 (Tableau 스타일) */
+  const fieldsPanel = $('#tblFields');
+  if (fieldsPanel) {
+    fieldsPanel.ondragover = e => { if (state.tableau.dragChip) { e.preventDefault(); fieldsPanel.classList.add('drag-remove'); } };
+    fieldsPanel.ondragleave = () => fieldsPanel.classList.remove('drag-remove');
+    fieldsPanel.ondrop = e => {
+      fieldsPanel.classList.remove('drag-remove');
+      const dc = state.tableau.dragChip;
+      if (!dc) return;
+      e.preventDefault();
+      state.tableau.dragChip = null;
+      tblRemoveFromShelf(dc.shelf, dc.field);
+    };
+  }
+}
+
+/* 필드 종류 판별 + 선반별 허용 타입 */
+function tblFieldKind(f){ return state.tableau.fields.measures.includes(f) ? 'meas' : 'dim'; }
+function tblShelfAccepts(shelf, f){
+  const k = tblFieldKind(f);
+  if (shelf === 'measures') return k === 'meas';
+  if (shelf === 'rows' || shelf === 'columns' || shelf === 'color' || shelf === 'detail' || shelf === 'filters') return k === 'dim';
+  return true; /* size, label은 둘 다 허용 */
+}
+function tblFlashShelfReject(shelf){
+  const el = $(`#tblShelf_${shelf}`);
+  if (!el) return;
+  el.classList.add('reject');
+  setTimeout(()=>el.classList.remove('reject'), 600);
+}
+
+/* 선반 간 칩 이동 */
+function tblMoveBetweenShelves(from, field, to){
+  if (from === to) return;
+  if (!tblShelfAccepts(to, field)) { tblFlashShelfReject(to); state.tableau.dragChip = null; return; }
+  const cfg = state.tableau.config;
+  /* 원본 선반에서 제거 */
+  if (from === 'color' || from === 'size' || from === 'label') { cfg[from] = null; }
+  else if (from === 'detail') { cfg.detail = (cfg.detail || []).filter(f => f !== field); }
+  else if (from === 'filters') { delete cfg.filters[field]; }
+  else {
+    cfg[from] = (cfg[from] || []).filter(f => f !== field);
+    if (from === 'measures') {
+      if (cfg.measureAggs) delete cfg.measureAggs[field];
+      if (cfg.tableCalcs) delete cfg.tableCalcs[field];
+    }
+    if ((from === 'rows' || from === 'columns') && cfg.fieldSorts) cfg.fieldSorts = cfg.fieldSorts.filter(s => s.field !== field);
+  }
+  /* 대상 선반에 추가 */
+  if (to === 'color' || to === 'size' || to === 'label') { cfg[to] = field; }
+  else if (to === 'detail') { if (!Array.isArray(cfg.detail)) cfg.detail = []; if (!cfg.detail.includes(field)) cfg.detail.push(field); }
+  else if (to === 'filters') { if (!cfg.filters[field]) cfg.filters[field] = []; }
+  else {
+    if (!cfg[to]) cfg[to] = [];
+    if (!cfg[to].includes(field)) {
+      cfg[to].push(field);
+      if (to === 'measures') { if (!cfg.measureAggs) cfg.measureAggs = {}; if (!cfg.measureAggs[field]) cfg.measureAggs[field] = 'SUM'; }
+    }
+  }
+  state.tableau.dragChip = null;
+  tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
 }
 
 function tblAddToShelf(shelf, fieldName){
+  if (!tblShelfAccepts(shelf, fieldName)) { tblFlashShelfReject(shelf); return; }
   const cfg = state.tableau.config;
-  if (shelf === 'color' || shelf === 'size') {
+  if (shelf === 'color' || shelf === 'size' || shelf === 'label') {
     cfg[shelf] = fieldName;
+  } else if (shelf === 'detail') {
+    if (!Array.isArray(cfg.detail)) cfg.detail = [];
+    if (!cfg.detail.includes(fieldName)) cfg.detail.push(fieldName);
   } else if (shelf === 'filters') {
     if (!cfg.filters[fieldName]) cfg.filters[fieldName] = [];
   } else {
@@ -4561,13 +4852,19 @@ function tblAddToShelf(shelf, fieldName){
 
 function tblRemoveFromShelf(shelf, fieldName){
   const cfg = state.tableau.config;
-  if (shelf === 'color' || shelf === 'size') {
+  if (shelf === 'color' || shelf === 'size' || shelf === 'label') {
     cfg[shelf] = null;
+  } else if (shelf === 'detail') {
+    cfg.detail = (cfg.detail || []).filter(f => f !== fieldName);
   } else if (shelf === 'filters') {
     delete cfg.filters[fieldName];
   } else {
     cfg[shelf] = (cfg[shelf] || []).filter(f => f !== fieldName);
-    if (shelf === 'measures' && cfg.measureAggs) delete cfg.measureAggs[fieldName];
+    if (shelf === 'measures') {
+      if (cfg.measureAggs) delete cfg.measureAggs[fieldName];
+      if (cfg.tableCalcs) delete cfg.tableCalcs[fieldName]; /* 재추가 시 잊힌 계산 부활 방지 */
+    }
+    if ((shelf === 'rows' || shelf === 'columns') && cfg.fieldSorts) cfg.fieldSorts = cfg.fieldSorts.filter(s => s.field !== fieldName);
   }
   tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
 }
@@ -4576,56 +4873,227 @@ function tblRenderShelfChips(){
   const cfg = state.tableau.config;
   const { dimensions } = state.tableau.fields;
   const isDim = f => dimensions.includes(f);
+  const fieldSorts = Array.isArray(cfg.fieldSorts) ? cfg.fieldSorts : [];
+  const multiSort = fieldSorts.length > 1;
+
   const renderChips = (shelf, items) => {
     const el = $(`#tblChips_${shelf}`);
     if (!el) return;
     el.innerHTML = items.map(f => {
       const chipCls = isDim(f) ? 'dim' : 'meas';
       let inner = '';
+      const txt = `<span class="tbl-chip-txt" title="${f}">${f}</span>`;
       if (shelf === 'measures') {
         const agg = (cfg.measureAggs || {})[f] || 'SUM';
-        inner = `<span class="tbl-agg-badge" data-field="${f}">${agg}</span>${f}`;
+        const calc = (cfg.tableCalcs || {})[f];
+        const calcLabels = {pct_total:'%합계', running_sum:'누적', diff_prev:'차이'};
+        const calcBadge = calc ? `<span class="tbl-calc-badge" title="테이블 계산: ${calcLabels[calc]||calc}">${calcLabels[calc]||calc}</span>` : '';
+        inner = `<span class="tbl-agg-badge" data-field="${f}">${agg}</span>${txt}${calcBadge}`;
       } else if (shelf === 'filters') {
         const cnt = ((cfg.filters || {})[f] || []).length;
-        inner = `${f}<span class="tbl-filter-count">${cnt ? cnt+'개 선택' : 'ALL'}</span>`;
+        inner = `${txt}<span class="tbl-filter-count">${cnt ? cnt+'개 선택' : 'ALL'}</span>`;
+      } else if (shelf === 'rows' || shelf === 'columns') {
+        const sortIdx = fieldSorts.findIndex(s => s.field === f);
+        const sortEntry = sortIdx >= 0 ? fieldSorts[sortIdx] : null;
+        const isSorted = !!sortEntry;
+        const dirIcon = sortEntry ? (sortEntry.dir === 'asc' ? '↑' : '↓') : '⇅';
+        const numBadge = isSorted && multiSort ? `<span class="tbl-sort-priority">${sortIdx + 1}</span>` : '';
+        const title = isSorted ? (sortEntry.dir === 'asc' ? '클릭: 내림차순' : '클릭: 정렬 제거') : '클릭: 오름차순 정렬';
+        const isDate = state.tableau.fields.date_dims.includes(f);
+        const gran = isDate ? ((cfg.dateGranularity||{})[f] || 'MONTH') : null;
+        const granBadge = isDate
+          ? `<span class="tbl-gran-badge" data-field="${f}" title="날짜 단위 변경">${gran}</span>`
+          : '';
+        inner = `${granBadge}${txt}<span class="tbl-sort-btn${isSorted?' sorted':''}" data-field="${f}" data-shelf="${shelf}" title="${title}">${numBadge}${dirIcon}</span>`;
       } else {
-        inner = f;
+        inner = txt;
       }
-      return `<span class="tbl-s-chip ${chipCls}" data-shelf="${shelf}" data-field="${f}">${inner}<span class="tbl-s-chip-del" data-shelf="${shelf}" data-field="${f}">×</span></span>`;
+      return `<span class="tbl-s-chip ${chipCls}" data-shelf="${shelf}" data-field="${f}" draggable="true">${inner}<span class="tbl-s-chip-del" data-shelf="${shelf}" data-field="${f}">×</span></span>`;
     }).join('');
+
+    /* Del button */
     el.querySelectorAll('.tbl-s-chip-del').forEach(btn => {
       btn.onclick = (e) => { e.stopPropagation(); tblRemoveFromShelf(btn.dataset.shelf, btn.dataset.field); };
     });
+    /* Agg badge */
     el.querySelectorAll('.tbl-agg-badge').forEach(badge => {
       badge.onclick = (e) => { e.stopPropagation(); tblShowAggSelector(e, badge.dataset.field); };
     });
+    /* Date granularity badge — cycle YEAR → QUARTER → MONTH → DAY */
+    el.querySelectorAll('.tbl-gran-badge').forEach(badge => {
+      badge.onclick = (e) => {
+        e.stopPropagation();
+        const f = badge.dataset.field;
+        const order = ['YEAR','QUARTER','MONTH']; /* 데이터가 YYYY-MM이므로 DAY는 의미 없음 */
+        const cur = (cfg.dateGranularity||{})[f] || 'MONTH';
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        if (!cfg.dateGranularity) cfg.dateGranularity = {};
+        cfg.dateGranularity[f] = next;
+        tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+      };
+    });
+    /* Sort button — cycle: none → asc → desc → none */
+    el.querySelectorAll('.tbl-sort-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const f = btn.dataset.field;
+        if (!Array.isArray(cfg.fieldSorts)) cfg.fieldSorts = [];
+        const idx = cfg.fieldSorts.findIndex(s => s.field === f);
+        if (idx === -1) cfg.fieldSorts.push({field: f, dir: 'asc'});
+        else if (cfg.fieldSorts[idx].dir === 'asc') cfg.fieldSorts[idx].dir = 'desc';
+        else cfg.fieldSorts.splice(idx, 1);
+        tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+        tblUpdateSortControls();
+      };
+    });
+    /* Filter chip click */
     if (shelf === 'filters') {
       el.querySelectorAll('.tbl-s-chip').forEach(chip => {
         chip.style.cursor = 'pointer';
         chip.onclick = (e) => { if (!e.target.classList.contains('tbl-s-chip-del')) tblShowFilterPicker(e, chip.dataset.field); };
       });
     }
+    /* 모든 선반 칩: 드래그 시작/종료 (선반 간 이동 + 패널로 제거용) */
+    el.querySelectorAll('.tbl-s-chip[draggable]').forEach(chip => {
+      chip.ondragstart = e => {
+        state.tableau.dragChip = {shelf, field: chip.dataset.field};
+        chip.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.stopPropagation();
+      };
+      chip.ondragend = () => { chip.classList.remove('dragging'); setTimeout(()=>{state.tableau.dragChip = null;}, 50); };
+    });
+    /* 같은 선반 내 재정렬 (rows/columns/measures/detail — 순서가 의미있는 선반) */
+    if (shelf === 'rows' || shelf === 'columns' || shelf === 'measures' || shelf === 'detail') {
+      el.querySelectorAll('.tbl-s-chip[draggable]').forEach(chip => {
+        chip.ondragover = e => {
+          if (!state.tableau.dragChip || state.tableau.dragChip.shelf !== shelf || state.tableau.dragChip.field === chip.dataset.field) return;
+          e.preventDefault(); e.stopPropagation();
+          chip.classList.add('drag-over');
+        };
+        chip.ondragleave = () => chip.classList.remove('drag-over');
+        chip.ondrop = e => {
+          e.preventDefault(); e.stopPropagation();
+          chip.classList.remove('drag-over');
+          const dc = state.tableau.dragChip;
+          if (!dc || dc.shelf !== shelf || dc.field === chip.dataset.field) return;
+          const arr = cfg[shelf] || [];
+          const from = arr.indexOf(dc.field), to = arr.indexOf(chip.dataset.field);
+          if (from === -1 || to === -1) return;
+          arr.splice(from, 1); arr.splice(to, 0, dc.field);
+          state.tableau.dragChip = null;
+          tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+        };
+      });
+    }
+    /* Shelf clear button visibility */
+    const clearBtn = $(`#tblShelfClear_${shelf}`);
+    if (clearBtn) clearBtn.style.display = items.length ? 'inline-flex' : 'none';
   };
+
   renderChips('rows',    cfg.rows || []);
   renderChips('columns', cfg.columns || []);
   renderChips('measures',cfg.measures || []);
   renderChips('color',   cfg.color ? [cfg.color] : []);
   renderChips('size',    cfg.size  ? [cfg.size]  : []);
-  renderChips('filters', Object.keys(cfg.filters || {}));
+  renderChips('label',   cfg.label ? [cfg.label] : []);
+  renderChips('detail',  cfg.detail || []);
+  /* 와일드카드(__wc__) 키는 일반 칩 목록에서 제외 — 별도 렌더 */
+  renderChips('filters', Object.keys(cfg.filters || {}).filter(k => !k.startsWith('__wc__')));
+  /* 와일드카드 필터 칩 추가 렌더 */
+  {
+    const fEl = $('#tblChips_filters');
+    if (fEl) {
+      Object.entries(cfg.filters || {}).filter(([k]) => k.startsWith('__wc__')).forEach(([k, v]) => {
+        const chip = document.createElement('span');
+        chip.className = 'tbl-s-chip dim';
+        chip.style.cursor = 'pointer';
+        const fname = v.field || k.slice(6);
+        chip.innerHTML = `<span class="tbl-chip-txt" title="${fname} 와일드카드">${fname}</span><span class="tbl-filter-count">${v.exclude?'제외':'패턴'} ${(v.patterns||[]).length}</span><span class="tbl-s-chip-del">×</span>`;
+        chip.querySelector('.tbl-s-chip-del').onclick = (e) => {
+          e.stopPropagation();
+          delete cfg.filters[k];
+          tblRenderShelfChips(); tblMarkUnsaved(); tblAutoSave(); tblExecuteQuery();
+        };
+        chip.onclick = (e) => { if (!e.target.classList.contains('tbl-s-chip-del')) tblShowFilterPicker(e, fname); };
+        fEl.appendChild(chip);
+      });
+      const clearBtn = $('#tblShelfClear_filters');
+      if (clearBtn && Object.keys(cfg.filters||{}).length) clearBtn.style.display = 'inline-flex';
+    }
+  }
+  tblUpdateSortControls();
+}
+
+/* undo/redo·뷰 전환 후 툴바 컨트롤을 config와 동기화 */
+function tblEmptyConfig(){
+  return {chartType:'bar',mode:'chart',rows:[],columns:[],measures:[],color:null,size:null,label:null,detail:[],filters:{},measureAggs:{},fieldSorts:[],sortMeasure:null,sort:'desc',limit:500,dateGranularity:{},tableCalcs:{},showRefLine:false,topN:null};
+}
+
+function tblSyncToolbar(){
+  const cfg = state.tableau.config;
+  $$('#tblChartBtns .tbl-chart-btn').forEach(b => b.classList.toggle('active', b.dataset.type === cfg.chartType));
+  $$('.tbl-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === cfg.mode));
+  const wrap = $('#tblWrap');
+  if (wrap) wrap.classList.toggle('pivot-mode', cfg.mode === 'pivot');
+  const sortSel = $('#tblSortSel');  if (sortSel) sortSel.value = cfg.sort || 'desc';
+  const limitSel = $('#tblLimitSel'); if (limitSel) limitSel.value = String(cfg.limit || 500);
+  const refBtn = $('#tblRefLine');   if (refBtn) refBtn.classList.toggle('active', !!cfg.showRefLine);
+}
+
+function tblUpdateSortControls(){
+  const cfg = state.tableau.config;
+  const hasFieldSorts = Array.isArray(cfg.fieldSorts) && cfg.fieldSorts.length > 0;
+  const btn = $('#tblClearSorts');
+  if (btn) btn.style.display = hasFieldSorts ? 'inline-flex' : 'none';
+  /* 차원 정렬 활성 시 글로벌 측정값 정렬은 무시되므로 비활성화 표시 */
+  const sortSel = $('#tblSortSel');
+  if (sortSel) {
+    sortSel.disabled = hasFieldSorts;
+    sortSel.title = hasFieldSorts ? '차원 정렬이 우선 적용 중입니다. 정렬 초기화 후 사용하세요.' : '';
+  }
 }
 
 async function tblExecuteQuery(){
+  if (state.tableau._pushHistory) state.tableau._pushHistory();
   const cfg = state.tableau.config;
-  if (!cfg.measures || !cfg.measures.length) { tblRenderViz(); return; }
+  if (!cfg.measures || !cfg.measures.length) { tblRenderViz(); tblSetVizFooter(null); return; }
   state.tableau.loading = true;
+  state.tableau.pivotClientSort = null;
   tblSetVizLoading(true);
+  /* 시퀀스 토큰 — 늦게 도착한 이전 쿼리가 최신 결과를 덮어쓰지 않도록 */
+  const seq = (state.tableau._querySeq = (state.tableau._querySeq || 0) + 1);
+  const t0 = performance.now();
   try {
     const r = await fetch('/api/tableau/query', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:cfg})}).then(r=>r.json());
-    if (r.error) { tblSetVizError(r.error); return; }
+    if (seq !== state.tableau._querySeq) return; /* 더 새로운 쿼리가 진행 중 — 이 응답은 폐기 */
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+    if (r.error) { tblSetVizError(r.error); tblSetVizFooter(null); return; }
     state.tableau.queryResult = r;
     tblRenderViz();
-  } catch(e) { tblSetVizError('쿼리 실패: ' + e); }
-  finally { state.tableau.loading = false; }
+    tblSetVizFooter({rows: (r.rows||[]).length, sec: elapsed, rowFields: r.row_fields||[], colFields: r.col_fields||[], measures: r.measures||[]});
+  } catch(e) { if (seq === state.tableau._querySeq) { tblSetVizError('쿼리 실패: ' + e); tblSetVizFooter(null); } }
+  finally { if (seq === state.tableau._querySeq) state.tableau.loading = false; }
+}
+
+function tblSetVizFooter(info){
+  const el = $('#tblVizFooter');
+  if (!el) return;
+  if (!info) { el.innerHTML = ''; return; }
+  const {rows, sec, rowFields, colFields, measures} = info;
+  const isCross = rowFields.length > 0 && colFields.length > 0;
+  const shape = isCross
+    ? `${[...new Set(state.tableau.queryResult?.rows?.map(r=>rowFields.map(f=>r[f]).join('·')))].length}행 × ${[...new Set(state.tableau.queryResult?.rows?.map(r=>colFields.map(f=>r[f]).join('·')))].length}열`
+    : `${rows}행`;
+  const sortInfo = Array.isArray(state.tableau.config.fieldSorts) && state.tableau.config.fieldSorts.length
+    ? state.tableau.config.fieldSorts.map((s,i)=>`${i+1}. ${s.field} ${s.dir==='asc'?'↑':'↓'}`).join(' › ')
+    : '';
+  const tn = state.tableau.config.topN;
+  const topNInfo = tn && tn.n ? `${tn.dir==='asc'?'하위':'상위'} ${tn.n} (${tn.measure})` : '';
+  el.innerHTML = `<span>${shape}</span>`
+    + (topNInfo?`<span class="tbl-vf-sep"></span><span style="color:var(--accent)">${topNInfo}</span>`:'')
+    + (sortInfo?`<span class="tbl-vf-sep"></span><span>${sortInfo}</span>`:'')
+    + `<span class="tbl-vf-sep"></span><span>${sec}s</span>`;
 }
 
 function tblSetVizLoading(on){
@@ -4650,15 +5118,21 @@ function tblRenderViz(){
     if (window.lucide) lucide.createIcons();
     return;
   }
-  if (cfg.mode === 'pivot') { tblRenderPivot(viz, result, cfg); return; }
-  tblRenderEChart(viz, result, cfg);
+  // 테이블 계산 적용 (차트/피벗 공통)
+  const calcdResult = (cfg.tableCalcs && Object.keys(cfg.tableCalcs).length)
+    ? {...result, rows: tblApplyTableCalcs(result.rows, result.measures||[], cfg.tableCalcs)}
+    : result;
+  if (cfg.mode === 'pivot') { tblRenderPivot(viz, calcdResult, cfg); return; }
+  tblRenderEChart(viz, calcdResult, cfg);
 }
 
 function tblFmtNum(v){
   if (typeof v !== 'number') return String(v||'');
-  if (Math.abs(v)>=1e9) return (v/1e9).toFixed(1)+'B';
-  if (Math.abs(v)>=1e6) return (v/1e6).toFixed(1)+'M';
-  if (Math.abs(v)>=1e3) return (v/1e3).toFixed(1)+'K';
+  const a = Math.abs(v);
+  if (a>=1e12) return (v/1e12).toFixed(1)+'조';
+  if (a>=1e8)  return (v/1e8).toFixed(1)+'억';
+  if (a>=1e4)  return (v/1e4).toFixed(1)+'만';
+  if (a>=1e3)  return (v/1e3).toFixed(1)+'천';
   return v.toFixed(0);
 }
 
@@ -4671,90 +5145,383 @@ function tblRenderEChart(viz, result, cfg){
   const inst = echarts.init(el, isDark?'dark':null, {renderer:'canvas'});
   state.tableau.echartsInst = inst;
   const rows=result.rows, measures=result.measures||[], groupBy=result.group_by||[];
-  const labelField=groupBy[0]||null, colorField=cfg.color&&groupBy.includes(cfg.color)?cfg.color:null;
+  const rowFields=result.row_fields||[], colFields=result.col_fields||[];
+  const colorFieldName=result.color_field||cfg.color||null;
+  const sizeFieldName =result.size_field ||cfg.size ||null;
+  const dataLabelField=result.label_field||cfg.label||null;   /* 레이블 선반 */
+  const detailFields  =result.detail_fields||cfg.detail||[];  /* 세부정보 선반 */
+  const isCrossTab = rowFields.length>0 && colFields.length>0;
   const type=cfg.chartType;
   const palette=['#5b9ef9','#4ecb71','#f7c948','#f9784b','#a78bfa','#34d399','#f472b6','#60a5fa','#fb923c','#a3e635'];
   const meas=measures[0]||'';
-  const labels=labelField?[...new Set(rows.map(r=>String(r[labelField]??'')))]:[];
+  const getRowVal = r => rowFields.map(rf=>String(r[rf]??'')).join(' · ');
+  const getColVal = r => colFields.map(cf=>String(r[cf]??'')).join(' · ');
+  /* 색상/레이블 필드 결정 — 레이블/세부정보 차원은 축에서 제외 */
+  let labels, labelField, colorField, colorByItem=false;
+  const auxDims = new Set([...(detailFields||[]), ...(dataLabelField && groupBy.includes(dataLabelField) ? [dataLabelField] : [])]);
+  if (isCrossTab) {
+    labels = [...new Set(rows.map(getColVal))];
+    labelField = null;
+    colorField = null;
+  } else {
+    const nonColorGroupBy = groupBy.filter(f => f !== colorFieldName && !auxDims.has(f));
+    labelField = nonColorGroupBy[0] || (colorFieldName && groupBy.includes(colorFieldName) ? colorFieldName : groupBy.filter(f=>!auxDims.has(f))[0]) || groupBy[0] || null;
+    colorField = colorFieldName && groupBy.includes(colorFieldName) && colorFieldName !== labelField ? colorFieldName : null;
+    labels = labelField?[...new Set(rows.map(r=>String(r[labelField]??'')))]:[];
+  }
+  /* 데이터 레이블 포맷터: 레이블 선반 필드 값 표시 (차원→텍스트, 측정값→숫자) */
+  const mkDataLabel = (pos) => {
+    if (!dataLabelField) return undefined;
+    const inside = pos === 'inside';
+    return {show:true, position:pos||'top', fontSize:10,
+      color:inside?'#fff':(isDark?'#ccc':'#555'),
+      textBorderColor:inside?'rgba(0,0,0,0.35)':(isDark?'rgba(0,0,0,0.6)':'rgba(255,255,255,0.85)'),
+      textBorderWidth:2,
+      formatter:p=>{const r=p.data&&p.data.__row; if(!r)return ''; const v=r[dataLabelField];
+        return typeof v==='number'?tblFmtNum(v):String(v??'');}};
+  };
+  /* 세부정보 툴팁 포맷터: 기본 내용 + 세부정보 필드 값 추가 */
+  const mkDetailTooltip = (base) => {
+    if (!detailFields.length) return base;
+    return {trigger:'axis', formatter: params => {
+      const arr = Array.isArray(params)?params:[params];
+      let html = arr[0].axisValueLabel||arr[0].name||'';
+      arr.forEach(p=>{ html += `<br/>${p.marker||''}${p.seriesName}: <b>${tblFmtNum(typeof p.value==='object'?p.value?.value:p.value)}</b>`; });
+      const row = arr[0].data && arr[0].data.__row;
+      if (row) detailFields.forEach(df=>{ if(row[df]!==undefined) html += `<br/><span style="opacity:.65">${df}: ${row[df]}</span>`; });
+      return html;
+    }};
+  };
   let option={};
   if (type==='pie'||type==='donut') {
-    option={tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{orient:'vertical',right:10,top:'center',textStyle:{color:isDark?'#ccc':'#333'}},
-      series:[{type:'pie',radius:type==='donut'?['45%','70%']:'60%',data:rows.map(r=>({name:String(r[labelField]||''),value:r[meas]||0})),emphasis:{itemStyle:{shadowBlur:10}}}]};
+    /* 색상 선반이 있으면 그 필드를, 없으면 labelField를 파이 슬라이스 키로 사용 */
+    const pieKeyField = colorFieldName && groupBy.includes(colorFieldName) ? colorFieldName : labelField;
+    const pieTooltip = detailFields.length
+      ? {trigger:'item', formatter:p=>{let h=`${p.name}: ${tblFmtNum(p.value)} (${p.percent}%)`;const r=p.data&&p.data.__row;if(r)detailFields.forEach(df=>{if(r[df]!==undefined)h+=`<br/><span style="opacity:.65">${df}: ${r[df]}</span>`;});return h;}}
+      : {trigger:'item',formatter:'{b}: {c} ({d}%)'};
+    /* 레이블 선반: 슬라이스 이름 + 레이블 필드 값 표시 */
+    const pieLabel = dataLabelField
+      ? {show:true,formatter:p=>{const r=p.data&&p.data.__row;const v=r?r[dataLabelField]:null;
+          return `${p.name}\n${typeof v==='number'?tblFmtNum(v):String(v??'')}`;}}
+      : undefined;
+    option={tooltip:pieTooltip,legend:{orient:'vertical',right:10,top:'center',textStyle:{color:isDark?'#ccc':'#333'}},
+      series:[{type:'pie',radius:type==='donut'?['45%','70%']:'60%',
+        data:rows.map((r,i)=>({name:isCrossTab?getColVal(r):String(r[pieKeyField]||''),value:r[meas]||0,__row:r,itemStyle:{color:palette[i%palette.length]}})),
+        label:pieLabel,
+        emphasis:{itemStyle:{shadowBlur:10}}}]};
   } else if (type==='scatter'||type==='bubble') {
-    const xF=measures[0]||'',yF=measures[1]||measures[0]||'',sF=measures[2]||measures[0]||'';
+    const xF=measures[0]||'', yF=measures[1]||measures[0]||'';
+    /* 크기 선반 우선, 없으면 measures[2], 없으면 xF */
+    const sF = sizeFieldName||measures[2]||xF;
     const maxS=Math.max(...rows.map(r=>r[sF]||0),1);
-    option={tooltip:{trigger:'item',formatter:p=>`${p.data[3]}<br/>${xF}: ${tblFmtNum(p.data[0])}<br/>${yF}: ${tblFmtNum(p.data[1])}`},
-      xAxis:{type:'value',name:xF,axisLabel:{color:isDark?'#aaa':'#666'}},yAxis:{type:'value',name:yF,axisLabel:{color:isDark?'#aaa':'#666'}},
-      series:[{type:'scatter',data:rows.map(r=>[r[xF]||0,r[yF]||0,r[sF]||0,String(r[labelField]||'')]),
-        symbolSize:type==='bubble'?d=>Math.max(8,Math.sqrt(d[2]/maxS)*60):10,itemStyle:{color:p=>palette[p.dataIndex%palette.length]}}]};
+    const isBubble = type==='bubble'||!!sizeFieldName;
+    const mkSym = d=>Math.max(6,Math.sqrt(d[2]/maxS)*60);
+    /* 산점도 레이블: 포인트 우측에 레이블 필드 값 표시 */
+    const scatterLabel = mkDataLabel('right');
+    if (colorField) {
+      /* 색상 필드별 시리즈 분리 */
+      const colorGroups=[...new Set(rows.map(r=>String(r[colorField]||'')))];
+      option={tooltip:{trigger:'item',formatter:p=>`${p.seriesName}<br/>${xF}: ${tblFmtNum(p.value[0])}<br/>${yF}: ${tblFmtNum(p.value[1])}${sizeFieldName?`<br/>${sizeFieldName}: ${tblFmtNum(p.value[2])}`:''}` },
+        xAxis:{type:'value',name:xF,axisLabel:{color:isDark?'#aaa':'#666'}},
+        yAxis:{type:'value',name:yF,axisLabel:{color:isDark?'#aaa':'#666'}},
+        legend:{show:true,textStyle:{color:isDark?'#ccc':'#333'}},
+        series:colorGroups.map((grp,gi)=>({name:grp,type:'scatter',
+          data:rows.filter(r=>String(r[colorField]||'')===grp).map(r=>({value:[r[xF]||0,r[yF]||0,r[sF]||0],__row:r})),
+          symbolSize:isBubble?mkSym:8,itemStyle:{color:palette[gi%palette.length]},label:scatterLabel}))};
+    } else {
+      option={tooltip:{trigger:'item',formatter:p=>`${p.value[3]}<br/>${xF}: ${tblFmtNum(p.value[0])}<br/>${yF}: ${tblFmtNum(p.value[1])}${sizeFieldName?`<br/>${sizeFieldName}: ${tblFmtNum(p.value[2])}`:''}` },
+        xAxis:{type:'value',name:xF,axisLabel:{color:isDark?'#aaa':'#666'}},yAxis:{type:'value',name:yF,axisLabel:{color:isDark?'#aaa':'#666'}},
+        series:[{type:'scatter',data:rows.map(r=>({value:[r[xF]||0,r[yF]||0,r[sF]||0,isCrossTab?getRowVal(r):String(r[labelField]||'')],__row:r})),
+          symbolSize:isBubble?mkSym:8,itemStyle:{color:p=>palette[p.dataIndex%palette.length]},label:scatterLabel}]};
+    }
   } else if (type==='heatmap') {
-    const xF=groupBy[0]||'',yF=groupBy[1]||groupBy[0]||'';
-    const xs=[...new Set(rows.map(r=>String(r[xF]||'')))],ys=[...new Set(rows.map(r=>String(r[yF]||'')))];
-    const hData=rows.map(r=>[xs.indexOf(String(r[xF]||'')),ys.indexOf(String(r[yF]||'')),r[meas]||0]);
+    /* 히트맵: X=col 필드 또는 colorField, Y=row 필드 */
+    const xField = isCrossTab ? null : (colorFieldName&&groupBy.includes(colorFieldName)?colorFieldName:groupBy[1]||groupBy[0]||'');
+    const yField = isCrossTab ? null : (groupBy[0]||'');
+    const xVals = isCrossTab ? [...new Set(rows.map(getColVal))] : [...new Set(rows.map(r=>String(r[xField]||'')))];
+    const yVals = isCrossTab ? [...new Set(rows.map(getRowVal))] : [...new Set(rows.map(r=>String(r[yField]||'')))];
+    const hData = rows.map(r=>[
+      xVals.indexOf(isCrossTab?getColVal(r):String(r[xField]||'')),
+      yVals.indexOf(isCrossTab?getRowVal(r):String(r[yField]||'')),
+      r[meas]||0
+    ]);
     const maxV=Math.max(...hData.map(d=>d[2]),1);
-    option={tooltip:{position:'top',formatter:p=>`${xs[p.data[0]]} / ${ys[p.data[1]]}<br/>${meas}: ${tblFmtNum(p.data[2])}`},
-      xAxis:{type:'category',data:xs,axisLabel:{rotate:45,color:isDark?'#aaa':'#666'}},yAxis:{type:'category',data:ys,axisLabel:{color:isDark?'#aaa':'#666'}},
+    option={tooltip:{position:'top',formatter:p=>`${xVals[p.data[0]]} / ${yVals[p.data[1]]}<br/>${meas}: ${tblFmtNum(p.data[2])}`},
+      xAxis:{type:'category',data:xVals,axisLabel:{rotate:45,color:isDark?'#aaa':'#666'}},yAxis:{type:'category',data:yVals,axisLabel:{color:isDark?'#aaa':'#666'}},
       visualMap:{min:0,max:maxV,calculable:true,orient:'horizontal',bottom:5,left:'center',inRange:{color:['#f0f0f0','#5b9ef9','#1a3a6e']}},
       series:[{type:'heatmap',data:hData,label:{show:true,formatter:p=>tblFmtNum(p.data[2])},emphasis:{itemStyle:{shadowBlur:10}}}]};
   } else if (type==='treemap') {
+    /* 트리맵: colorField가 있으면 상위 그룹 → 하위 항목 구조 */
+    let tmData;
+    if (!isCrossTab && colorField && labelField) {
+      const colorGroups=[...new Set(rows.map(r=>String(r[colorField]||'')))];
+      tmData=colorGroups.map((grp,gi)=>({
+        name:grp,
+        value:rows.filter(r=>String(r[colorField]||'')===grp).reduce((s,r)=>s+(r[meas]||0),0),
+        itemStyle:{color:palette[gi%palette.length]},
+        children:rows.filter(r=>String(r[colorField]||'')===grp).map(r=>({name:String(r[labelField]||''),value:r[meas]||0}))
+      }));
+    } else {
+      tmData=rows.map(r=>({name:isCrossTab?getColVal(r):String(r[labelField]||''),value:r[meas]||0}));
+    }
     option={tooltip:{formatter:p=>`${p.name}: ${tblFmtNum(p.value)}`},
-      series:[{type:'treemap',data:rows.map(r=>({name:String(r[labelField]||''),value:r[meas]||0})),label:{show:true,formatter:'{b}\n{c}'},levels:[{itemStyle:{borderWidth:2}}]}]};
+      series:[{type:'treemap',data:tmData,label:{show:true,formatter:p=>`${p.name}\n${tblFmtNum(p.value)}`},levels:[{itemStyle:{borderWidth:2}}]}]};
   } else if (type==='waterfall') {
+    /* 폭포수: colorField가 있으면 색상으로 구분 */
+    const wfLabels = isCrossTab ? rows.map(getColVal) : rows.map(r=>String(r[labelField]||''));
     const wfVals=rows.map(r=>r[meas]||0);
     const helperArr=wfVals.map((_,i)=>i===0?0:wfVals.slice(0,i).reduce((s,v)=>s+v,0));
+    const colorByGroup = colorField ? rows.map(r=>{ const g=String(r[colorField]||''); const groups=[...new Set(rows.map(r2=>String(r2[colorField]||'')))]; return palette[groups.indexOf(g)%palette.length]; }) : null;
     option={tooltip:{trigger:'axis'},
-      xAxis:{type:'category',data:rows.map(r=>String(r[labelField]||'')),axisLabel:{color:isDark?'#aaa':'#666'}},
+      xAxis:{type:'category',data:wfLabels,axisLabel:{color:isDark?'#aaa':'#666'}},
       yAxis:{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}},
       series:[{type:'bar',stack:'wf',data:helperArr.map(v=>({value:v,itemStyle:{opacity:0}})),tooltip:{show:false}},
-        {type:'bar',stack:'wf',data:wfVals,itemStyle:{color:p=>wfVals[p.dataIndex]>=0?'#4ecb71':'#f9784b'},label:{show:true,position:'top',formatter:p=>tblFmtNum(p.value)}}]};
+        {type:'bar',stack:'wf',data:wfVals,
+          itemStyle:{color:p=>colorByGroup?colorByGroup[p.dataIndex]:(wfVals[p.dataIndex]>=0?'#4ecb71':'#f9784b')},
+          label:{show:true,position:'top',formatter:p=>tblFmtNum(p.value)}}]};
   } else {
     const isLine=type==='line'||type==='area'||type==='stacked_area';
     const isStacked=type==='stacked_bar'||type==='stacked_area';
     const isArea=type==='area'||type==='stacked_area';
     const isCombo=type==='combo';
-    const colorGroups=colorField?[...new Set(rows.map(r=>String(r[colorField]||'')))]:null;
     let series=[];
-    if (colorGroups) {
+    if (isCrossTab) {
+      const rowGroups=[...new Set(rows.map(getRowVal))];
+      rowGroups.forEach((grp,gi)=>{
+        const gRows=rows.filter(r=>getRowVal(r)===grp);
+        const data=labels.map(colVal=>{const r=gRows.find(r=>getColVal(r)===colVal);return {value:r?(r[meas]||0):0, __row:r||null};});
+        const t=isCombo&&gi>0?'line':(isLine?'line':'bar');
+        series.push({name:grp,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,itemStyle:{color:palette[gi%palette.length]},label:mkDataLabel(isStacked?'inside':'top')});
+      });
+    } else if (colorField) {
+      /* 색상 필드별 시리즈 분리 */
+      const colorGroups=[...new Set(rows.map(r=>String(r[colorField]||'')))];
       series=colorGroups.map((grp,gi)=>{
         const gRows=rows.filter(r=>String(r[colorField]||'')===grp);
-        const data=labels.map(lb=>{const r=gRows.find(r=>String(r[labelField]||'')===lb);return r?(r[meas]||0):0;});
+        const data=labels.map(lb=>{const r=gRows.find(r=>String(r[labelField]||'')===lb);return {value:r?(r[meas]||0):0, __row:r||null};});
         const t=isCombo&&gi>0?'line':(isLine?'line':'bar');
-        return{name:grp,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,itemStyle:{color:palette[gi%palette.length]}};
+        return{name:grp,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,itemStyle:{color:palette[gi%palette.length]},label:mkDataLabel(isStacked?'inside':'top')};
       });
     } else {
+      /* 측정값별 시리즈 (colorFieldName === labelField 이면 항목별 색상 개별 지정) */
+      colorByItem = !!(colorFieldName && !colorField);
       measures.forEach((m,mi)=>{
         const t=isCombo&&mi>0?'line':(isLine?'line':'bar');
-        series.push({name:m,type:t,data:rows.map(r=>r[m]||0),stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,yAxisIndex:isCombo&&mi>0?1:0,itemStyle:{color:palette[mi%palette.length]}});
+        const data = colorByItem
+          ? rows.map((r,i)=>({value:r[m]||0, __row:r, itemStyle:{color:palette[i%palette.length]}}))
+          : rows.map(r=>({value:r[m]||0, __row:r}));
+        const s = {name:m,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,yAxisIndex:isCombo&&mi>0?1:0,label:mkDataLabel(isStacked?'inside':'top')};
+        if (!colorByItem) s.itemStyle = {color:palette[mi%palette.length]};
+        series.push(s);
       });
     }
     const yAxes=isCombo&&measures.length>1
       ?[{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}},{type:'value',alignTicks:true,axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}}]
       :[{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}}];
-    option={tooltip:{trigger:'axis'},legend:{show:series.length>1,textStyle:{color:isDark?'#ccc':'#333'}},
+    option={tooltip:mkDetailTooltip({trigger:'axis'}),legend:{show:series.length>1,textStyle:{color:isDark?'#ccc':'#333'}},
       grid:{left:'3%',right:'4%',bottom:'3%',containLabel:true},
       xAxis:{type:'category',data:labels,axisLabel:{color:isDark?'#aaa':'#666',rotate:labels.length>12?30:0}},
       yAxis:yAxes,series};
   }
+  /* ── 평균 기준선 (showRefLine) ── */
+  if (cfg.showRefLine && option.series && option.series.length) {
+    option.series.forEach(s => {
+      if (s.type === 'bar' || s.type === 'line') {
+        s.markLine = s.markLine || {};
+        s.markLine.silent = true;
+        s.markLine.label = {formatter: p => '평균 ' + tblFmtNum(p.value)};
+        s.markLine.lineStyle = {type:'dashed', color:'#f7c948', width:1.5};
+        s.markLine.data = (s.markLine.data||[]).concat([{type:'average'}]);
+      }
+    });
+  }
+
+  /* ── 테이블 계산 yAxis 포맷 ── */
+  if (cfg.tableCalcs && option.yAxis) {
+    const hasPct = Object.values(cfg.tableCalcs||{}).some(v=>v==='pct_total');
+    if (hasPct) {
+      const axes = Array.isArray(option.yAxis) ? option.yAxis : [option.yAxis];
+      axes.forEach(a => { a.axisLabel = {...(a.axisLabel||{}), formatter: v => v.toFixed(1)+'%'}; });
+    }
+  }
+
   if (isDark) option.backgroundColor='transparent';
   inst.setOption(option);
-  window.addEventListener('resize',()=>{if(inst&&!inst.isDisposed())inst.resize();});
+
+  /* 범례 클릭은 ECharts 기본 클라이언트 토글 사용 (SQL 필터 미연동 — 가역성 보장) */
+
+  /* resize 리스너 단일 등록 (렌더마다 누적 방지) */
+  if (!state.tableau._resizeBound) {
+    state.tableau._resizeBound = true;
+    window.addEventListener('resize', () => {
+      const i = state.tableau.echartsInst;
+      if (i && !i.isDisposed()) i.resize();
+    });
+  }
 }
 
 function tblRenderPivot(viz, result, cfg){
-  viz.innerHTML='<div class="tbl-pivot-wrap"><table class="tbl-pivot-table" id="tblPivotTbl"></table></div>';
-  const tbl=$('#tblPivotTbl');
-  if (!tbl||!result.rows.length){viz.innerHTML='<div class="tbl-viz-empty"><p>데이터 없음</p></div>';return;}
-  const measures=result.measures||[],groupBy=result.group_by||[],allCols=[...groupBy,...measures];
-  const thead=tbl.createTHead(),hrow=thead.insertRow();
-  allCols.forEach(col=>{const th=document.createElement('th');th.textContent=col;hrow.appendChild(th);});
-  const tbody=tbl.createTBody();
-  result.rows.forEach(row=>{
-    const tr=tbody.insertRow();
-    allCols.forEach(col=>{const td=tr.insertCell();const val=row[col];if(measures.includes(col)&&typeof val==='number'){td.className='num';td.textContent=val.toLocaleString('ko-KR');}else{td.textContent=val??'';}});
-  });
-  if (measures.length){
-    const trow=tbody.insertRow();trow.className='total-row';
-    allCols.forEach((col,i)=>{const td=trow.insertCell();if(measures.includes(col)){td.className='num';td.textContent=result.rows.reduce((s,r)=>s+(typeof r[col]==='number'?r[col]:0),0).toLocaleString('ko-KR');}else{td.textContent=i===0?'합계':'';}});
+  const measures=result.measures||[], groupBy=result.group_by||[];
+  const rowFields=result.row_fields||[], colFields=result.col_fields||[];
+  const isCrossTab = rowFields.length>0 && colFields.length>0;
+  if (!result.rows.length){viz.innerHTML='<div class="tbl-viz-empty"><p>데이터 없음</p></div>';return;}
+  const fieldSorts = Array.isArray(cfg.fieldSorts)?cfg.fieldSorts:[];
+  const fieldSortsEmpty = fieldSorts.length===0;
+  const cs = state.tableau.pivotClientSort;
+
+  /* ─── 정렬 인디케이터 헬퍼 ─── */
+  const sortInd = (isActive, dir, priority, total) => {
+    if (!isActive) return `<span class="tbl-sort-ind">⇅</span>`;
+    const num = total>1&&priority>=0 ? `<sup style="font-size:7px">${priority+1}</sup>` : '';
+    return `<span class="tbl-sort-ind active">${num}${dir==='asc'?'↑':'↓'}</span>`;
+  };
+
+  if (isCrossTab) {
+    /* ─── 크로스탭 매트릭스 ─── */
+    const getRowKey = r => rowFields.map(f=>String(r[f]??'')).join(' · ');
+    const getColKey = r => colFields.map(f=>String(r[f]??'')).join(' · ');
+    const rawRowKeys = [...new Set(result.rows.map(getRowKey))];
+    const colKeys    = [...new Set(result.rows.map(getColKey))];
+    const meas = measures[0]||'';
+    const dataMap = {};
+    result.rows.forEach(r => {
+      const rk=getRowKey(r), ck=getColKey(r);
+      if (!dataMap[rk]) dataMap[rk]={};
+      if (!dataMap[rk][ck]) dataMap[rk][ck]={};
+      measures.forEach(m => { dataMap[rk][ck][m]=(dataMap[rk][ck][m]||0)+(r[m]||0); });
+    });
+    /* 클라이언트 정렬 적용 */
+    const getTotal = rk => measures.reduce((s,m)=>s+colKeys.reduce((ss,ck)=>ss+((dataMap[rk]?.[ck]?.[m])||0),0),0);
+    const getColSum= (rk,ck)=>measures.reduce((s,m)=>s+((dataMap[rk]?.[ck]?.[m])||0),0);
+    let rowKeys = [...rawRowKeys];
+    if (cs) {
+      if (cs.type==='rowLabel')  rowKeys.sort((a,b)=>cs.dir==='asc'?a.localeCompare(b):b.localeCompare(a));
+      else if (cs.type==='total') rowKeys.sort((a,b)=>cs.dir==='asc'?getTotal(a)-getTotal(b):getTotal(b)-getTotal(a));
+      else if (cs.type==='col')   rowKeys.sort((a,b)=>cs.dir==='asc'?getColSum(a,cs.colKey)-getColSum(b,cs.colKey):getColSum(b,cs.colKey)-getColSum(a,cs.colKey));
+    }
+    const rowLabel = rowFields.join(' · ');
+    viz.innerHTML='<div class="tbl-pivot-wrap"><table class="tbl-pivot-table" id="tblCrossTab"></table><div class="tbl-crosstab-info" id="tblCrossInfo"></div></div>';
+    const tbl = $('#tblCrossTab');
+    const info = $('#tblCrossInfo');
+    if (info) info.textContent = `${rowKeys.length}행 × ${colKeys.length}열`;
+    /* 헤더 생성 */
+    const thead = tbl.createTHead();
+    const hrow1 = thead.insertRow();
+    /* 행 레이블 헤더 */
+    const thRow = document.createElement('th');
+    thRow.classList.add('sortable');
+    const rowLabelDir = cs?.type==='rowLabel'?cs.dir:null;
+    thRow.innerHTML = rowLabel + sortInd(!!rowLabelDir, rowLabelDir, -1, 1);
+    thRow.title = '행 기준 정렬';
+    thRow.onclick = () => {
+      const cur = state.tableau.pivotClientSort;
+      if (cur?.type==='rowLabel') state.tableau.pivotClientSort = cur.dir==='asc'?{type:'rowLabel',dir:'desc'}:null;
+      else state.tableau.pivotClientSort={type:'rowLabel',dir:'asc'};
+      tblRenderViz();
+    };
+    hrow1.appendChild(thRow);
+    if (measures.length>1) {
+      thRow.setAttribute('rowspan','2');
+      colKeys.forEach(ck=>{ const th=document.createElement('th');th.colSpan=measures.length;th.style.textAlign='center';th.classList.add('sortable');
+        const colDir=cs?.type==='col'&&cs.colKey===ck?cs.dir:null;
+        th.innerHTML=ck+sortInd(!!colDir,colDir,-1,1);th.title=`${ck} 기준 정렬`;
+        th.onclick=()=>{const cur=state.tableau.pivotClientSort;if(cur?.type==='col'&&cur.colKey===ck)state.tableau.pivotClientSort=cur.dir==='asc'?{type:'col',colKey:ck,dir:'desc'}:null;else state.tableau.pivotClientSort={type:'col',colKey:ck,dir:'desc'};tblRenderViz();};
+        hrow1.appendChild(th); });
+      const thTotal=document.createElement('th');thTotal.colSpan=measures.length;thTotal.className='col-total sortable';
+      const totDir=cs?.type==='total'?cs.dir:null;
+      thTotal.innerHTML='합계'+sortInd(!!totDir,totDir,-1,1);thTotal.title='합계 기준 정렬';
+      thTotal.onclick=()=>{const cur=state.tableau.pivotClientSort;if(cur?.type==='total')state.tableau.pivotClientSort=cur.dir==='desc'?{type:'total',dir:'asc'}:null;else state.tableau.pivotClientSort={type:'total',dir:'desc'};tblRenderViz();};
+      hrow1.appendChild(thTotal);
+      const hrow2=thead.insertRow();
+      colKeys.forEach(()=>measures.forEach(m=>{const th=document.createElement('th');th.textContent=m;hrow2.appendChild(th);}));
+      measures.forEach(m=>{const th=document.createElement('th');th.className='col-total';th.textContent=m;hrow2.appendChild(th);});
+    } else {
+      colKeys.forEach(ck=>{ const th=document.createElement('th');th.classList.add('sortable');
+        const colDir=cs?.type==='col'&&cs.colKey===ck?cs.dir:null;
+        th.innerHTML=ck+sortInd(!!colDir,colDir,-1,1);th.title=`${ck} 기준 정렬`;
+        th.onclick=()=>{const cur=state.tableau.pivotClientSort;if(cur?.type==='col'&&cur.colKey===ck)state.tableau.pivotClientSort=cur.dir==='asc'?{type:'col',colKey:ck,dir:'desc'}:null;else state.tableau.pivotClientSort={type:'col',colKey:ck,dir:'desc'};tblRenderViz();};
+        hrow1.appendChild(th); });
+      const thTotal=document.createElement('th');thTotal.className='col-total sortable';
+      const totDir=cs?.type==='total'?cs.dir:null;
+      thTotal.innerHTML='합계'+sortInd(!!totDir,totDir,-1,1);thTotal.title='합계 기준 정렬';
+      thTotal.onclick=()=>{const cur=state.tableau.pivotClientSort;if(cur?.type==='total')state.tableau.pivotClientSort=cur.dir==='desc'?{type:'total',dir:'asc'}:null;else state.tableau.pivotClientSort={type:'total',dir:'desc'};tblRenderViz();};
+      hrow1.appendChild(thTotal);
+    }
+    /* 데이터 행 */
+    const tbody=tbl.createTBody();
+    const colTotals={},grandTotal={};
+    measures.forEach(m=>{colTotals[m]={};grandTotal[m]=0;colKeys.forEach(ck=>{colTotals[m][ck]=0;});});
+    rowKeys.forEach(rk=>{
+      const tr=tbody.insertRow();
+      const tdLabel=tr.insertCell();tdLabel.textContent=rk;
+      const rowGrand={};measures.forEach(m=>{rowGrand[m]=0;});
+      colKeys.forEach(ck=>{
+        measures.forEach(m=>{
+          const v=(dataMap[rk]?.[ck]?.[m])||0;
+          const td=tr.insertCell();td.className='num'+(v<0?' neg':'');td.textContent=v.toLocaleString('ko-KR');
+          rowGrand[m]+=v;colTotals[m][ck]+=v;grandTotal[m]+=v;
+        });
+      });
+      measures.forEach(m=>{const td=tr.insertCell();td.className='num col-total'+(rowGrand[m]<0?' neg':'');td.textContent=rowGrand[m].toLocaleString('ko-KR');});
+    });
+    const totRow=tbody.insertRow();totRow.className='total-row';
+    const tdTotLabel=totRow.insertCell();tdTotLabel.textContent='합계';
+    colKeys.forEach(ck=>measures.forEach(m=>{const td=totRow.insertCell();td.className='num'+(colTotals[m][ck]<0?' neg':'');td.textContent=colTotals[m][ck].toLocaleString('ko-KR');}));
+    measures.forEach(m=>{const td=totRow.insertCell();td.className='num col-total'+(grandTotal[m]<0?' neg':'');td.textContent=grandTotal[m].toLocaleString('ko-KR');});
+
+  } else {
+    /* ─── 일반 플랫 테이블 ─── */
+    viz.innerHTML='<div class="tbl-pivot-wrap"><table class="tbl-pivot-table" id="tblPivotTbl"></table></div>';
+    const tbl=$('#tblPivotTbl');
+    const allCols=[...groupBy,...measures];
+    const thead=tbl.createTHead(),hrow=thead.insertRow();
+    allCols.forEach(col=>{
+      const th=document.createElement('th');
+      th.classList.add('sortable');
+      const isDimCol=groupBy.includes(col), isMeasCol=measures.includes(col);
+      let ind='';
+      if (isDimCol){
+        const entry=fieldSorts.find(s=>s.field===col);
+        const pri=fieldSorts.findIndex(s=>s.field===col);
+        ind=sortInd(!!entry,entry?.dir,pri,fieldSorts.length);
+      } else if (isMeasCol){
+        const sortM=cfg.sortMeasure||measures[0];
+        const active=fieldSortsEmpty&&sortM===col;
+        ind=sortInd(active,cfg.sort||'desc',-1,1);
+      }
+      th.innerHTML=col+ind;
+      th.onclick=()=>{
+        if (isDimCol){
+          if(!Array.isArray(cfg.fieldSorts))cfg.fieldSorts=[];
+          const idx=cfg.fieldSorts.findIndex(s=>s.field===col);
+          if(idx===-1)cfg.fieldSorts.push({field:col,dir:'asc'});
+          else if(cfg.fieldSorts[idx].dir==='asc')cfg.fieldSorts[idx].dir='desc';
+          else cfg.fieldSorts.splice(idx,1);
+        } else if (isMeasCol){
+          cfg.fieldSorts=[];
+          const curM=cfg.sortMeasure||measures[0];
+          if(curM===col){cfg.sort=cfg.sort==='asc'?'desc':'asc';const sel=$('#tblSortSel');if(sel)sel.value=cfg.sort;}
+          else{cfg.sortMeasure=col;cfg.sort='desc';}
+        }
+        tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+        tblUpdateSortControls();
+      };
+      hrow.appendChild(th);
+    });
+    const tbody=tbl.createTBody();
+    result.rows.forEach(row=>{
+      const tr=tbody.insertRow();
+      allCols.forEach(col=>{const td=tr.insertCell();const val=row[col];if(measures.includes(col)&&typeof val==='number'){td.className='num'+(val<0?' neg':'');td.textContent=val.toLocaleString('ko-KR');}else{td.textContent=val??'';}});
+    });
+    if (measures.length){
+      const trow=tbody.insertRow();trow.className='total-row';
+      const tcalcs=state.tableau.config.tableCalcs||{};
+      allCols.forEach((col,i)=>{const td=trow.insertCell();if(measures.includes(col)){
+        /* 누적합계는 부분합을 재합산하면 무의미 — 원본값으로 합계 */
+        const useOrig=tcalcs[col]==='running_sum';
+        const tot=result.rows.reduce((s,r)=>{const v=useOrig?(r[col+'__orig']??r[col]):r[col];return s+(typeof v==='number'?v:0);},0);
+        td.className='num'+(tot<0?' neg':'');td.textContent=tot.toLocaleString('ko-KR');}else{td.textContent=i===0?'합계':'';}});
+    }
   }
 }
 
@@ -4780,8 +5547,19 @@ function tblApplyViewConfig(cfg){
   c.rows=prune(c.rows);c.columns=prune(c.columns);c.measures=prune(c.measures);
   if(c.color&&allowed.size&&!allowed.has(c.color))c.color=null;
   if(c.size&&allowed.size&&!allowed.has(c.size))c.size=null;
+  if(c.label&&allowed.size&&!allowed.has(c.label))c.label=null;
+  c.detail=prune(c.detail);
   if(c.measureAggs){Object.keys(c.measureAggs).forEach(f=>{if(allowed.size&&!allowed.has(f))delete c.measureAggs[f];});}
   else{c.measureAggs={};}
+  if(c.fieldSorts&&!Array.isArray(c.fieldSorts)){
+    c.fieldSorts=Object.entries(c.fieldSorts).map(([field,dir])=>({field,dir})).filter(s=>s.dir==='asc'||s.dir==='desc');
+  }
+  c.fieldSorts=(c.fieldSorts||[]).filter(s=>!allowed.size||allowed.has(s.field));
+  /* 신규 키 기본값 보정 (구버전 저장 뷰 호환) */
+  if(!c.dateGranularity)c.dateGranularity={};
+  if(!c.tableCalcs)c.tableCalcs={};
+  if(c.showRefLine===undefined)c.showRefLine=false;
+  if(c.topN===undefined)c.topN=null;
   state.tableau.config=c;
 }
 
@@ -4819,16 +5597,26 @@ function tblRenderSheetTabs(){
   const addBtn=$('#tblAddSheet');
   if(addBtn)addBtn.onclick=async()=>{
     const name=`시트 ${state.tableau.views.length+1}`;
-    const emptyConfig={chartType:'bar',mode:'chart',rows:[],columns:[],measures:[],color:null,size:null,filters:{},measureAggs:{},sort:'desc',limit:500};
+    const emptyConfig=tblEmptyConfig();
     const newView=await fetch('/api/views',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,config:emptyConfig})}).then(r=>r.json());
+    clearTimeout(state.tableau.saveTimer);
     state.tableau.views.push(newView);state.tableau.currentId=newView.id;state.tableau.config=JSON.parse(JSON.stringify(emptyConfig));
-    tblRenderSheetTabs();tblRenderShelfChips();tblRenderViz();
+    /* 새 시트 — undo 히스토리 격리 */
+    state.tableau.history=[JSON.stringify(state.tableau.config)];
+    state.tableau.historyIndex=0;
+    tblRenderSheetTabs();tblRenderShelfChips();tblSyncToolbar();tblRenderViz();
   };
 }
 
 function tblSwitchView(id){
   const v=state.tableau.views.find(v=>v.id===id);if(!v)return;
-  state.tableau.currentId=id;tblApplyViewConfig(v.config);tblRenderSheetTabs();tblRenderShelfChips();tblExecuteQuery();
+  /* 대기 중 자동저장 취소 — 이전 시트 config가 새 시트에 저장되는 것 방지 */
+  clearTimeout(state.tableau.saveTimer);
+  state.tableau.currentId=id;tblApplyViewConfig(v.config);
+  /* 시트별 undo 히스토리 격리 — 다른 시트 config로 되돌리는 교차 오염 방지 */
+  state.tableau.history=[JSON.stringify(state.tableau.config)];
+  state.tableau.historyIndex=0;
+  tblRenderSheetTabs();tblRenderShelfChips();tblSyncToolbar();tblExecuteQuery();
 }
 
 function tblMarkUnsaved(){const btn=$('#tblSaveBtn');if(btn){btn.textContent='저장';btn.classList.remove('saved');}}
@@ -4848,14 +5636,34 @@ function tblShowAggSelector(event, fieldName){
   if(!drop){drop=document.createElement('div');drop.id='tblAggDrop';drop.className='tbl-agg-drop';document.body.appendChild(drop);}
   const aggs=['SUM','AVG','MIN','MAX','COUNT','COUNTD'];
   const labels={COUNTD:'COUNTD (고유값수)'};
-  const current=(state.tableau.config.measureAggs||{})[fieldName]||'SUM';
-  drop.innerHTML=aggs.map(a=>`<div class="tbl-agg-opt${a===current?' active':''}" data-agg="${a}">${labels[a]||a}</div>`).join('');
-  drop.querySelectorAll('.tbl-agg-opt').forEach(opt=>{
+  const tableCalcOpts = [
+    {key:'none',   label:'기본 집계'},
+    {key:'pct_total',  label:'전체 대비 %'},
+    {key:'running_sum',label:'누적 합계'},
+    {key:'diff_prev',  label:'전기 대비 차이'},
+  ];
+  const currentAgg=(state.tableau.config.measureAggs||{})[fieldName]||'SUM';
+  const currentCalc=(state.tableau.config.tableCalcs||{})[fieldName]||'none';
+  drop.innerHTML=
+    `<div class="tbl-agg-section-label">집계 방식</div>`+
+    aggs.map(a=>`<div class="tbl-agg-opt${a===currentAgg?' active':''}" data-agg="${a}">${labels[a]||a}</div>`).join('')+
+    `<div class="tbl-agg-section-label" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">테이블 계산</div>`+
+    tableCalcOpts.map(o=>`<div class="tbl-agg-opt${o.key===currentCalc?' active':''}" data-calc="${o.key}">${o.label}</div>`).join('');
+  drop.querySelectorAll('[data-agg]').forEach(opt=>{
     opt.onclick=()=>{
       if(!state.tableau.config.measureAggs)state.tableau.config.measureAggs={};
       state.tableau.config.measureAggs[fieldName]=opt.dataset.agg;
       drop.style.display='none';
       tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+    };
+  });
+  drop.querySelectorAll('[data-calc]').forEach(opt=>{
+    opt.onclick=()=>{
+      if(!state.tableau.config.tableCalcs)state.tableau.config.tableCalcs={};
+      if(opt.dataset.calc==='none') delete state.tableau.config.tableCalcs[fieldName];
+      else state.tableau.config.tableCalcs[fieldName]=opt.dataset.calc;
+      drop.style.display='none';
+      tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblRenderViz();
     };
   });
   const r=event.target.getBoundingClientRect();
@@ -4866,15 +5674,101 @@ function tblShowAggSelector(event, fieldName){
   },0);
 }
 
+/* 테이블 계산 적용 (클라이언트 사이드) */
+function tblApplyTableCalcs(rows, measures, tableCalcs){
+  if(!tableCalcs||!Object.keys(tableCalcs).length) return rows;
+  const result = rows.map(r=>({...r}));
+  measures.forEach(m=>{
+    const calc = tableCalcs[m];
+    if(!calc||calc==='none') return;
+    if(calc==='pct_total'){
+      const total = result.reduce((s,r)=>s+(r[m]||0),0);
+      /* 합계 0이면 % 미정의 — 0%로 표기 (원시값을 %로 오인하는 것 방지) */
+      result.forEach(r=>{ r[m+'__orig']=r[m]; r[m]=total?((r[m]||0)/total*100):0; });
+    } else if(calc==='running_sum'){
+      let acc=0;
+      result.forEach(r=>{ r[m+'__orig']=r[m]; acc+=(r[m]||0); r[m]=acc; });
+    } else if(calc==='diff_prev'){
+      for(let i=result.length-1;i>=0;i--){
+        result[i][m+'__orig']=result[i][m];
+        result[i][m]= i>0 ? (result[i][m]||0)-(result[i-1][m]||0) : 0;
+      }
+    }
+  });
+  return result;
+}
+
 async function tblShowFilterPicker(event, fieldName){
   let overlay=$('#tblFilterOverlay');
   if(!overlay){
     overlay=document.createElement('div');overlay.id='tblFilterOverlay';overlay.className='tbl-filter-overlay';
-    overlay.innerHTML=`<div class="tbl-filter-popup"><div class="tbl-filter-popup-hd"><span id="tblFiltFieldName" style="color:var(--accent)"></span><button class="tbl-filter-close-btn" id="tblFiltClose">×</button></div><div class="tbl-filter-search-wrap"><input type="text" id="tblFiltSearch" placeholder="값 검색…"></div><div class="tbl-filter-values-list" id="tblFiltValList"></div><div class="tbl-filter-popup-ft"><button id="tblFiltSelAll">전체</button><button id="tblFiltSelNone">해제</button><button class="tbl-filter-apply" id="tblFiltApply">적용</button></div></div>`;
+    overlay.innerHTML=`<div class="tbl-filter-popup">
+      <div class="tbl-filter-popup-hd">
+        <span id="tblFiltFieldName" style="color:var(--accent)"></span>
+        <button class="tbl-filter-close-btn" id="tblFiltClose">×</button>
+      </div>
+      <div class="tbl-filter-tabs">
+        <button class="tbl-ftab active" data-tab="values">값 선택</button>
+        <button class="tbl-ftab" data-tab="topn">Top N</button>
+        <button class="tbl-ftab" data-tab="wildcard">와일드카드</button>
+      </div>
+      <div id="tblFiltTabValues">
+        <div class="tbl-filter-search-wrap"><input type="text" id="tblFiltSearch" placeholder="값 검색…"></div>
+        <div class="tbl-filter-values-list" id="tblFiltValList"></div>
+        <div class="tbl-filter-popup-ft"><button id="tblFiltSelAll">전체</button><button id="tblFiltSelNone">해제</button><button class="tbl-filter-apply" id="tblFiltApply">적용</button></div>
+      </div>
+      <div id="tblFiltTabTopn" style="display:none;padding:14px">
+        <div style="margin-bottom:10px;font-size:12px;color:var(--text-secondary)">상위/하위 N개 행만 표시합니다 (측정값 기준)</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <select id="tblTopnDir" class="tbl-select" style="width:80px">
+            <option value="desc">상위</option><option value="asc">하위</option>
+          </select>
+          <input type="number" id="tblTopnN" class="tbl-select" min="1" max="1000" value="10" style="width:70px">
+          <span style="font-size:12px;color:var(--text-secondary)">개</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <span style="font-size:12px;color:var(--text-secondary);min-width:40px">기준:</span>
+          <select id="tblTopnMeasure" class="tbl-select" style="flex:1"></select>
+        </div>
+        <button class="tbl-filter-apply" id="tblTopnApply">적용</button>
+        <button id="tblTopnClear" style="margin-left:8px;font-size:12px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px 8px">초기화</button>
+      </div>
+      <div id="tblFiltTabWildcard" style="display:none;padding:14px">
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary)">포함할 값의 패턴을 입력하세요 (쉼표로 여러 개)</div>
+        <input type="text" id="tblWildcardInput" class="tbl-select" placeholder="예: korea, 미국, B2B*" style="width:100%;box-sizing:border-box;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:12px"><input type="checkbox" id="tblWildcardExclude"> 해당 값 <b>제외</b></label>
+        <button class="tbl-filter-apply" id="tblWildcardApply">적용</button>
+      </div>
+    </div>`;
     document.body.appendChild(overlay);
   }
   overlay.style.display='block';
+  const topnCfg = state.tableau.config.topN || {};
+  // populate topN measure selector
+  const topnMeasSel = document.getElementById('tblTopnMeasure');
+  if(topnMeasSel){
+    const ms = state.tableau.config.measures||[];
+    topnMeasSel.innerHTML = ms.map(m=>`<option value="${m}"${topnCfg.measure===m?' selected':''}>${m}</option>`).join('') || '<option>측정값 없음</option>';
+  }
+  if(document.getElementById('tblTopnN')) document.getElementById('tblTopnN').value = topnCfg.n||10;
+  if(document.getElementById('tblTopnDir')) document.getElementById('tblTopnDir').value = topnCfg.dir||'desc';
+
+  // 열 때마다 '값 선택' 탭으로 리셋
+  overlay.querySelectorAll('.tbl-ftab').forEach(x=>x.classList.toggle('active', x.dataset.tab==='values'));
+  ['Topn','Wildcard'].forEach(n=>{const el=document.getElementById('tblFiltTab'+n); if(el)el.style.display='none';});
+  {const v=document.getElementById('tblFiltTabValues'); if(v)v.style.display='';}
+  // tab switching
   document.getElementById('tblFiltFieldName').textContent=fieldName+' 필터';
+  overlay.querySelectorAll('.tbl-ftab').forEach(t=>{
+    t.onclick=()=>{
+      overlay.querySelectorAll('.tbl-ftab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      ['Values','Topn','Wildcard'].forEach(n=>{const el=document.getElementById('tblFiltTab'+n); if(el)el.style.display='none';});
+      const tab = document.getElementById('tblFiltTab'+t.dataset.tab[0].toUpperCase()+t.dataset.tab.slice(1));
+      if(tab) tab.style.display='';
+    };
+  });
+
   document.getElementById('tblFiltSearch').value='';
   document.getElementById('tblFiltValList').innerHTML='<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px">값 불러오는 중…</div>';
   let allValues=[];
@@ -4899,6 +5793,35 @@ async function tblShowFilterPicker(event, fieldName){
     overlay.style.display='none';
     tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
   };
+  // Top-N apply
+  document.getElementById('tblTopnApply').onclick=()=>{
+    const n=parseInt(document.getElementById('tblTopnN').value)||10;
+    const dir=document.getElementById('tblTopnDir').value;
+    const measure=document.getElementById('tblTopnMeasure').value;
+    if(!measure){alert('측정값을 먼저 추가하세요');return;}
+    state.tableau.config.topN={n,dir,measure};
+    overlay.style.display='none';
+    tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+  };
+  document.getElementById('tblTopnClear').onclick=()=>{
+    state.tableau.config.topN=null;
+    overlay.style.display='none';
+    tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+  };
+  // Wildcard apply
+  document.getElementById('tblWildcardApply').onclick=()=>{
+    const raw=document.getElementById('tblWildcardInput').value;
+    const exclude=document.getElementById('tblWildcardExclude').checked;
+    if(!raw.trim()){alert('패턴을 입력하세요');return;}
+    // Store as wildcard meta; client-side filtering of current result
+    // For simplicity store as __wildcard__ special key
+    if(!state.tableau.config.filters)state.tableau.config.filters={};
+    // Use special prefix __wc__ to mark wildcard filters
+    const key='__wc__'+fieldName;
+    state.tableau.config.filters[key]={patterns:raw.split(',').map(s=>s.trim()).filter(Boolean), exclude, field:fieldName};
+    overlay.style.display='none';
+    tblRenderShelfChips();tblMarkUnsaved();tblAutoSave();tblExecuteQuery();
+  };
   try{
     const r=await fetch(`/api/tableau/filter-values?field=${encodeURIComponent(fieldName)}`).then(r=>r.json());
     allValues=r.values||[];
@@ -4913,8 +5836,11 @@ function tblExportCSV(){
   const result=state.tableau.queryResult;
   if(!result||!result.rows||!result.rows.length){alert('내보낼 데이터가 없습니다');return;}
   const cols=result.columns||[];
+  /* 테이블 계산 활성 시 화면과 동일한 값으로 내보내기 */
+  const tc=state.tableau.config.tableCalcs||{};
+  const exportRows=Object.keys(tc).length?tblApplyTableCalcs(result.rows,result.measures||[],tc):result.rows;
   let csv=cols.join(',')+'\n';
-  result.rows.forEach(row=>{
+  exportRows.forEach(row=>{
     csv+=cols.map(c=>{const v=row[c]??'';const s=String(v);return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')+'\n';
   });
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});

@@ -3,6 +3,7 @@ import functools
 import time
 import threading
 import json
+import decimal
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import pymysql
@@ -31,15 +32,27 @@ def _cache_key(sql: str, params) -> str:
     return '||'.join(parts)
 
 
+_CACHE_MAX_ENTRIES = 500  # 무한 증가 방지 (탐색형 쿼리가 키를 무한 생성)
+
+
 def run_query_cached(sql, params=None, ttl=CACHE_TTL):
     key = _cache_key(sql, params)
+    now = time.time()
     with _cache_lock:
         entry = _query_cache.get(key)
-        if entry and time.time() - entry[0] < ttl:
+        if entry and now - entry[0] < ttl:
             return entry[1]
     result = run_query(sql, params)
     with _cache_lock:
-        _query_cache[key] = (time.time(), result)
+        # 만료 항목 정리 + 상한 초과 시 오래된 항목부터 제거
+        if len(_query_cache) >= _CACHE_MAX_ENTRIES:
+            expired = [k for k, (ts, _) in _query_cache.items() if now - ts >= CACHE_TTL]
+            for k in expired:
+                del _query_cache[k]
+            while len(_query_cache) >= _CACHE_MAX_ENTRIES:
+                oldest = min(_query_cache, key=lambda k: _query_cache[k][0])
+                del _query_cache[oldest]
+        _query_cache[key] = (now, result)
     return result
 
 
@@ -633,17 +646,50 @@ def api_tableau_query():
     cols_fields  = [f for f in (cfg.get('columns') or []) if f in allowed]
     measures     = [f for f in (cfg.get('measures') or []) if f in allowed]
     color_field  = cfg.get('color') if cfg.get('color') in allowed else None
+    size_field   = cfg.get('size')  if cfg.get('size')  in allowed else None
+    label_field  = cfg.get('label') if cfg.get('label') in allowed else None
+    detail_fields = [f for f in (cfg.get('detail') or []) if f in allowed and f in set(dims)]
+    size_is_measure = size_field and size_field in set(meas_list)
+    size_is_dim     = size_field and not size_is_measure
+    label_is_dim    = label_field and label_field in set(dims)
+
+    # dateGranularity: 날짜 차원에만 허용 (일반 차원에 적용 시 NULL 그룹으로 붕괴 방지)
+    _date_set = set(_date_dims)
+    date_gran = {k: v for k, v in (cfg.get('dateGranularity') or {}).items()
+                 if k in _date_set and v in ('YEAR', 'QUARTER', 'MONTH')}
+    # BQ FORMAT_DATE output patterns per granularity
+    _gran_fmt = {'YEAR': '%Y', 'QUARTER': '%Y-Q%Q', 'MONTH': '%Y-%m'}
+    # PARSE_DATE input pattern — Year_Month is 'YYYY-MM'
+    _parse_fmt = '%Y-%m'
 
     if not measures:
         return jsonify({'error': '측정값을 선택하세요'}), 400
 
     group_by = list(dict.fromkeys(
-        rows_fields + cols_fields + ([color_field] if color_field else [])
+        rows_fields + cols_fields
+        + ([color_field] if color_field else [])
+        + ([size_field]  if size_is_dim  else [])
+        + ([label_field] if label_is_dim else [])
+        + detail_fields
     ))
-    select_parts = [f'`{f}`' for f in group_by]
+    measures_query = list(measures)
+    if size_is_measure and size_field not in measures_query:
+        measures_query.append(size_field)
+    # 레이블 선반에 측정값이 놓이면 데이터에 포함 (차트 데이터 레이블용)
+    if label_field and not label_is_dim and label_field not in measures_query:
+        measures_query.append(label_field)
+
+    # Build SELECT parts — apply dateGranularity for date fields
+    def _dim_expr(f):
+        if f in date_gran:
+            fmt = _gran_fmt[date_gran[f]]
+            return f"FORMAT_DATE('{fmt}', SAFE.PARSE_DATE('{_parse_fmt}', CAST(`{f}` AS STRING))) AS `{f}`"
+        return f'`{f}`'
+
+    select_parts = [_dim_expr(f) for f in group_by]
     _valid_aggs = {'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNTD'}
     measure_aggs = cfg.get('measureAggs') or {}
-    for m in measures:
+    for m in measures_query:
         raw_agg = str(measure_aggs.get(m, 'SUM')).upper()
         agg = raw_agg if raw_agg in _valid_aggs else 'SUM'
         if agg == 'COUNTD':
@@ -653,17 +699,79 @@ def api_tableau_query():
 
     conditions, params = [], []
     for idx, (field, values) in enumerate((cfg.get('filters') or {}).items()):
-        if field not in allowed or not values:
+        # 와일드카드 필터: {'__wc__FieldName': {'field':..., 'patterns':[...], 'exclude':bool}}
+        if field.startswith('__wc__') and isinstance(values, dict):
+            real_field = values.get('field')
+            patterns = values.get('patterns') or []
+            exclude = bool(values.get('exclude'))
+            if real_field in allowed and patterns and isinstance(patterns, list):
+                likes = []
+                for pi, pat in enumerate(patterns[:10]):
+                    pname = f'wc_{idx}_{pi}'
+                    # LIKE 이스케이프: \ → \\ 먼저, 그다음 % _ 리터럴 처리, * 는 와일드카드로
+                    s = str(pat).replace('\\', '\\\\').replace('%', r'\%').replace('_', r'\_')
+                    had_star = '*' in s
+                    sql_pat = s.replace('*', '%')
+                    if not had_star:  # 와일드카드 없으면 부분일치로 감싸기
+                        sql_pat = f'%{sql_pat}%'
+                    likes.append(f"LOWER(CAST(`{real_field}` AS STRING)) LIKE LOWER(@{pname})")
+                    params.append(bigquery.ScalarQueryParameter(pname, 'STRING', sql_pat))
+                clause = '(' + ' OR '.join(likes) + ')'
+                if exclude:
+                    clause = 'NOT ' + clause
+                conditions.append(clause)
+            continue
+        if field not in allowed or not values or not isinstance(values, list):
             continue
         pname = f'tf_{idx}'
         conditions.append(f'`{field}` IN UNNEST(@{pname})')
         params.append(bigquery.ArrayQueryParameter(pname, 'STRING', [str(v) for v in values]))
 
     where_clause = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-    group_clause = ('GROUP BY ' + ', '.join(f'`{f}`' for f in group_by)) if group_by else ''
-    limit = min(10000, max(1, int(cfg.get('limit', 500))))
+    # GROUP BY: use expression for granularity fields, column alias for others
+    def _group_expr(f):
+        if f in date_gran:
+            fmt = _gran_fmt[date_gran[f]]
+            return f"FORMAT_DATE('{fmt}', SAFE.PARSE_DATE('{_parse_fmt}', CAST(`{f}` AS STRING)))"
+        return f'`{f}`'
+    group_clause = ('GROUP BY ' + ', '.join(_group_expr(f) for f in group_by)) if group_by else ''
+    try:
+        limit = min(10000, max(1, int(cfg.get('limit', 500))))
+    except (TypeError, ValueError):
+        limit = 500
     sort_dir = 'DESC' if cfg.get('sort', 'desc') == 'desc' else 'ASC'
-    order_clause = (f'ORDER BY `{measures[0]}` {sort_dir}') if group_by and measures else ''
+    gb_set = set(group_by)
+    raw_fs = cfg.get('fieldSorts') or []
+    field_sorts_list = []
+    if isinstance(raw_fs, list):
+        for s in raw_fs:
+            if isinstance(s, dict) and s.get('field') in gb_set and s.get('dir') in ('asc', 'desc'):
+                field_sorts_list.append(s)
+    elif isinstance(raw_fs, dict):
+        for f in group_by:
+            if raw_fs.get(f) in ('asc', 'desc'):
+                field_sorts_list.append({'field': f, 'dir': raw_fs[f]})
+    sort_measure = cfg.get('sortMeasure')
+    primary_sort_m = sort_measure if sort_measure in (measures_query or []) else (measures[0] if measures else None)
+    if field_sorts_list:
+        order_clause = 'ORDER BY ' + ', '.join(f'`{s["field"]}` {s["dir"].upper()}' for s in field_sorts_list)
+    elif group_by and primary_sort_m:
+        order_clause = f'ORDER BY `{primary_sort_m}` {sort_dir}'
+    else:
+        order_clause = ''
+
+    # topN: ORDER BY 측정값 + LIMIT N
+    top_n_cfg = cfg.get('topN')
+    if (top_n_cfg and isinstance(top_n_cfg, dict)
+            and top_n_cfg.get('measure') in measures_query):
+        try:
+            top_n = max(1, min(int(top_n_cfg.get('n', 10)), limit))
+        except (TypeError, ValueError):
+            top_n = None
+        if top_n:
+            top_n_dir = 'DESC' if top_n_cfg.get('dir', 'desc') == 'desc' else 'ASC'
+            order_clause = f'ORDER BY `{top_n_cfg["measure"]}` {top_n_dir}'
+            limit = top_n
 
     sql = (
         f"SELECT {', '.join(select_parts)} "
@@ -676,16 +784,30 @@ def api_tableau_query():
         for row in result:
             r = {}
             for k, v in row.items():
-                r[k] = float(v) if isinstance(v, (int, float)) else (v or '')
+                if isinstance(v, bool):
+                    r[k] = v
+                elif isinstance(v, (int, float, decimal.Decimal)):
+                    r[k] = float(v)  # NUMERIC(Decimal)도 JSON 직렬화 가능하게
+                else:
+                    r[k] = v if v is not None else ''
             out.append(r)
         return jsonify({
-            'columns': group_by + measures,
+            'columns': group_by + measures_query,
             'rows': out,
             'group_by': group_by,
-            'measures': measures
+            'measures': measures,
+            'row_fields': rows_fields,
+            'col_fields': cols_fields,
+            'color_field': color_field,
+            'size_field': size_field,
+            'label_field': label_field,
+            'detail_fields': detail_fields,
+            'date_granularity': date_gran,
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # 내부 오류(SQL/프로젝트 ID 등)는 서버 로그에만 남기고 클라이언트에는 일반 메시지
+        print(f'[tableau-query] error: {e}', flush=True)
+        return jsonify({'error': '쿼리 실행 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.'}), 500
 
 
 @app.route('/api/tableau/filter-values')

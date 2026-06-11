@@ -23,3 +23,4 @@ venv/
 .DS_Store
 Thumbs.db
 .gstack/
+pw_shots/
