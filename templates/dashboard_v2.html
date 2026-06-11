@@ -2408,6 +2408,17 @@ html.theme-dark .tbl-s-chip.meas{color:#4ecb71}
 /* Shelf icons + placeholder */
 .tbl-shelf-icon{width:11px;height:11px;stroke-width:2;color:var(--text-tertiary);flex-shrink:0;margin-right:2px}
 .tbl-shelf-chips:empty::before{content:'드래그';font-size:9.5px;color:var(--text-tertiary);opacity:0.35;pointer-events:none}
+/* 선반별 placeholder — 무엇을 놓는 곳인지 한눈에 */
+.tbl-shelf[data-shelf="rows"] .tbl-shelf-chips:empty::before,
+.tbl-shelf[data-shelf="columns"] .tbl-shelf-chips:empty::before{content:'차원 필드'}
+.tbl-shelf[data-shelf="measures"] .tbl-shelf-chips:empty::before{content:'측정값 필드'}
+.tbl-shelf[data-shelf="filters"] .tbl-shelf-chips:empty::before{content:'필드를 끌어 조건 추가'}
+/* 다크모드 — 저대비 배지·칩 보정 */
+html.theme-dark .tbl-agg-badge{background:rgba(78,203,113,.22)}
+html.theme-dark .tbl-filter-count{background:rgba(91,158,249,.22)}
+html.theme-dark .tbl-gran-badge{background:rgba(247,201,72,.26)}
+html.theme-dark .tbl-calc-badge{background:rgba(167,139,250,.26)}
+html.theme-dark .tbl-s-chip.dim{color:#7eb3fb}
 /* Cross-tab pivot table improvements */
 .tbl-pivot-table{table-layout:auto}
 .tbl-pivot-table td:first-child,.tbl-pivot-table th:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
@@ -2434,7 +2445,7 @@ html.theme-dark .tbl-s-chip.meas{color:#4ecb71}
 .tbl-shelf:hover .tbl-shelf-clear-btn{opacity:0.7}
 .tbl-shelf-clear-btn:hover{opacity:1 !important;color:var(--negative)}
 /* Viz footer */
-.tbl-viz-footer{height:22px;padding:0 10px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text-tertiary);flex-shrink:0;background:var(--surface)}
+.tbl-viz-footer{height:24px;padding:0 12px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-secondary);flex-shrink:0;background:var(--surface);font-variant-numeric:tabular-nums}
 .tbl-viz-footer .tbl-vf-sep{width:1px;height:10px;background:var(--border)}
 /* Sort reset in toolbar */
 .tbl-sort-reset{display:none;align-items:center;gap:3px;background:none;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:10.5px;padding:3px 8px;cursor:pointer;opacity:.85;transition:opacity .15s}
