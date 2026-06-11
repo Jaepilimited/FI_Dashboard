@@ -5229,6 +5229,13 @@ function tblRenderEChart(viz, result, cfg){
     colorField = colorFieldName && groupBy.includes(colorFieldName) && colorFieldName !== labelField ? colorFieldName : null;
     labels = labelField?[...new Set(rows.map(r=>String(r[labelField]??'')))]:[];
   }
+  /* 날짜 차원 축은 기본 시간순 — 명시적 필드 정렬·TopN이 없을 때만 */
+  const _dateDims = new Set((state.tableau.fields && state.tableau.fields.date_dims) || []);
+  const _chronoOK = !(Array.isArray(cfg.fieldSorts) && cfg.fieldSorts.length) && !(cfg.topN && cfg.topN.n);
+  if (_chronoOK) {
+    if (isCrossTab) { if (colFields.length && colFields.every(f=>_dateDims.has(f))) labels.sort(); }
+    else if (labelField && _dateDims.has(labelField)) labels.sort();
+  }
   /* 데이터 레이블 포맷터: 레이블 선반 필드 값 표시 (차원→텍스트, 측정값→숫자) */
   const mkDataLabel = (pos) => {
     if (!dataLabelField) return undefined;
@@ -5300,6 +5307,10 @@ function tblRenderEChart(viz, result, cfg){
     const yField = isCrossTab ? null : (groupBy[0]||'');
     const xVals = isCrossTab ? [...new Set(rows.map(getColVal))] : [...new Set(rows.map(r=>String(r[xField]||'')))];
     const yVals = isCrossTab ? [...new Set(rows.map(getRowVal))] : [...new Set(rows.map(r=>String(r[yField]||'')))];
+    if (_chronoOK) {
+      if ((isCrossTab && colFields.every(f=>_dateDims.has(f))) || (!isCrossTab && xField && _dateDims.has(xField))) xVals.sort();
+      if ((isCrossTab && rowFields.every(f=>_dateDims.has(f))) || (!isCrossTab && yField && _dateDims.has(yField))) yVals.sort();
+    }
     const hData = rows.map(r=>[
       xVals.indexOf(isCrossTab?getColVal(r):String(r[xField]||'')),
       yVals.indexOf(isCrossTab?getRowVal(r):String(r[yField]||'')),
@@ -5347,6 +5358,7 @@ function tblRenderEChart(viz, result, cfg){
     let series=[];
     if (isCrossTab) {
       const rowGroups=[...new Set(rows.map(getRowVal))];
+      if (_chronoOK && rowFields.length && rowFields.every(f=>_dateDims.has(f))) rowGroups.sort();
       rowGroups.forEach((grp,gi)=>{
         const gRows=rows.filter(r=>getRowVal(r)===grp);
         const data=labels.map(colVal=>{const r=gRows.find(r=>getColVal(r)===colVal);return {value:r?(r[meas]||0):0, __row:r||null};});
@@ -5452,6 +5464,9 @@ function tblRenderPivot(viz, result, cfg){
     const getColKey = r => colFields.map(f=>String(r[f]??'')).join(' · ');
     const rawRowKeys = [...new Set(result.rows.map(getRowKey))];
     const colKeys    = [...new Set(result.rows.map(getColKey))];
+    /* 날짜 차원 열은 기본 시간순 (명시적 정렬이 없을 때) */
+    const _pDateDims = new Set((state.tableau.fields && state.tableau.fields.date_dims) || []);
+    if (fieldSortsEmpty && !(cfg.topN && cfg.topN.n) && colFields.every(f=>_pDateDims.has(f))) colKeys.sort();
     const meas = measures[0]||'';
     const dataMap = {};
     result.rows.forEach(r => {
