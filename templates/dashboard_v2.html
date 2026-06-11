@@ -2747,7 +2747,7 @@ const CATEGORY_DEFS = [
 /* ─── State ─────────────────────────────────────────────────────────── */
 const state = {
   category: 'overview',
-  drill: { org:[], region:[], product:[], sales:[], rawdata:[] },
+  drill: { overview:[], org:[], region:[], product:[], sales:[], rawdata:[], tableau:[] },
   filterSel: {
     org:     {0: new Set(), 1: new Set(), 2: new Set()},
     region:  {0: new Set(), 1: new Set(), 2: new Set(), 3: new Set()},
@@ -3207,7 +3207,7 @@ const RealApi = {
   async prefetch(){
     const cat = state.category;
     const vl = state.viewLevel?.[cat] ?? 0;
-    const drill = state.drill[cat];
+    const drill = state.drill[cat] || [];
     const baseP = this.buildParams();
     const isSales = cat==='sales';
 
