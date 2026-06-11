@@ -2248,7 +2248,9 @@ html.theme-light[data-tone="synthex"] .tweaks-panel{
 html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 
 /* ─── 커스텀 분석 (Tableau Builder) ──────────────────────────────── */
-.tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}
+.tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 76px);overflow:hidden}
+/* 커스텀 분석탭은 작업 공간이 화면을 꽉 채우도록 메인 패딩 축소 */
+main.wrap:has(.tbl-wrap){padding-bottom:14px}
 .tbl-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
 .tbl-chart-btns{display:flex;gap:2px;align-items:center;background:var(--surface-hover);border:1px solid var(--border);border-radius:8px;padding:2px}
 .tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:32px;height:30px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
