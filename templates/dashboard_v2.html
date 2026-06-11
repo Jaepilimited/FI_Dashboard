@@ -2251,10 +2251,11 @@ html.theme-light[data-tone="synthex"] .chip{border-color:var(--border-strong)}
 .tbl-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}
 .tbl-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
 .tbl-chart-btns{display:flex;gap:2px;align-items:center;background:var(--surface-hover);border:1px solid var(--border);border-radius:8px;padding:2px}
-.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:28px;height:26px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
+.tbl-chart-btn{display:flex;align-items:center;justify-content:center;width:32px;height:30px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;transition:all 0.15s}
+.tbl-ct-sep{width:1px;height:18px;background:var(--border);margin:0 3px;flex-shrink:0}
 .tbl-chart-btn:hover{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .tbl-chart-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 6px -1px rgba(91,158,249,.5)}
-.tbl-chart-btn .ic{width:14px;height:14px;stroke-width:1.75}
+.tbl-chart-btn .ic{width:15px;height:15px;stroke-width:1.75}
 .tbl-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
 .tbl-mode-toggle{display:flex;gap:2px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface-hover);padding:2px}
 .tbl-mode-btn{padding:3px 12px;font-size:11.5px;font-weight:600;background:transparent;border:none;border-radius:6px;cursor:pointer;color:var(--text-tertiary);transition:all 0.15s}
@@ -4491,15 +4492,12 @@ function trendTipHandler(ctx){
    ═════════════════════════════════════════════════════════════════════ */
 function renderTableauView(){
   const cfg = state.tableau.config;
-  const chartDefs = [
-    ['bar','bar-chart-2','막대'],['stacked_bar','layers','누적막대'],
-    ['line','trending-up','선'],['area','activity','영역'],
-    ['stacked_area','align-justify','누적영역'],
-    ['pie','pie-chart','원형'],['donut','disc','도넛'],
-    ['waterfall','bar-chart','폭포수'],
-    ['scatter','circle','산점도'],['bubble','git-commit','버블'],
-    ['heatmap','grid','히트맵'],['treemap','layout','트리맵'],
-    ['combo','bar-chart-4','콤보'],
+  /* 차트 유형 — 의미 그룹: 막대 ‖ 선·추이 ‖ 비율·구성 ‖ 분포 */
+  const chartGroups = [
+    [['bar','bar-chart-2','막대'],['stacked_bar','layers','누적막대'],['waterfall','bar-chart','폭포수']],
+    [['line','trending-up','선'],['area','activity','영역'],['stacked_area','align-justify','누적영역'],['combo','bar-chart-4','콤보 (막대+선)']],
+    [['pie','pie-chart','원형'],['donut','disc','도넛'],['treemap','layout','트리맵']],
+    [['scatter','circle','산점도'],['bubble','git-commit','버블'],['heatmap','grid','히트맵']],
   ];
   const shelfDefs = [
     ['rows','행','rows'],['columns','열','columns'],['measures','측정값','hash'],
@@ -4510,7 +4508,7 @@ function renderTableauView(){
   return `<div class="tbl-wrap" id="tblWrap">
     <div class="tbl-toolbar" id="tblToolbar">
       <div class="tbl-chart-btns" id="tblChartBtns">
-        ${chartDefs.map(([t,ic,lb])=>`<button class="tbl-chart-btn${cfg.chartType===t?' active':''}" data-type="${t}" title="${lb}"><i data-lucide="${ic}" class="ic"></i></button>`).join('')}
+        ${chartGroups.map(g=>g.map(([t,ic,lb])=>`<button class="tbl-chart-btn${cfg.chartType===t?' active':''}" data-type="${t}" title="${lb}"><i data-lucide="${ic}" class="ic"></i></button>`).join('')).join('<span class="tbl-ct-sep"></span>')}
       </div>
       <div class="tbl-divider"></div>
       <div class="tbl-mode-toggle">
