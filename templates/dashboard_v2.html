@@ -5211,7 +5211,8 @@ function tblRenderEChart(viz, result, cfg){
   const detailFields  =result.detail_fields||cfg.detail||[];  /* 세부정보 선반 */
   const isCrossTab = rowFields.length>0 && colFields.length>0;
   const type=cfg.chartType;
-  const palette=['#5b9ef9','#4ecb71','#f7c948','#f9784b','#a78bfa','#34d399','#f472b6','#60a5fa','#fb923c','#a3e635'];
+  const cc=chartColors();                  /* 앱 공통 테마 색 (CSS 변수 연동) */
+  const palette=chartPalette();            /* 브랜드 팔레트 — 라이트/다크/팔레트 트윅 자동 반영 */
   const meas=measures[0]||'';
   const getRowVal = r => rowFields.map(rf=>String(r[rf]??'')).join(' · ');
   const getColVal = r => colFields.map(cf=>String(r[cf]??'')).join(' · ');
@@ -5307,7 +5308,7 @@ function tblRenderEChart(viz, result, cfg){
     const maxV=Math.max(...hData.map(d=>d[2]),1);
     option={tooltip:{position:'top',formatter:p=>`${xVals[p.data[0]]} / ${yVals[p.data[1]]}<br/>${meas}: ${tblFmtNum(p.data[2])}`},
       xAxis:{type:'category',data:xVals,axisLabel:{rotate:45,color:isDark?'#aaa':'#666'}},yAxis:{type:'category',data:yVals,axisLabel:{color:isDark?'#aaa':'#666'}},
-      visualMap:{min:0,max:maxV,calculable:true,orient:'horizontal',bottom:5,left:'center',inRange:{color:['#f0f0f0','#5b9ef9','#1a3a6e']}},
+      visualMap:{min:0,max:maxV,calculable:true,orient:'horizontal',bottom:5,left:'center',inRange:{color:[hexA(cc.accent,0.08),hexA(cc.accent,0.55),cc.accent]},textStyle:{color:isDark?'#aaa':'#666'}},
       series:[{type:'heatmap',data:hData,label:{show:true,formatter:p=>tblFmtNum(p.data[2])},emphasis:{itemStyle:{shadowBlur:10}}}]};
   } else if (type==='treemap') {
     /* 트리맵: colorField가 있으면 상위 그룹 → 하위 항목 구조 */
@@ -5336,7 +5337,7 @@ function tblRenderEChart(viz, result, cfg){
       yAxis:{type:'value',axisLabel:{color:isDark?'#aaa':'#666',formatter:v=>tblFmtNum(v)}},
       series:[{type:'bar',stack:'wf',data:helperArr.map(v=>({value:v,itemStyle:{opacity:0}})),tooltip:{show:false}},
         {type:'bar',stack:'wf',data:wfVals,
-          itemStyle:{color:p=>colorByGroup?colorByGroup[p.dataIndex]:(wfVals[p.dataIndex]>=0?'#4ecb71':'#f9784b')},
+          itemStyle:{color:p=>colorByGroup?colorByGroup[p.dataIndex]:(wfVals[p.dataIndex]>=0?cc.positive:cc.negative)},
           label:{show:true,position:'top',formatter:p=>tblFmtNum(p.value)}}]};
   } else {
     const isLine=type==='line'||type==='area'||type==='stacked_area';
@@ -5389,7 +5390,7 @@ function tblRenderEChart(viz, result, cfg){
         s.markLine = s.markLine || {};
         s.markLine.silent = true;
         s.markLine.label = {formatter: p => '평균 ' + tblFmtNum(p.value)};
-        s.markLine.lineStyle = {type:'dashed', color:'#f7c948', width:1.5};
+        s.markLine.lineStyle = {type:'dashed', color:cc.amber, width:1.5};
         s.markLine.data = (s.markLine.data||[]).concat([{type:'average'}]);
       }
     });
@@ -5403,6 +5404,16 @@ function tblRenderEChart(viz, result, cfg){
       axes.forEach(a => { a.axisLabel = {...(a.axisLabel||{}), formatter: v => v.toFixed(1)+'%'}; });
     }
   }
+
+  /* ── 프리미엄 공통 스타일: 폰트·모션·바 라운딩·라인 두께 ── */
+  option.textStyle = {fontFamily:"'Pretendard Variable',Pretendard,-apple-system,sans-serif", ...(option.textStyle||{})};
+  option.animationDuration = 450;
+  option.animationEasing = 'cubicOut';
+  if (option.tooltip) option.tooltip = {confine:true, ...option.tooltip};
+  (option.series||[]).forEach(s=>{
+    if (s.type==='bar' && !s.stack) s.itemStyle = {borderRadius:[5,5,0,0], ...(s.itemStyle||{})};
+    if (s.type==='line') { s.lineStyle = {width:2.5, ...(s.lineStyle||{})}; if (s.symbolSize===undefined) s.symbolSize = 6; }
+  });
 
   if (isDark) option.backgroundColor='transparent';
   inst.setOption(option);
