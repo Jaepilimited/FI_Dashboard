@@ -5383,12 +5383,20 @@ function tblRenderEChart(viz, result, cfg){
     if (isCrossTab) {
       const rowGroups=[...new Set(rows.map(getRowVal))];
       if (_chronoOK && rowFields.length && rowFields.every(f=>_dateDims.has(f))) rowGroups.sort();
-      rowGroups.forEach((grp,gi)=>{
-        const gRows=rows.filter(r=>getRowVal(r)===grp);
-        const data=labels.map(colVal=>{const r=gRows.find(r=>getColVal(r)===colVal);return {value:r?(r[meas]||0):0, __row:r||null};});
+      /* 행 차원이 고카디널리티(>30)이고 열이 소수(≤15)면 인코딩 교환:
+         X축=행(줌으로 탐색), 시리즈=열 — 시리즈 수백 개로 색이 무의미해지는 것을 방지 */
+      const flipEncoding = rowGroups.length > 30 && labels.length <= 15;
+      const xCats   = flipEncoding ? rowGroups : labels;
+      const serKeys = flipEncoding ? labels    : rowGroups;
+      const getSerVal = flipEncoding ? getColVal : getRowVal;
+      const getCatVal = flipEncoding ? getRowVal : getColVal;
+      serKeys.forEach((grp,gi)=>{
+        const gRows=rows.filter(r=>getSerVal(r)===grp);
+        const data=xCats.map(cat=>{const r=gRows.find(r=>getCatVal(r)===cat);return {value:r?(r[meas]||0):0, __row:r||null};});
         const t=isCombo&&gi>0?'line':(isLine?'line':'bar');
         series.push({name:grp,type:t,data,stack:isStacked?'total':undefined,areaStyle:isArea?{}:undefined,smooth:isLine,itemStyle:{color:palette[gi%palette.length]},label:mkDataLabel(isStacked?'inside':'top')});
       });
+      labels = xCats;
     } else if (colorField) {
       /* 색상 필드별 시리즈 분리 */
       const colorGroups=[...new Set(rows.map(r=>String(r[colorField]||'')))];
@@ -5440,6 +5448,29 @@ function tblRenderEChart(viz, result, cfg){
       axes.forEach(a => { a.axisLabel = {...(a.axisLabel||{}), formatter: v => v.toFixed(1)+'%'}; });
     }
   }
+
+  /* ── 고카디널리티 가독성 보정 ── */
+  const nSeries = (option.series||[]).length;
+  const nLegend = (type==='pie'||type==='donut') ? rows.length : nSeries;
+  const axisCats = (option.xAxis && !Array.isArray(option.xAxis) && option.xAxis.type==='category' && option.xAxis.data) ? option.xAxis.data.length : 0;
+  /* 범례: 13개 이상 스크롤, 40개 초과 숨김 (툴팁으로 식별) */
+  if (option.legend && option.legend.show !== false) {
+    if (nLegend > 40) option.legend.show = false;
+    else if (nLegend > 12) {
+      if (type==='pie'||type==='donut') Object.assign(option.legend, {type:'scroll'});
+      else Object.assign(option.legend, {type:'scroll', top:0});
+    }
+  }
+  /* 축 카테고리 30개 초과: 상위 30개 창 + 줌 슬라이더로 탐색 */
+  if (axisCats > 30 && type!=='heatmap') {
+    option.dataZoom = [
+      {type:'inside', start:0, end:Math.max(100*30/axisCats, 3)},
+      {type:'slider', height:16, bottom:6, brushSelect:false, start:0, end:Math.max(100*30/axisCats, 3)}
+    ];
+    option.grid = {...(option.grid||{}), bottom:'13%'};
+  }
+  /* 시리즈 20개 초과: axis 툴팁이 화면을 덮으므로 개별(item) 툴팁으로 */
+  if (nSeries > 20 && option.tooltip && option.tooltip.trigger === 'axis') option.tooltip.trigger = 'item';
 
   /* ── 프리미엄 공통 스타일: 폰트·모션·바 라운딩·라인 두께 ── */
   option.textStyle = {fontFamily:"'Pretendard Variable',Pretendard,-apple-system,sans-serif", ...(option.textStyle||{})};
