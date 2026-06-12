@@ -22,6 +22,18 @@ DATASET = 'skin1004-319714.Sales_Integration'
 FINAL_COLS = ['코스트센터분류', 'Department', '원가계정과목', '금액', 'Year_Month',
               '계정명', '대분류', '중분류', '상세분류', '본부구분', '팀구분', '간접비분류']
 
+# BQ 업로드용 영문 컬럼명 (값은 한글 유지, 컬럼명만 변환)
+ENG_FI_SM = {
+    '코스트센터분류': 'Cost_Center_Class', '원가계정과목': 'Cost_Account', '금액': 'Amount',
+    '계정명': 'Account_Name', '대분류': 'Main_Category', '중분류': 'Sub_Category',
+    '상세분류': 'Detail_Category', '본부구분': 'Division', '팀구분': 'Team',
+    '간접비분류': 'Indirect_Cost_Class',
+}
+ENG_M1 = {'코스트센터': 'Cost_Center', 'CC분류': 'CC_Class', '간접비분류': 'Indirect_Cost_Class',
+          '본부구분': 'Division', '팀구분': 'Team'}
+ENG_M2 = {'원가계정과목': 'Cost_Account', '계정명': 'Account_Name', '대분류': 'Main_Category',
+          '중분류': 'Sub_Category', '상세분류': 'Detail_Category'}
+
 log_lines = []
 def log(*a):
     s = ' '.join(str(x) for x in a)
@@ -114,14 +126,18 @@ def build():
 
 
 def upload(fi, m1, m2):
-    """CSV + 명시적 스키마 로드 — Parquet 로드는 한글 컬럼명 값을 매칭하지 못함(전부 NULL).
-    CSV는 위치 기반 매핑이라 한글 컬럼명이 안전하다."""
+    """컬럼명을 영문으로 변환 후 CSV + 명시적 스키마 로드.
+    (참고: Parquet 로드는 한글 컬럼명 값을 매칭하지 못해 전부 NULL이 됐었음)"""
     import io
     from google.cloud import bigquery
     from google.oauth2 import service_account
     import config
     creds = service_account.Credentials.from_service_account_file(config.BQ_KEY_PATH)
     client = bigquery.Client(project=config.BQ_PROJECT, credentials=creds)
+
+    fi = fi.rename(columns=ENG_FI_SM)
+    m1 = m1.rename(columns=ENG_M1)
+    m2 = m2.rename(columns=ENG_M2)
 
     def schema_for(df):
         return [bigquery.SchemaField(c, 'INTEGER' if str(df[c].dtype).startswith('int') else 'STRING')
