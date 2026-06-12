@@ -70,6 +70,70 @@ LEFT JOIN `{DATASET}.FI_Matching1` m1 ON t.Department = m1.Cost_Center
 LEFT JOIN `{DATASET}.FI_Matching1` mc ON t.Sending_Cost_Center = mc.Cost_Center
 """
 
+FI_FINAL_SM_SQL = f"""
+CREATE OR REPLACE TABLE `{DATASET}.FI_Final_SM` AS
+
+-- ① FI_Final 손익을 Department×월로 집계 → 롱 포맷 전개
+WITH pnl AS (
+  SELECT Department, Year_Month,
+         SUM(Sales_Amount)     AS Sales_Amount,
+         SUM(Cost_of_Sales)    AS Cost_of_Sales,
+         SUM(Gross_Profit)     AS Gross_Profit,
+         SUM(Operating_Income) AS Operating_Income
+  FROM `{DATASET}.FI_Final`
+  GROUP BY Department, Year_Month
+),
+pnl_long AS (
+  SELECT p.Department, p.Year_Month, item.name AS Item, item.amt AS Amount
+  FROM pnl p,
+  UNNEST([
+    STRUCT('매출액'    AS name, p.Sales_Amount     AS amt),
+    STRUCT('매출원가',          p.Cost_of_Sales),
+    STRUCT('매출총이익',        p.Gross_Profit),
+    STRUCT('영업이익',          p.Operating_Income)
+  ]) AS item
+)
+
+-- ② 판관비: FI_SM 계정 디테일 그대로
+SELECT
+  '판관비' AS Item_Class,
+  s.Cost_Center_Class,
+  s.Department,
+  s.Sending_Cost_Center,
+  s.Cost_Account,
+  s.Amount,
+  s.Year_Month,
+  s.Account_Name,
+  s.Main_Category,
+  s.Sub_Category,
+  s.Detail_Category,
+  s.Division,
+  s.Team,
+  s.Indirect_Cost_Class
+FROM `{DATASET}.FI_SM` s
+
+UNION ALL
+
+-- ③ 손익 항목: 매출액/매출원가/매출총이익/영업이익 (판관비는 FI_SM 행이 담당 — 중복 없음)
+SELECT
+  pl.Item AS Item_Class,
+  CAST(NULL AS STRING) AS Cost_Center_Class,
+  pl.Department,
+  CAST(NULL AS STRING) AS Sending_Cost_Center,
+  pl.Item AS Cost_Account,
+  pl.Amount,
+  pl.Year_Month,
+  pl.Item AS Account_Name,
+  pl.Item AS Main_Category,
+  pl.Item AS Sub_Category,
+  pl.Item AS Detail_Category,
+  m1.Division,
+  m1.Team,
+  CAST(NULL AS STRING) AS Indirect_Cost_Class
+FROM pnl_long pl
+LEFT JOIN `{DATASET}.FI_Matching1` m1 ON pl.Department = m1.Cost_Center
+"""
+
 log_lines = []
 def log(*a):
     s = ' '.join(str(x) for x in a)
@@ -195,10 +259,33 @@ def run(direct, indirect, m1, m2):
     log(f'[FI_SM] {r[0]}행, 합계 {r[1]:,} (예상 {expected:,}, 일치={r[1]==expected}), '
         f'계정 미매칭 {r[2]}건, 코스트센터 미매칭 {r[3]}건')
 
+    log('[쿼리] CREATE OR REPLACE TABLE FI_Final_SM 실행…')
+    client.query(FI_FINAL_SM_SQL).result()
+
+    # 정합 검증: 원시데이터 탭(FI_Final RAW)과 합계 대조
+    q = client.query(f'''
+        WITH f AS (SELECT SUM(Sales_Amount) sales, SUM(Cost_of_Sales) cogs,
+                          SUM(Gross_Profit) gp, SUM(SG_and_A_Expenses) sga,
+                          SUM(Operating_Income) oi
+                   FROM `{DATASET}.FI_Final`),
+             c AS (SELECT SUM(IF(Item_Class='매출액',   Amount, 0)) sales,
+                          SUM(IF(Item_Class='매출원가',  Amount, 0)) cogs,
+                          SUM(IF(Item_Class='매출총이익', Amount, 0)) gp,
+                          SUM(IF(Item_Class='판관비',    Amount, 0)) sga,
+                          SUM(IF(Item_Class='영업이익',  Amount, 0)) oi
+                   FROM `{DATASET}.FI_Final_SM`)
+        SELECT f.sales, c.sales, f.cogs, c.cogs, f.gp, c.gp, f.sga, c.sga, f.oi, c.oi FROM f, c''').result()
+    r = list(q)[0]
+    for i, name in enumerate(['매출액', '매출원가', '매출총이익', '판관비', '영업이익']):
+        a, b = r[i*2], r[i*2+1]
+        log(f'[정합] {name}: FI_Final={a:,} / FI_Final_SM={b:,} 일치={a==b}')
+
 
 if __name__ == '__main__':
     with open('fi_sm_query.sql', 'w', encoding='utf-8') as fh:
         fh.write(FI_SM_SQL.strip() + '\n')
+    with open('fi_final_sm_query.sql', 'w', encoding='utf-8') as fh:
+        fh.write(FI_FINAL_SM_SQL.strip() + '\n')
     direct, indirect, m1, m2 = build()
     if '--dry-run' in sys.argv:
         log('[dry-run] BQ 업로드/쿼리 생략')
