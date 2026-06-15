@@ -1454,8 +1454,13 @@ table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width
 .pl-table td:first-child{text-align:left; font-family:'Pretendard Variable','Pretendard',sans-serif; font-size:11.5px; position:sticky; left:0; background:var(--surface); z-index:1}
 .pl-table tr.pl-bold td{color:var(--text); font-weight:700}
 .pl-table tr.pl-bold td:first-child{background:var(--surface)}
-.pl-table tr.pl-hl td{background:var(--accent-soft); color:var(--text); font-weight:700}
-.pl-table tr.pl-hl td:first-child{background:var(--accent-soft)}
+.pl-table tr.pl-hl-direct td{background:rgba(72,199,116,.10);color:var(--text);font-weight:700}
+.pl-table tr.pl-hl-direct td:first-child{background:rgba(72,199,116,.10)}
+.pl-table tr.pl-hl-contrib td{background:rgba(54,153,255,.10);color:var(--text);font-weight:700}
+.pl-table tr.pl-hl-contrib td:first-child{background:rgba(54,153,255,.10)}
+.pl-table tr.pl-hl-op td{background:rgba(255,99,99,.10);color:var(--text);font-weight:700}
+.pl-table tr.pl-hl-op td:first-child{background:rgba(255,99,99,.10)}
+.pl-table thead tr th{background:var(--text);color:var(--surface);font-weight:700}
 .pl-table tr.pl-group td{cursor:pointer}
 .pl-table tr.pl-group:hover td{background:var(--surface-hover)}
 .pl-table tr.pl-group:hover td:first-child{background:var(--surface-hover)}
@@ -4263,21 +4268,21 @@ const PL_ROW_DEFS = [
   ['sgaD_fee','수수료',{member:'direct',sub:true,pct:true}],
   ['sgaD_hr','인건비',{member:'direct',sub:true,pct:true}],
   ['sgaD_etc','기타',{member:'direct',sub:true,pct:true}],
-  ['direct','직접이익',{bold:true,pct:true}],
+  ['direct','직접이익',{bold:true,pct:true,hl:'direct'}],
   ['sgaO','판매관리비 간접비(조직)',{bold:true,pct:true,toggle:'org'}],
   ['sgaO_adv','광고선전비',{member:'org',sub:true,pct:true}],
   ['sgaO_log','물류비',{member:'org',sub:true,pct:true}],
   ['sgaO_fee','수수료',{member:'org',sub:true,pct:true}],
   ['sgaO_hr','인건비',{member:'org',sub:true,pct:true}],
   ['sgaO_etc','기타',{member:'org',sub:true,pct:true}],
-  ['contrib','공헌이익',{bold:true,pct:true,hl:true}],
+  ['contrib','공헌이익',{bold:true,pct:true,hl:'contrib'}],
   ['sgaC','판매관리비 간접비(전사)',{bold:true,pct:true,toggle:'corp'}],
   ['sgaC_adv','광고선전비',{member:'corp',sub:true,pct:true}],
   ['sgaC_log','물류비',{member:'corp',sub:true,pct:true}],
   ['sgaC_fee','수수료',{member:'corp',sub:true,pct:true}],
   ['sgaC_hr','인건비',{member:'corp',sub:true,pct:true}],
   ['sgaC_etc','기타',{member:'corp',sub:true,pct:true}],
-  ['op','영업이익',{bold:true,pct:true,hl:true}],
+  ['op','영업이익',{bold:true,pct:true,hl:'op'}],
 ];
 function makePlRows(v){
   return PL_ROW_DEFS.map(function(d){ return Object.assign({ id:d[0], label:d[1], vals:v[d[0]] }, d[2]); });
@@ -4367,7 +4372,7 @@ function renderPlSummary(){
       if (memberKey && !plExpanded.has(memberKey)) continue;
       const toggleKey = row.toggle ? sec.key + ':' + row.toggle : null;
       const tot = row.vals.reduce(function(a,b){ return a+b; },0);
-      const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl':'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
+      const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl-'+row.hl:'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
       const chev = toggleKey ? '<i data-lucide="' + (plExpanded.has(toggleKey)?'chevron-down':'chevron-right') + '" class="pl-chev"></i>' : '';
       const n = row.vals.length;
       const valCell = function(i){
@@ -4589,21 +4594,21 @@ const CPL_ROW_DEFS = [
   { id:'sgaD.fee', label:'수수료',     member:'direct', sub:true, pct:true },
   { id:'sgaD.hr',  label:'인건비',     member:'direct', sub:true, pct:true },
   { id:'sgaD.etc', label:'기타',       member:'direct', sub:true, pct:true },
-  { id:'direct', label:'직접이익',          bold:true, pct:true },
+  { id:'direct', label:'직접이익',          bold:true, pct:true, hl:'direct' },
   { id:'sgaO',   label:'판매관리비 간접비(조직)', bold:true, pct:true, toggle:'org' },
   { id:'sgaO.adv', label:'광고선전비', member:'org', sub:true, pct:true },
   { id:'sgaO.log', label:'물류비',     member:'org', sub:true, pct:true },
   { id:'sgaO.fee', label:'수수료',     member:'org', sub:true, pct:true },
   { id:'sgaO.hr',  label:'인건비',     member:'org', sub:true, pct:true },
   { id:'sgaO.etc', label:'기타',       member:'org', sub:true, pct:true },
-  { id:'contrib', label:'공헌이익',         bold:true, pct:true, hl:true },
+  { id:'contrib', label:'공헌이익',         bold:true, pct:true, hl:'contrib' },
   { id:'sgaC',   label:'판매관리비 간접비(전사)', bold:true, pct:true, toggle:'corp' },
   { id:'sgaC.adv', label:'광고선전비', member:'corp', sub:true, pct:true },
   { id:'sgaC.log', label:'물류비',     member:'corp', sub:true, pct:true },
   { id:'sgaC.fee', label:'수수료',     member:'corp', sub:true, pct:true },
   { id:'sgaC.hr',  label:'인건비',     member:'corp', sub:true, pct:true },
   { id:'sgaC.etc', label:'기타',       member:'corp', sub:true, pct:true },
-  { id:'op',     label:'영업이익',          bold:true, pct:true, hl:true },
+  { id:'op',     label:'영업이익',          bold:true, pct:true, hl:'op' },
 ];
 
 // id가 'sgaD.adv' 형태면 'm.sgaD_adv' 배열, 단순 id면 'm[id]' 배열을 반환
@@ -4717,7 +4722,7 @@ function renderCategoryPl(){
         const memberKey = row.member ? secKey + ':' + row.member : null;
         if (memberKey && !plExpanded.has(memberKey)) return;
         const toggleKey = row.toggle ? secKey + ':' + row.toggle : null;
-        const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl':'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
+        const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl-'+row.hl:'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
         const chev = toggleKey ? '<i data-lucide="' + (plExpanded.has(toggleKey)?'chevron-down':'chevron-right') + '" class="pl-chev"></i>' : '';
         // 월별 배열: dim별 + 합계
         const seriesByDim = dims.map(function(d, di){ return seriesForDimId(di, row.id); });
