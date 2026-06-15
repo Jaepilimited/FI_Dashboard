@@ -1316,6 +1316,7 @@ def api_continent1():
 @login_required
 def api_prefetch():
     T = config.BQ_TABLE
+    SM = _fi_sm_table()
     cat = request.args.get('cat', 'org')
     vl  = int(request.args.get('vl', '0'))
     is_sales = (cat == 'sales')
@@ -1341,6 +1342,47 @@ def api_prefetch():
                    SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses,
                    SUM(Cost_of_Sales) AS cost_of_sales
             FROM `{T}` {w} GROUP BY Year_Month ORDER BY Year_Month
+        """
+
+    def sga_class_sql(w):
+        return f"""
+            WITH ff AS (
+                SELECT Department, Year_Month, SUM(SG_and_A_Expenses) AS sga
+                FROM `{T}` {w} GROUP BY Department, Year_Month
+            ),
+            sm AS (
+                SELECT Department, Year_Month, Indirect_Cost_Class AS cls, SUM(Amount) AS amt
+                FROM `{SM}` GROUP BY Department, Year_Month, Indirect_Cost_Class
+            ),
+            sm_tot AS (SELECT Department, Year_Month, SUM(Amount) AS tot FROM `{SM}` GROUP BY Department, Year_Month)
+            SELECT
+                SUM(CASE WHEN sm.cls='직접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_direct,
+                SUM(CASE WHEN sm.cls='조직간접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_org_indirect,
+                SUM(CASE WHEN sm.cls='SSG간접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_ssg_indirect
+            FROM ff
+            JOIN sm     ON ff.Department=sm.Department     AND ff.Year_Month=sm.Year_Month
+            JOIN sm_tot ON ff.Department=sm_tot.Department AND ff.Year_Month=sm_tot.Year_Month
+        """
+
+    def sga_class_trend_sql(w):
+        return f"""
+            WITH ff AS (
+                SELECT Department, Year_Month, SUM(SG_and_A_Expenses) AS sga
+                FROM `{T}` {w} GROUP BY Department, Year_Month
+            ),
+            sm AS (
+                SELECT Department, Year_Month, Indirect_Cost_Class AS cls, SUM(Amount) AS amt
+                FROM `{SM}` GROUP BY Department, Year_Month, Indirect_Cost_Class
+            ),
+            sm_tot AS (SELECT Department, Year_Month, SUM(Amount) AS tot FROM `{SM}` GROUP BY Department, Year_Month)
+            SELECT ff.Year_Month,
+                SUM(CASE WHEN sm.cls='직접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_direct,
+                SUM(CASE WHEN sm.cls='조직간접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_org_indirect,
+                SUM(CASE WHEN sm.cls='SSG간접' THEN CAST(ff.sga AS FLOAT64)*SAFE_DIVIDE(sm.amt,sm_tot.tot) ELSE 0 END) AS sga_ssg_indirect
+            FROM ff
+            JOIN sm     ON ff.Department=sm.Department     AND ff.Year_Month=sm.Year_Month
+            JOIN sm_tot ON ff.Department=sm_tot.Department AND ff.Year_Month=sm_tot.Year_Month
+            GROUP BY ff.Year_Month ORDER BY ff.Year_Month
         """
 
     # dim → monthly-by-dim
@@ -1400,6 +1442,8 @@ def api_prefetch():
     }
     if dim:
         tasks['trendByDim'] = (tbd_sql(where, dim), params)
+    tasks['sgaClass']      = (sga_class_sql(where), params)
+    tasks['sgaClassTrend'] = (sga_class_trend_sql(where), params)
     if is_sales:
         w_all, p_all = _build_where_for('all')
         w_b2b, p_b2b = _build_where_for('B2B')
@@ -1409,6 +1453,11 @@ def api_prefetch():
         tasks['kpiB2C']   = (kpi_sql(w_b2c),   p_b2c)
         tasks['trendB2B'] = (trend_sql(w_b2b),  p_b2b)
         tasks['trendB2C'] = (trend_sql(w_b2c),  p_b2c)
+        tasks['sgaClassAll']      = (sga_class_sql(w_all),  p_all)
+        tasks['sgaClassB2B']      = (sga_class_sql(w_b2b),  p_b2b)
+        tasks['sgaClassB2C']      = (sga_class_sql(w_b2c),  p_b2c)
+        tasks['sgaClassTrendB2B'] = (sga_class_trend_sql(w_b2b), p_b2b)
+        tasks['sgaClassTrendB2C'] = (sga_class_trend_sql(w_b2c), p_b2c)
 
     def fetch_task(item):
         key, (sql, prm) = item
@@ -1436,6 +1485,31 @@ def api_prefetch():
         out['kpiB2C']   = fmt_kpi(results.get('kpiB2C', []))
         out['trendB2B'] = results.get('trendB2B', [])
         out['trendB2C'] = results.get('trendB2C', [])
+
+    def _merge_sga_class(kpi_dict, sga_rows):
+        row = sga_rows[0] if sga_rows else {}
+        kpi_dict['sga_direct']       = float(row.get('sga_direct')       or 0)
+        kpi_dict['sga_org_indirect'] = float(row.get('sga_org_indirect') or 0)
+        kpi_dict['sga_ssg_indirect'] = float(row.get('sga_ssg_indirect') or 0)
+
+    def _merge_sga_class_trend(trend_list, sga_trend_rows):
+        ct = {str(r['Year_Month']): r for r in sga_trend_rows}
+        for row in trend_list:
+            ym = str(row.get('Year_Month', ''))
+            c = ct.get(ym, {})
+            row['sga_direct']       = float(c.get('sga_direct')       or 0)
+            row['sga_org_indirect'] = float(c.get('sga_org_indirect') or 0)
+            row['sga_ssg_indirect'] = float(c.get('sga_ssg_indirect') or 0)
+
+    _merge_sga_class(out['kpi'], results.get('sgaClass', []))
+    _merge_sga_class_trend(out['trend'], results.get('sgaClassTrend', []))
+
+    if is_sales:
+        _merge_sga_class(out['kpiAll'], results.get('sgaClassAll', []))
+        _merge_sga_class(out['kpiB2B'], results.get('sgaClassB2B', []))
+        _merge_sga_class(out['kpiB2C'], results.get('sgaClassB2C', []))
+        _merge_sga_class_trend(out['trendB2B'], results.get('sgaClassTrendB2B', []))
+        _merge_sga_class_trend(out['trendB2C'], results.get('sgaClassTrendB2C', []))
 
     return jsonify(out)
 

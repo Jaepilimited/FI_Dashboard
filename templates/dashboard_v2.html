@@ -1066,8 +1066,8 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
 }
 .hero-kpi-grid{
   display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap:12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap:10px;
 }
 .hero-kpi{
   position:relative;
@@ -1109,6 +1109,7 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
   position:relative;z-index:1;
 }
 .hero-kpi.green .hero-kpi-value{color:var(--positive)}
+.hero-kpi.blue .hero-kpi-value{color:#3698FF}
 .hero-kpi.purple .hero-kpi-value{color:var(--plum)}
 .hero-kpi.neutral .hero-kpi-value{color:var(--text)}
 .hero-kpi-value .unit{
@@ -3824,10 +3825,27 @@ function renderHeroShell(){
   const dSales  = delta(last.sales_amount,     prv.sales_amount);
   const dGross  = delta(last.gross_profit,     prv.gross_profit);
   const dOI     = delta(last.operating_income, prv.operating_income);
-  // contribution margin %p delta (전월 대비)
+  // operating margin %p delta (전월 대비)
   const curMgn = (last.sales_amount ? last.operating_income/last.sales_amount*100 : 0);
   const prvMgn = (prv.sales_amount  ? prv.operating_income /prv.sales_amount *100 : 0);
   const dMgnPp = curMgn - prvMgn;
+
+  // 직접이익 / 공헌이익 derived values
+  const lSgaD   = last.sga_direct || 0;
+  const pSgaD   = prv.sga_direct || 0;
+  const lDirect = (last.gross_profit||0) - lSgaD;
+  const pDirect = (prv.gross_profit||0) - pSgaD;
+  const lSgaO   = last.sga_org_indirect || 0;
+  const pSgaO   = prv.sga_org_indirect || 0;
+  const lContrib = lDirect - lSgaO;
+  const pContrib = pDirect - pSgaO;
+  const dDirect  = pDirect ? (lDirect - pDirect) / Math.abs(pDirect) * 100 : 0;
+  const dContrib = pContrib ? (lContrib - pContrib) / Math.abs(pContrib) * 100 : 0;
+
+  const kDirect = (k.gross_profit||0) - (k.sga_direct||0);
+  const kContrib = kDirect - (k.sga_org_indirect||0);
+  const kOI = k.operating_income || 0;
+  const kOIM = k.sales_amount ? (kOI / k.sales_amount * 100) : 0;
 
   const c = chartColors();
   const sp = key => trend.map(r => r[key] || 0);
@@ -3835,10 +3853,12 @@ function renderHeroShell(){
     .map(m => typeof m === 'string' ? m.slice(2).replace('-', '.') : m);
 
   const cards = [
-    { label:'매출액',     valueHtml:`${fmtKRWNum(k.sales_amount)}<span class="unit">${fmtKRWUnit(k.sales_amount)}</span>`, color:c.accent,    cls:'',         delta:dSales, deltaSuffix:'%', spark:sp('sales_amount'),     hint:'매출액' },
-    { label:'매출총이익', valueHtml:`${fmtKRWNum(k.gross_profit)}<span class="unit">${fmtKRWUnit(k.gross_profit)}</span>`, color:c.positive, cls:'green',   delta:dGross, deltaSuffix:'%', spark:sp('gross_profit'),    hint:'매출총이익' },
-    { label:'공헌이익',   valueHtml:`${fmtKRWNum(k.operating_income)}<span class="unit">${fmtKRWUnit(k.operating_income)}</span>`, color: k.operating_income>=0 ? c.positive : c.negative, cls: k.operating_income>=0 ? 'green featured' : 'featured', delta:dOI, deltaSuffix:'%', spark:sp('operating_income'), hint:'공헌이익' },
-    { label:'공헌이익률', valueHtml:`${(k.operating_margin||0).toFixed(1)}<span class="unit">%</span>`, color:c.plum, cls:'purple', delta:dMgnPp, deltaSuffix:'%p', spark:trend.map(r => r.sales_amount ? (r.operating_income/r.sales_amount)*100 : 0), hint:'공헌이익률', pct:true },
+    { label:'매출액',     valueHtml:`${fmtKRWNum(k.sales_amount)}<span class="unit">${fmtKRWUnit(k.sales_amount)}</span>`,  color:c.accent,    cls:'',                                delta:dSales,  deltaSuffix:'%',  spark:sp('sales_amount'),  hint:'매출액' },
+    { label:'매출총이익', valueHtml:`${fmtKRWNum(k.gross_profit)}<span class="unit">${fmtKRWUnit(k.gross_profit)}</span>`,  color:c.positive,  cls:'green',                           delta:dGross,  deltaSuffix:'%',  spark:sp('gross_profit'),  hint:'매출총이익' },
+    { label:'직접이익',   valueHtml:`${fmtKRWNum(kDirect)}<span class="unit">${fmtKRWUnit(kDirect)}</span>`,               color:c.positive,  cls:'green',                           delta:dDirect, deltaSuffix:'%',  spark:trend.map(r=>(r.gross_profit||0)-(r.sga_direct||0)), hint:'직접이익' },
+    { label:'공헌이익',   valueHtml:`${fmtKRWNum(kContrib)}<span class="unit">${fmtKRWUnit(kContrib)}</span>`,             color:'#3698FF',   cls:'blue',                            delta:dContrib,deltaSuffix:'%',  spark:trend.map(r=>(r.gross_profit||0)-(r.sga_direct||0)-(r.sga_org_indirect||0)), hint:'공헌이익' },
+    { label:'영업이익',   valueHtml:`${fmtKRWNum(kOI)}<span class="unit">${fmtKRWUnit(kOI)}</span>`,                       color:kOI>=0?c.positive:c.negative, cls:kOI>=0?'green featured':'featured', delta:dOI, deltaSuffix:'%', spark:sp('operating_income'), hint:'영업이익' },
+    { label:'영업이익율', valueHtml:`${kOIM.toFixed(1)}<span class="unit">%</span>`,                                        color:c.plum,      cls:'purple',                          delta:dMgnPp,  deltaSuffix:'%p', spark:trend.map(r=>r.sales_amount?(r.operating_income/r.sales_amount)*100:0), hint:'영업이익율', pct:true },
   ];
 
   const cardHtml = cards.map((it, i) => {
@@ -3860,10 +3880,12 @@ function renderHeroShell(){
   // Summary comment lines
   const lines = [];
   lines.push(`매출은 전월 대비 ${formatDeltaSpan(dSales)} ${dSales >= 0 ? '증가' : '감소'}했습니다.`);
+  if (Math.abs(dDirect) > 0.5)
+    lines.push(`직접이익은 ${formatDeltaSpan(dDirect)} ${dDirect >= 0 ? '증가' : '감소'}했습니다.`);
   if (Math.abs(dOI) > 0.5)
-    lines.push(`공헌이익은 ${formatDeltaSpan(dOI)} ${dOI >= 0 ? '증가' : '감소'}하여 수익성에 ${dOI >= 0 ? '긍정적' : '부정적'} 영향을 주었습니다.`);
+    lines.push(`영업이익은 ${formatDeltaSpan(dOI)} ${dOI >= 0 ? '증가' : '감소'}하여 수익성에 ${dOI >= 0 ? '긍정적' : '부정적'} 영향을 주었습니다.`);
   if (Math.abs(dMgnPp) > 0.05)
-    lines.push(`공헌이익률은 ${dMgnPp >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(dMgnPp).toFixed(1)}%p</span> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
+    lines.push(`영업이익율은 ${dMgnPp >= 0 ? '<span class="up">▲ ' : '<span class="down">▼ '}${Math.abs(dMgnPp).toFixed(1)}%p</span> ${dMgnPp >= 0 ? '개선' : '하락'}했습니다.`);
 
   const commentHtml = `<div class="summary-comment">
     <div class="summary-comment-hd">
@@ -3968,11 +3990,21 @@ function changeFactorCardHtml(){
   const dSales = delta(g(recent,'sales_amount'),     g(prior,'sales_amount'));
   const dCogs  = delta(g(recent,'cost_of_sales'),    g(prior,'cost_of_sales'));
   const dGross = delta(g(recent,'gross_profit'),     g(prior,'gross_profit'));
-  const dSga   = delta(g(recent,'sga_expenses'),     g(prior,'sga_expenses'));
   const dOI    = delta(g(recent,'operating_income'), g(prior,'operating_income'));
   const curMgn = g(recent,'sales_amount') ? g(recent,'operating_income')/g(recent,'sales_amount')*100 : 0;
   const prvMgn = g(prior,'sales_amount')  ? g(prior,'operating_income') /g(prior,'sales_amount') *100 : 0;
   const dMgnPp = curMgn - prvMgn;
+  const lSgaDc = g(recent,'sga_direct');
+  const pSgaDc = g(prior,'sga_direct');
+  const lDir = g(recent,'gross_profit') - lSgaDc;
+  const pDir = g(prior,'gross_profit') - pSgaDc;
+  const lSgaOi = g(recent,'sga_org_indirect');
+  const pSgaOi = g(prior,'sga_org_indirect');
+  const lCon = lDir - lSgaOi;
+  const pCon = pDir - pSgaOi;
+  const dSgaD   = pSgaDc ? (lSgaDc - pSgaDc) / Math.abs(pSgaDc) * 100 : 0;
+  const dDirInc = pDir   ? (lDir   - pDir  ) / Math.abs(pDir)   * 100 : 0;
+  const dConInc = pCon   ? (lCon   - pCon  ) / Math.abs(pCon)   * 100 : 0;
   const fr = (label, d, isPp) => {
     const up = d > 0.05, down = d < -0.05;
     const cls = up ? 'up' : down ? 'down' : 'flat';
@@ -3982,7 +4014,7 @@ function changeFactorCardHtml(){
   };
   return `<div class="change-factor-card">
     <div class="breakdown-list-hd"><i data-lucide="git-compare-arrows" class="ic"></i>증감 요인 요약 <span style="font-weight:500;color:var(--text-tertiary);font-size:10.5px;margin-left:2px">(전월 대비)</span></div>
-    ${fr('매출액', dSales)}${fr('매출원가', dCogs)}${fr('매출총이익', dGross)}${fr('판매관리비', dSga)}${fr('공헌이익', dOI)}${fr('공헌이익률', dMgnPp, true)}
+    ${fr('매출액', dSales)}${fr('매출원가', dCogs)}${fr('매출총이익', dGross)}${fr('판관비(직접)', dSgaD)}${fr('직접이익', dDirInc)}${fr('공헌이익', dConInc)}${fr('영업이익', dOI)}${fr('영업이익율', dMgnPp, true)}
   </div>`;
 }
 
@@ -4002,7 +4034,6 @@ function renderWaterfallShell(){
   const dSales = delta(sumK(recent,'sales_amount'),     sumK(prior,'sales_amount'));
   const dCogs  = delta(sumK(recent,'cost_of_sales'),    sumK(prior,'cost_of_sales'));
   const dGross = delta(sumK(recent,'gross_profit'),     sumK(prior,'gross_profit'));
-  const dSga   = delta(sumK(recent,'sga_expenses'),     sumK(prior,'sga_expenses'));
   const dOI    = delta(sumK(recent,'operating_income'), sumK(prior,'operating_income'));
 
   const dlt = (v) => {
@@ -4011,10 +4042,23 @@ function renderWaterfallShell(){
     return `<span class="delta ${cls}">${sign}${Math.abs(v).toFixed(1)}%</span>`;
   };
 
-  // 공헌이익률 %p delta
+  // 영업이익율 %p delta
   const curMgn = sumK(recent,'sales_amount') ? sumK(recent,'operating_income')/sumK(recent,'sales_amount')*100 : 0;
   const prvMgn = sumK(prior,'sales_amount')  ? sumK(prior,'operating_income') /sumK(prior,'sales_amount') *100 : 0;
   const dMgnPp = curMgn - prvMgn;
+
+  // 직접이익 / 공헌이익 deltas for factor card
+  const wfLSgaD  = sumK(recent,'sga_direct');
+  const wfPSgaD  = sumK(prior,'sga_direct');
+  const wfLDir   = sumK(recent,'gross_profit') - wfLSgaD;
+  const wfPDir   = sumK(prior,'gross_profit')  - wfPSgaD;
+  const wfLSgaO  = sumK(recent,'sga_org_indirect');
+  const wfPSgaO  = sumK(prior,'sga_org_indirect');
+  const wfLCon   = wfLDir - wfLSgaO;
+  const wfPCon   = wfPDir - wfPSgaO;
+  const dSgaD_wf  = wfPSgaD ? (wfLSgaD - wfPSgaD) / Math.abs(wfPSgaD) * 100 : 0;
+  const dDirInc_wf = wfPDir  ? (wfLDir  - wfPDir ) / Math.abs(wfPDir)  * 100 : 0;
+  const dConInc_wf = wfPCon  ? (wfLCon  - wfPCon ) / Math.abs(wfPCon)  * 100 : 0;
 
   const factorRow = (label, d, isPp) => {
     const up = d > 0.05, down = d < -0.05;
@@ -4034,7 +4078,7 @@ function renderWaterfallShell(){
       <div class="waterfall-card-hd">
         <div>
           <div class="card-title"><i data-lucide="bar-chart-3"></i>손익 흐름 <span style="color:var(--text-tertiary);font-weight:500;font-size:11px;margin-left:4px">(누적)</span></div>
-          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판매관리비 → 공헌이익 <span style="opacity:.8">· 막대 안 %는 매출 대비 비중</span></div>
+          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판관비(직접) → 직접이익 → 판관비(간접) → 영업이익 <span style="opacity:.8">· 막대 안 %는 매출 대비 비중</span></div>
         </div>
         <div class="waterfall-card-unit">단위: 억원</div>
       </div>
@@ -4045,9 +4089,11 @@ function renderWaterfallShell(){
       ${factorRow('매출액', dSales)}
       ${factorRow('매출원가', dCogs)}
       ${factorRow('매출총이익', dGross)}
-      ${factorRow('판매관리비', dSga)}
-      ${factorRow('공헌이익', dOI)}
-      ${factorRow('공헌이익률', dMgnPp, true)}
+      ${factorRow('판관비(직접)', dSgaD_wf)}
+      ${factorRow('직접이익', dDirInc_wf)}
+      ${factorRow('공헌이익', dConInc_wf)}
+      ${factorRow('영업이익', dOI)}
+      ${factorRow('영업이익율', dMgnPp, true)}
     </div>
   `;
 
@@ -4060,20 +4106,24 @@ function buildWaterfallChart(k){
   const ctx = resetCanvas('waterfallChart');
   if (!ctx) return;
   const c = chartColors();
-  const sales = k.sales_amount || 0;
-  const cogs  = k.cost_of_sales || 0;
-  const gross = k.gross_profit  || 0;
-  const sga   = k.sga_expenses  || 0;
-  const oi    = k.operating_income || 0;
+  const sales  = k.sales_amount   || 0;
+  const cogs   = k.cost_of_sales  || 0;
+  const gross  = k.gross_profit   || 0;
+  const sgaD   = k.sga_direct     || 0;
+  const sgaI   = (k.sga_expenses||0) - sgaD;  // sga_indirect = org + ssg combined
+  const direct = gross - sgaD;
+  const oi     = k.operating_income || 0;
 
-  // 5 floating-bar columns: [low, high] for each step
+  // 7 floating-bar columns: [low, high] for each step
   const pctOf = (v) => sales ? (Math.abs(v) / sales * 100) : 0;
   const data = [
-    { label:'매출액',    base:0,         top:sales,        color:c.accent,   value:sales, pct:100 },
-    { label:'매출원가',  base:sales-cogs, top:sales,       color:c.tertiary, value:-cogs, isSub:true, pct:pctOf(cogs) },
-    { label:'매출총이익', base:0,        top:gross,        color:c.positive, value:gross, isSubtotal:true, pct:pctOf(gross) },
-    { label:'판매관리비', base:gross-sga, top:gross,       color: c.isDark ? '#5A6478' : '#AEB7C7', value:-sga, isSub:true, pct:pctOf(sga) },
-    { label:'공헌이익',  base:0,         top:oi,           color:c.positive, value:oi, isSubtotal:true, emphasized:true, pct:pctOf(oi) },
+    { label:'매출액',       base:0,           top:sales,   color:c.accent,                      value:sales,   pct:100 },
+    { label:'매출원가',     base:sales-cogs,  top:sales,   color:c.tertiary,                    value:-cogs,   isSub:true,      pct:pctOf(cogs)   },
+    { label:'매출총이익',   base:0,           top:gross,   color:c.positive,                    value:gross,   isSubtotal:true, pct:pctOf(gross)  },
+    { label:'판관비(직접)', base:gross-sgaD,  top:gross,   color:c.tertiary,                    value:-sgaD,   isSub:true,      pct:pctOf(sgaD)   },
+    { label:'직접이익',     base:0,           top:direct,  color:'rgba(72,199,116,.85)',         value:direct,  isSubtotal:true, pct:pctOf(direct) },
+    { label:'판관비(간접)', base:direct-sgaI, top:direct,  color:c.isDark ? '#5A6478' : '#AEB7C7', value:-sgaI, isSub:true,     pct:pctOf(sgaI)   },
+    { label:'영업이익',     base:0,           top:oi,      color:c.positive,                    value:oi,      isSubtotal:true, emphasized:true,  pct:pctOf(oi)    },
   ];
 
   // floating bar requires array data [low, high]
@@ -4883,9 +4933,10 @@ function buildOverviewCharts(){
     data: {
       labels: months.map(m => m.slice(2).replace('-', '.')),
       datasets: [
-        { type:'line', label:'매출액',     data: trend.map(r => r.sales_amount),     borderColor: c.accent,   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.accent,   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
-        { type:'line', label:'매출총이익', data: trend.map(r => r.gross_profit),     borderColor: c.positive, backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.positive, pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
-        { type:'line', label:'공헌이익',   data: trend.map(r => r.operating_income), borderColor: c.plum,     backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.plum,     pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
+        { type:'line', label:'매출액',     data: trend.map(r => r.sales_amount),                                                          borderColor: c.accent,   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.accent,   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
+        { type:'line', label:'매출총이익', data: trend.map(r => r.gross_profit),                                                          borderColor: c.positive, backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.positive, pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
+        { type:'line', label:'직접이익',   data: trend.map(r => (r.gross_profit||0) - (r.sga_direct||0)),                                 borderColor: '#48C774',  backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: '#48C774',  pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
+        { type:'line', label:'영업이익',   data: trend.map(r => r.operating_income),                                                      borderColor: c.plum,     backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 3, pointBackgroundColor: c.plum,     pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5 },
       ],
     },
     options: {
