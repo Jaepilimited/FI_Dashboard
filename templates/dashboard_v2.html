@@ -2831,7 +2831,8 @@ const state = {
   rangeStart: 0,
   rangeEnd: 0,
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false, rawSource: 'fi',
-  rawSmFilter: { yearMonth:'', department:'', indirectCostClass:'', mainCategory:'' },
+  rawSmFilter:      { yearMonth:'', department:'', indirectCostClass:'', mainCategory:'' },
+  rawFsmFilter:     { yearMonth:'', department:'', itemClass:'', indirectCostClass:'', mainCategory:'' },
   rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'', yearMonth:'' },
   tableau: {
     views: [],
@@ -2889,6 +2890,7 @@ let _real = {
   treeData: {},      // { 'cat|drill|level': rows }
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
   raw_sm: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
+  raw_final_sm: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
 };
 let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS1=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
 let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
@@ -5091,13 +5093,27 @@ function renderRawDataView(){
   const smIccOpts = ['직접','조직간접','SSG간접'].map(v=>`<option value="${v}"${state.rawSmFilter.indirectCostClass===v?' selected':''}>${v}</option>`).join('');
   const smMainCatOpts = ['광고선전비','물류비','수수료','인건비','기타'].map(v=>`<option value="${v}"${state.rawSmFilter.mainCategory===v?' selected':''}>${v}</option>`).join('');
   const smDeptOpts = _depts.map(v=>`<option value="${v}"${state.rawSmFilter.department===v?' selected':''}>${v}</option>`).join('');
-  const smYmOpts = (USE_MOCK ? ALL_MONTHS : ALL_MONTHS).map(v=>`<option value="${v}"${state.rawSmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const smYmOpts = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawSmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const fsmIccOpts = ['직접','조직간접','SSG간접'].map(v=>`<option value="${v}"${state.rawFsmFilter.indirectCostClass===v?' selected':''}>${v}</option>`).join('');
+  const fsmMainCatOpts = ['광고선전비','물류비','수수료','인건비','기타'].map(v=>`<option value="${v}"${state.rawFsmFilter.mainCategory===v?' selected':''}>${v}</option>`).join('');
+  const fsmItemClassOpts = ['매출액','매출원가','매출총이익','영업이익','판관비'].map(v=>`<option value="${v}"${state.rawFsmFilter.itemClass===v?' selected':''}>${v}</option>`).join('');
+  const fsmDeptOpts = _depts.map(v=>`<option value="${v}"${state.rawFsmFilter.department===v?' selected':''}>${v}</option>`).join('');
+  const fsmYmOpts = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawFsmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
   const filterBarHtml = state.rawSource === 'sm'
     ? `<div class="raw-filter-bar">
         <select class="select-sm" id="rawSmYmSel"><option value="">전체 기간</option>${smYmOpts}</select>
         <select class="select-sm" id="rawSmDeptSel"><option value="">전체 부서</option>${smDeptOpts}</select>
         <select class="select-sm" id="rawSmIccSel"><option value="">전체 간접비분류</option>${smIccOpts}</select>
         <select class="select-sm" id="rawSmMainCatSel"><option value="">전체 대분류</option>${smMainCatOpts}</select>
+        <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
+      </div>`
+    : state.rawSource === 'fsm'
+    ? `<div class="raw-filter-bar">
+        <select class="select-sm" id="rawFsmYmSel"><option value="">전체 기간</option>${fsmYmOpts}</select>
+        <select class="select-sm" id="rawFsmDeptSel"><option value="">전체 부서</option>${fsmDeptOpts}</select>
+        <select class="select-sm" id="rawFsmItemSel"><option value="">전체 항목</option>${fsmItemClassOpts}</select>
+        <select class="select-sm" id="rawFsmIccSel"><option value="">전체 간접비분류</option>${fsmIccOpts}</select>
+        <select class="select-sm" id="rawFsmMainCatSel"><option value="">전체 대분류</option>${fsmMainCatOpts}</select>
         <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
       </div>`
     : `<div class="raw-filter-bar">
@@ -5118,6 +5134,7 @@ function renderRawDataView(){
       <span style="font-size:11px;color:var(--text-tertiary);font-weight:600">데이터 소스</span>
       <button class="src-btn${state.rawSource==='fi'?' active':''}" id="rawSrcFi">FI_Final (거래)</button>
       <button class="src-btn${state.rawSource==='sm'?' active':''}" id="rawSrcSm">FI_SM (판관비)</button>
+      <button class="src-btn${state.rawSource==='fsm'?' active':''}" id="rawSrcFsm">FI_Final_SM (통합)</button>
     </div>
     ${filterBarHtml}
     <div class="raw-bar">
@@ -5161,6 +5178,16 @@ function initRawDataView(){
     initRawDataView();
     loadRawPage();
   };
+  const srcFsm = $('#rawSrcFsm');
+  if (srcFsm) srcFsm.onclick = () => {
+    if (state.rawSource === 'fsm') return;
+    state.rawSource = 'fsm';
+    state.rawPage = 1; state.rawSearch = '';
+    const rawSection = document.querySelector('.raw-view');
+    if (rawSection) rawSection.outerHTML = renderRawDataView();
+    initRawDataView();
+    loadRawPage();
+  };
 
   const onFilterChange = () => {
     state.rawFilter.yearMonth  = ($('#rawYmSel')||{}).value     || '';
@@ -5192,6 +5219,20 @@ function initRawDataView(){
   ['rawSmYmSel','rawSmDeptSel','rawSmIccSel','rawSmMainCatSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onSmFilterChange;
+  });
+
+  const onFsmFilterChange = () => {
+    state.rawFsmFilter.yearMonth         = ($('#rawFsmYmSel')||{}).value      || '';
+    state.rawFsmFilter.department        = ($('#rawFsmDeptSel')||{}).value    || '';
+    state.rawFsmFilter.itemClass         = ($('#rawFsmItemSel')||{}).value    || '';
+    state.rawFsmFilter.indirectCostClass = ($('#rawFsmIccSel')||{}).value     || '';
+    state.rawFsmFilter.mainCategory      = ($('#rawFsmMainCatSel')||{}).value || '';
+    state.rawPage = 1;
+    loadRawPage();
+  };
+  ['rawFsmYmSel','rawFsmDeptSel','rawFsmItemSel','rawFsmIccSel','rawFsmMainCatSel'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.onchange = onFsmFilterChange;
   });
 
   const srch = $('#rawSearch');
@@ -7814,17 +7855,22 @@ async function loadRawPage(){
     if(state.rawSource === 'sm'){
       const p = new URLSearchParams();
       const ymFilter = state.rawSmFilter.yearMonth;
-      if(ymFilter){
-        p.append('months', ymFilter);
-      } else {
-        activeMonths().forEach(m => p.append('months', m));
-      }
+      if(ymFilter){ p.append('months', ymFilter); } else { activeMonths().forEach(m => p.append('months', m)); }
       if(state.rawSmFilter.department)        p.set('department',          state.rawSmFilter.department);
       if(state.rawSmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSmFilter.indirectCostClass);
       if(state.rawSmFilter.mainCategory)      p.set('main_category',       state.rawSmFilter.mainCategory);
-      p.set('page',     state.rawPage);
-      p.set('per_page', state.rawPerPage);
+      p.set('page', state.rawPage); p.set('per_page', state.rawPerPage);
       try{ _real.raw_sm = await fetch('/api/raw_sm?'+p).then(r=>r.json()); } catch(e){}
+    } else if(state.rawSource === 'fsm'){
+      const p = new URLSearchParams();
+      const ymFilter = state.rawFsmFilter.yearMonth;
+      if(ymFilter){ p.append('months', ymFilter); } else { activeMonths().forEach(m => p.append('months', m)); }
+      if(state.rawFsmFilter.department)        p.set('department',          state.rawFsmFilter.department);
+      if(state.rawFsmFilter.itemClass)         p.set('item_class',          state.rawFsmFilter.itemClass);
+      if(state.rawFsmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawFsmFilter.indirectCostClass);
+      if(state.rawFsmFilter.mainCategory)      p.set('main_category',       state.rawFsmFilter.mainCategory);
+      p.set('page', state.rawPage); p.set('per_page', state.rawPerPage);
+      try{ _real.raw_final_sm = await fetch('/api/raw_final_sm?'+p).then(r=>r.json()); } catch(e){}
     } else {
       const p = new URLSearchParams();
       const ymFilter = state.rawFilter.yearMonth;
@@ -7854,13 +7900,13 @@ async function loadRawPage(){
 function renderRaw(){
   if (state.category !== 'rawdata') return;
 
-  // SM column labels and order
+  // SM / FSM column labels and order
   const SM_COL_LABEL = {
     Year_Month:'연월', Department:'부서', Cost_Center_Class:'코스트센터분류',
     Sending_Cost_Center:'보내는센터', Cost_Account:'원가계정', Amount:'금액',
     Account_Name:'계정명', Main_Category:'대분류', Sub_Category:'중분류',
     Detail_Category:'상세분류', Division:'본부구분', Team:'팀구분',
-    Indirect_Cost_Class:'간접비분류',
+    Indirect_Cost_Class:'간접비분류', Item_Class:'항목',
   };
   const SM_COL_ORDER = [
     'Year_Month','Department','Indirect_Cost_Class','Cost_Center_Class',
@@ -7868,12 +7914,20 @@ function renderRaw(){
     'Cost_Account','Account_Name','Amount',
     'Sending_Cost_Center','Division','Team',
   ];
+  const FSM_COL_ORDER = [
+    'Year_Month','Department','Item_Class','Indirect_Cost_Class','Cost_Center_Class',
+    'Main_Category','Sub_Category','Detail_Category',
+    'Cost_Account','Account_Name','Amount',
+    'Sending_Cost_Center','Division','Team',
+  ];
 
-  const isSm = state.rawSource === 'sm';
+  const isSm  = state.rawSource === 'sm';
+  const isFsm = state.rawSource === 'fsm';
   const res = USE_MOCK
     ? api.raw(state.rawPage, state.rawPerPage)
-    : (isSm ? (_real.raw_sm||{total:0,page:1,per_page:100,rows:[],columns:[]})
-             : (_real.raw||{total:0,page:1,per_page:100,rows:[],columns:[]}));
+    : (isSm  ? (_real.raw_sm       || {total:0,page:1,per_page:100,rows:[],columns:[]})
+    : (isFsm ? (_real.raw_final_sm || {total:0,page:1,per_page:100,rows:[],columns:[]})
+             : (_real.raw          || {total:0,page:1,per_page:100,rows:[],columns:[]})));
 
   if($('#rawTotal')) $('#rawTotal').textContent = fmtFull(res.total);
   const pages = Math.max(1, Math.ceil(res.total / state.rawPerPage));
@@ -7909,10 +7963,10 @@ function renderRaw(){
     'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit', 'SG_and_A_Expenses', 'Operating_Income',
   ];
 
-  // Use SM columns/labels when source is sm
-  const activeColLabel = isSm ? SM_COL_LABEL : COL_LABEL;
-  const activeColOrder = isSm ? SM_COL_ORDER  : COL_ORDER;
-  const activeNumKrw   = isSm ? SM_NUM_KRW    : NUM_KRW;
+  // Use SM/FSM columns/labels depending on source
+  const activeColLabel = (isSm || isFsm) ? SM_COL_LABEL : COL_LABEL;
+  const activeColOrder = isFsm ? FSM_COL_ORDER : (isSm ? SM_COL_ORDER : COL_ORDER);
+  const activeNumKrw   = (isSm || isFsm) ? SM_NUM_KRW  : NUM_KRW;
 
   // available keys from data (to skip columns that don't exist in this dataset)
   const available = (res.columns && res.columns.length)
@@ -8010,6 +8064,50 @@ function _hideCsvProgress(){ const m = $('#csvProgModal'); if(m) m.style.display
 
 async function downloadCSV(){
   if(USE_MOCK){ alert('\uBAA8\uC758 \uB370\uC774\uD130 \uBAA8\uB4DC\uC5D0\uC11C\uB294 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.'); return; }
+
+  // FI_Final_SM \uC18C\uC2A4: export=1 \uC9C1\uC811 \uD638\uCD9C (50000 rows max)
+  if(state.rawSource === 'fsm'){
+    const p = new URLSearchParams();
+    const ymFsm = state.rawFsmFilter.yearMonth;
+    if(ymFsm){ p.append('months', ymFsm); } else { activeMonths().forEach(m => p.append('months', m)); }
+    if(state.rawFsmFilter.department)        p.set('department',          state.rawFsmFilter.department);
+    if(state.rawFsmFilter.itemClass)         p.set('item_class',          state.rawFsmFilter.itemClass);
+    if(state.rawFsmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawFsmFilter.indirectCostClass);
+    if(state.rawFsmFilter.mainCategory)      p.set('main_category',       state.rawFsmFilter.mainCategory);
+    p.set('export', '1');
+    _setCsvProgress(0, 'FI_Final_SM \uB370\uC774\uD130 \uC900\uBE44 \uC911\u2026');
+    try {
+      const res = await fetch('/api/raw_final_sm?' + p).then(r => r.json());
+      const rows = res.rows || [];
+      const cols = res.columns || (rows[0] ? Object.keys(rows[0]) : []);
+      const FSM_LABEL = {
+        Year_Month:'\uC5F0\uC6D4', Department:'\uBD80\uC11C', Item_Class:'\uD56D\uBAA9',
+        Cost_Center_Class:'\uCF54\uC2A4\uD2B8\uC13C\uD130\uBD84\uB958', Sending_Cost_Center:'\uBCF4\uB0B4\uB294\uC13C\uD130',
+        Cost_Account:'\uC6D0\uAC00\uACC4\uC815', Amount:'\uAE08\uC561', Account_Name:'\uACC4\uC815\uBA85',
+        Main_Category:'\uB300\uBD84\uB958', Sub_Category:'\uC911\uBD84\uB958', Detail_Category:'\uC0C1\uC138\uBD84\uB958',
+        Division:'\uBCF8\uBD80\uAD6C\uBD84', Team:'\uD300\uAD6C\uBD84', Indirect_Cost_Class:'\uAC04\uC811\uBE44\uBD84\uB958',
+      };
+      const header = cols.map(c => FSM_LABEL[c]||c).join(',');
+      const csvRows = rows.map(r => cols.map(c => {
+        const v = r[c] == null ? '' : String(r[c]);
+        return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+      }).join(','));
+      const csv = '\uFEFF' + header + '\n' + csvRows.join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const ts = new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','_');
+      a.download = `FI_Final_SM_Export_${ts}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      _setCsvProgress(100, '\uB2E4\uC6B4\uB85C\uB4DC \uC644\uB8CC!');
+      setTimeout(_hideCsvProgress, 1800);
+    } catch(e){
+      _hideCsvProgress();
+      alert('\uB2E4\uC6B4\uB85C\uB4DC \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4:\n' + e.message);
+    }
+    return;
+  }
 
   // FI_SM \uC18C\uC2A4: export=1 \uC9C1\uC811 \uD638\uCD9C (50000 rows max)
   if(state.rawSource === 'sm'){
