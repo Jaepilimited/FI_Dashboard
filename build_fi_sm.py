@@ -83,13 +83,24 @@ WITH pnl AS (
   FROM `{DATASET}.FI_Final`
   GROUP BY Department, Year_Month
 ),
+-- FI_SM 간접비분류별 판관비 합계 (직접이익·공헌이익 파생에 사용)
+sga_class AS (
+  SELECT Department, Year_Month,
+    SUM(CASE WHEN Indirect_Cost_Class = '직접'    THEN Amount ELSE 0 END) AS sga_direct,
+    SUM(CASE WHEN Indirect_Cost_Class = '조직간접' THEN Amount ELSE 0 END) AS sga_org_indirect
+  FROM `{DATASET}.FI_SM`
+  GROUP BY Department, Year_Month
+),
 pnl_long AS (
   SELECT p.Department, p.Year_Month, item.name AS Item, item.amt AS Amount
-  FROM pnl p,
+  FROM pnl p
+  LEFT JOIN sga_class sc ON p.Department = sc.Department AND p.Year_Month = sc.Year_Month,
   UNNEST([
     STRUCT('매출액'    AS name, p.Sales_Amount     AS amt),
     STRUCT('매출원가',          p.Cost_of_Sales),
     STRUCT('매출총이익',        p.Gross_Profit),
+    STRUCT('직접이익',          p.Gross_Profit - COALESCE(sc.sga_direct, 0)),
+    STRUCT('공헌이익',          p.Gross_Profit - COALESCE(sc.sga_direct, 0) - COALESCE(sc.sga_org_indirect, 0)),
     STRUCT('영업이익',          p.Operating_Income)
   ]) AS item
 )

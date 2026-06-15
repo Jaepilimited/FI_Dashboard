@@ -5096,7 +5096,7 @@ function renderRawDataView(){
   const smYmOpts = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawSmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
   const fsmIccOpts = ['직접','조직간접','SSG간접'].map(v=>`<option value="${v}"${state.rawFsmFilter.indirectCostClass===v?' selected':''}>${v}</option>`).join('');
   const fsmMainCatOpts = ['광고선전비','물류비','수수료','인건비','기타'].map(v=>`<option value="${v}"${state.rawFsmFilter.mainCategory===v?' selected':''}>${v}</option>`).join('');
-  const fsmItemClassOpts = ['매출액','매출원가','매출총이익','영업이익','판관비'].map(v=>`<option value="${v}"${state.rawFsmFilter.itemClass===v?' selected':''}>${v}</option>`).join('');
+  const fsmItemClassOpts = ['매출액','매출원가','매출총이익','직접이익','공헌이익','영업이익','판관비'].map(v=>`<option value="${v}"${state.rawFsmFilter.itemClass===v?' selected':''}>${v}</option>`).join('');
   const fsmDeptOpts = _depts.map(v=>`<option value="${v}"${state.rawFsmFilter.department===v?' selected':''}>${v}</option>`).join('');
   const fsmYmOpts = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawFsmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
   const filterBarHtml = state.rawSource === 'sm'
