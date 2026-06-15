@@ -1404,6 +1404,9 @@ def api_prefetch():
 
     def fetch_task(item):
         key, (sql, prm) = item
+        # 차원이 없는 카테고리(overview 등)는 breakdown SQL이 빈 문자열 → 빈 쿼리 BigQuery 400 방지
+        if not sql or not sql.strip():
+            return key, []
         return key, run_query_cached(sql, prm)
 
     with ThreadPoolExecutor(max_workers=len(tasks)) as ex:
