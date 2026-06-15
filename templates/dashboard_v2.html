@@ -1465,7 +1465,7 @@ table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width
 .pl-pt{padding:3px 10px;border:none;background:transparent;border-radius:5px;font-size:11px;font-weight:600;color:var(--text-tertiary);cursor:pointer;transition:background .15s,color .15s}
 .pl-pt.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .pl-table thead tr th{background:var(--text);color:var(--surface);font-weight:700}
-.pl-table thead tr th:first-child{background:var(--text);color:var(--surface)}
+.pl-table thead tr th:first-child{background:#4B5568;color:#fff}
 .pl-table tr.pl-pct-hl-direct td,.pl-table tr.pl-pct-hl-direct td:first-child{background:rgba(72,199,116,.06)}
 .pl-table tr.pl-pct-hl-contrib td,.pl-table tr.pl-pct-hl-contrib td:first-child{background:rgba(54,153,255,.06)}
 .pl-table tr.pl-pct-hl-op td,.pl-table tr.pl-pct-hl-op td:first-child{background:rgba(255,99,99,.06)}
@@ -7028,7 +7028,7 @@ function renderTopNCards(breakdown){
 
   const oiCard = `<div class="topn-card">
     <div class="topn-card-hd">
-      <div class="topn-card-title">${dimLabel}별 공헌이익 증감 TOP 5</div>
+      <div class="topn-card-title">${dimLabel}별 영업이익 증감 TOP 5</div>
       <div class="topn-card-sub">${periodLabel}</div>
     </div>
     ${oiTop.map((it, i) => row(it, i, 'oi')).join('')}
@@ -7036,7 +7036,7 @@ function renderTopNCards(breakdown){
 
   const mgnCard = `<div class="topn-card">
     <div class="topn-card-hd">
-      <div class="topn-card-title">${dimLabel}별 공헌이익률 증감 TOP 5</div>
+      <div class="topn-card-title">${dimLabel}별 영업이익율 증감 TOP 5</div>
       <div class="topn-card-sub">${periodLabel}</div>
     </div>
     ${mgnTop.map((it, i) => row(it, i, 'mgn')).join('')}
@@ -7197,13 +7197,17 @@ function buildDrillCharts(){
       const wfItems = breakdown.slice(0, wfN);
       const navy = c.isDark ? '#5B7CFA' : '#27408B';
       const gray = c.isDark ? '#5A6478' : '#AEB7C7';
+      const kTot = api.kpi();
+      const sgaDratio = kTot.sga_expenses > 0 ? (kTot.sga_direct || 0) / kTot.sga_expenses : 0;
       const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
       const dss = [
-        { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
-        { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
-        { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
-        { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
-        { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
+        { label:'매출액',       data: mk(()=>0, b=>b.sales_amount),                                                     backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
+        { label:'매출원가',     data: mk(b=>b.gross_profit, b=>b.sales_amount),                                         backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
+        { label:'매출총이익',   data: mk(()=>0, b=>b.gross_profit),                                                      backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
+        { label:'판관비(직접)', data: mk(b=>(b.gross_profit - b.sga_expenses*sgaDratio), b=>b.gross_profit),            backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_expenses*sgaDratio) },
+        { label:'직접이익',     data: mk(()=>0, b=>(b.gross_profit - b.sga_expenses*sgaDratio)),                        backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit - b.sga_expenses*sgaDratio) },
+        { label:'판관비(간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit - b.sga_expenses*sgaDratio)),        backgroundColor: c.plum,                _vals: wfItems.map(b=>b.sga_expenses*(1-sgaDratio)) },
+        { label:'영업이익',     data: mk(()=>0, b=>b.operating_income),                                                  backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
       ];
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.76;
         ds.datalabels = {
@@ -7261,10 +7265,11 @@ function buildDrillCharts(){
       data: {
         labels: months.map(m => m.slice(2).replace('-', '.')),
         datasets: [
-          { type:'line', label:'매출액',     data: trendTotal.map(r => r.sales_amount),     borderColor: c.accent,   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor: c.accent,   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
-          { type:'line', label:'매출총이익', data: trendTotal.map(r => r.gross_profit),     borderColor: c.positive, backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor: c.positive, pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
-          { type:'line', label:'공헌이익',   data: trendTotal.map(r => r.operating_income), borderColor: c.plum,     backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor: c.plum,     pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
-          { type:'line', label:'공헌이익률(%)', data: trendTotal.map(r => r.sales_amount ? (r.operating_income/r.sales_amount)*100 : 0), borderColor: c.plum, backgroundColor:'transparent', borderWidth: 1.5, borderDash:[4,3], tension: 0.32, pointRadius: 0, pointHoverRadius: 4, yAxisID:'y2' },
+          { type:'line', label:'매출액',       data: trendTotal.map(r => r.sales_amount),                                           borderColor: c.accent,   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor: c.accent,   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
+          { type:'line', label:'매출총이익',   data: trendTotal.map(r => r.gross_profit),                                           borderColor: c.positive, backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor: c.positive, pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
+          { type:'line', label:'직접이익',     data: trendTotal.map(r => (r.gross_profit||0)-(r.sga_direct||0)),                    borderColor:'#48C774',   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor:'#48C774',   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
+          { type:'line', label:'영업이익',     data: trendTotal.map(r => r.operating_income),                                       borderColor:'#FF6363',   backgroundColor:'transparent', borderWidth: 2.5, tension: 0.32, pointRadius: 2.5, pointBackgroundColor:'#FF6363',   pointBorderColor: c.isDark ? '#131923' : '#fff', pointBorderWidth: 1.5, yAxisID:'y' },
+          { type:'line', label:'영업이익율(%)', data: trendTotal.map(r => r.sales_amount ? (r.operating_income/r.sales_amount)*100 : 0), borderColor:'#FF6363', backgroundColor:'transparent', borderWidth: 1.5, borderDash:[4,3], tension: 0.32, pointRadius: 0, pointHoverRadius: 4, yAxisID:'y2' },
         ],
       },
       options: {
@@ -7489,11 +7494,13 @@ function buildSalesWaterfall({b2b, b2c}){
   ];
   const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
   const dss = [
-    { label:'매출액',     data: mk(()=>0, b=>b.sales_amount),                 backgroundColor: c.accent,   _vals: wfItems.map(b=>b.sales_amount) },
-    { label:'매출원가',   data: mk(b=>b.gross_profit, b=>b.sales_amount),    backgroundColor: gray,       _vals: wfItems.map(b=>b.cost_of_sales) },
-    { label:'매출총이익', data: mk(()=>0, b=>b.gross_profit),                 backgroundColor: c.positive, _vals: wfItems.map(b=>b.gross_profit) },
-    { label:'판매관리비', data: mk(b=>b.operating_income, b=>b.gross_profit), backgroundColor: c.plum,     _vals: wfItems.map(b=>b.sga_expenses) },
-    { label:'공헌이익',   data: mk(()=>0, b=>b.operating_income),             backgroundColor: navy,       _vals: wfItems.map(b=>b.operating_income) },
+    { label:'매출액',       data: mk(()=>0, b=>b.sales_amount),                                                  backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
+    { label:'매출원가',     data: mk(b=>b.gross_profit, b=>b.sales_amount),                                      backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
+    { label:'매출총이익',   data: mk(()=>0, b=>b.gross_profit),                                                   backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
+    { label:'판관비(직접)', data: mk(b=>(b.gross_profit-(b.sga_direct||0)), b=>b.gross_profit),                  backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_direct||0) },
+    { label:'직접이익',     data: mk(()=>0, b=>(b.gross_profit-(b.sga_direct||0))),                              backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit-(b.sga_direct||0)) },
+    { label:'판관비(간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit-(b.sga_direct||0))),              backgroundColor: c.plum,                _vals: wfItems.map(b=>(b.sga_expenses||0)-(b.sga_direct||0)) },
+    { label:'영업이익',     data: mk(()=>0, b=>b.operating_income),                                               backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
   ];
   dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.58;
     ds.datalabels = {
@@ -7702,10 +7709,11 @@ function buildSalesCharts(){
     data: {
       labels: months.map(m => m.slice(2).replace('-', '.')),
       datasets: [
-        { type:'line', label:'매출액',     data: t.map(r=>r.sales_amount),     borderColor:c.accent,   backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:c.accent,   pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
-        { type:'line', label:'매출총이익', data: t.map(r=>r.gross_profit),     borderColor:c.positive, backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:c.positive, pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
-        { type:'line', label:'공헌이익',   data: t.map(r=>r.operating_income), borderColor:c.plum,     backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:c.plum,     pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
-        { type:'line', label:'공헌이익률(%)', data: t.map(r=>r.sales_amount?(r.operating_income/r.sales_amount)*100:0), borderColor:c.plum, backgroundColor:'transparent', borderWidth:1.5, borderDash:[4,3], tension:0.32, pointRadius:0, pointHoverRadius:4, yAxisID:'y2' },
+        { type:'line', label:'매출액',       data: t.map(r=>r.sales_amount),                                        borderColor:c.accent,   backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:c.accent,   pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
+        { type:'line', label:'매출총이익',   data: t.map(r=>r.gross_profit),                                        borderColor:c.positive, backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:c.positive, pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
+        { type:'line', label:'직접이익',     data: t.map(r=>(r.gross_profit||0)-(r.sga_direct||0)),                 borderColor:'#48C774',  backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:'#48C774',   pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
+        { type:'line', label:'영업이익',     data: t.map(r=>r.operating_income),                                    borderColor:'#FF6363',  backgroundColor:'transparent', borderWidth:2.5, tension:0.32, pointRadius:2.5, pointBackgroundColor:'#FF6363',   pointBorderColor:c.isDark?'#131923':'#fff', pointBorderWidth:1.5, yAxisID:'y' },
+        { type:'line', label:'영업이익율(%)', data: t.map(r=>r.sales_amount?(r.operating_income/r.sales_amount)*100:0), borderColor:'#FF6363', backgroundColor:'transparent', borderWidth:1.5, borderDash:[4,3], tension:0.32, pointRadius:0, pointHoverRadius:4, yAxisID:'y2' },
       ],
     },
     options: {
