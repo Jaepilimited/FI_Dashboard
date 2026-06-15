@@ -2828,7 +2828,7 @@ const state = {
   rangeStart: 0,
   rangeEnd: 0,
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false,
-  rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'' },
+  rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'', yearMonth:'' },
   tableau: {
     views: [],
     currentId: null,
@@ -5082,8 +5082,10 @@ function renderRawDataView(){
   const catOpts   = _cats.map(v=>`<option value="${v}"${state.rawFilter.category===v?' selected':''}>${v}</option>`).join('');
   const brandOpts = _brands.map(v=>`<option value="${v}"${state.rawFilter.brand===v?' selected':''}>${v}</option>`).join('');
   const stOpts    = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
+  const ymOpts    = (USE_MOCK ? ALL_MONTHS : ALL_MONTHS).map(v=>`<option value="${v}"${state.rawFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
   return `<div class="raw-view">
     <div class="raw-filter-bar">
+      <select class="select-sm" id="rawYmSel"><option value="">전체 기간</option>${ymOpts}</select>
       <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
       <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
@@ -5116,6 +5118,7 @@ function renderRawDataView(){
 
 function initRawDataView(){
   const onFilterChange = () => {
+    state.rawFilter.yearMonth  = ($('#rawYmSel')||{}).value     || '';
     state.rawFilter.group      = ($('#rawGrpSel')||{}).value    || '';
     state.rawFilter.department = ($('#rawDeptSel')||{}).value   || '';
     state.rawFilter.continent1 = ($('#rawCont1Sel')||{}).value  || '';
@@ -5128,7 +5131,7 @@ function initRawDataView(){
     state.rawPage = 1;
     loadRawPage();
   };
-  ['rawBrandSel','rawSalesSel','rawGrpSel','rawDeptSel','rawCont1Sel','rawContSel','rawCtrySel','rawLineSel','rawCatSel'].forEach(id => {
+  ['rawYmSel','rawBrandSel','rawSalesSel','rawGrpSel','rawDeptSel','rawCont1Sel','rawContSel','rawCtrySel','rawLineSel','rawCatSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
@@ -7750,7 +7753,12 @@ function buildSalesCharts(){
 async function loadRawPage(){
   if(!USE_MOCK){
     const p = new URLSearchParams();
-    activeMonths().forEach(m => p.append('months', m));
+    const ymFilter = state.rawFilter.yearMonth;
+    if(ymFilter) {
+      p.append('months', ymFilter);
+    } else {
+      activeMonths().forEach(m => p.append('months', m));
+    }
     if(state.rawFilter.group)       p.set('group',       state.rawFilter.group);
     if(state.rawFilter.department)  p.set('department',  state.rawFilter.department);
     if(state.rawFilter.continent1)  p.set('continent1',  state.rawFilter.continent1);
@@ -7783,7 +7791,8 @@ function renderRaw(){
     Line:'라인', Category:'카테고리', Product_Name:'품명', Product_Code:'품번',
     Specification:'규격', Sales_Quantity:'수량', Sales_Amount:'매출액',
     Cost_of_Sales:'매출원가', Gross_Profit:'매출총이익',
-    SG_and_A_Expenses:'판관비', Operating_Income:'공헌이익',
+    SG_and_A_Expenses:'판관비', Operating_Income:'영업이익',
+    Gross_Margin:'매출총이익율', Operating_Margin:'영업이익율',
   };
   const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']);
   const NUM_QTY  = new Set(['Sales_Quantity']);
@@ -7804,12 +7813,16 @@ function renderRaw(){
   ];
 
   // available keys from data (to skip columns that don't exist in this dataset)
-  const available = new Set(
-    (res.columns && res.columns.length)
-      ? res.columns
-      : (res.rows[0] ? Object.keys(res.rows[0]) : [])
-  );
-  const cols = COL_ORDER.filter(c => available.has(c));
+  const available = (res.columns && res.columns.length)
+    ? res.columns
+    : (res.rows[0] ? Object.keys(res.rows[0]) : []);
+  const availSet = new Set(available);
+  const orderedSet = new Set(COL_ORDER);
+  // COL_ORDER first (for preferred ordering), then any extra columns from the server
+  const cols = [
+    ...COL_ORDER.filter(c => availSet.has(c)),
+    ...available.filter(c => !orderedSet.has(c)),
+  ];
 
   // update thead
   const thead = $('#rawThead');

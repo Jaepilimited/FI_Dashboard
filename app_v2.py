@@ -1077,21 +1077,11 @@ def api_raw():
             rows.append(r)
         return rows
 
-    _base_cols = [
-        'Year_Month', 'Department', '`Group`', 'Sales_Type', 'Line', 'Category', 'Country',
-        'Customer', 'Product_Name', 'Product_Code', 'Specification',
-        'Sales_Quantity', 'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit',
-        'SG_and_A_Expenses', 'Operating_Income',
-    ]
-    # 테이블에 있을 때만 브랜드·권역·대륙 컬럼 추가 (프론트가 COL_ORDER로 재정렬)
-    _rcols = table_columns()
-    _opt = [c for c in ('Brand', 'Continent1', 'Continent2') if c in _rcols]
-    SELECT_COLS = ', '.join(_base_cols + _opt)
-
     if export:
-        sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
+        sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
         rows = serialize(run_query_cached(sql, params))
-        return jsonify({'total': len(rows), 'rows': rows})
+        cols = list(rows[0].keys()) if rows else []
+        return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
 
     try:
         page     = max(1, int(request.args.get('page', 1)))
@@ -1103,9 +1093,10 @@ def api_raw():
     count_sql = f"SELECT COUNT(*) AS cnt FROM `{config.BQ_TABLE}` {where}"
     total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
 
-    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
+    sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
     rows = serialize(run_query_cached(sql, params))
-    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'rows': rows})
+    cols = list(rows[0].keys()) if rows else list(table_columns())
+    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
 
 
 # ─── 어드민 ────────────────────────────────────────────────────────
