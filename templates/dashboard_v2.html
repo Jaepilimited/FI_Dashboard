@@ -4281,91 +4281,68 @@ const PL_ROW_DEFS = [
 function makePlRows(v){
   return PL_ROW_DEFS.map(function(d){ return Object.assign({ id:d[0], label:d[1], vals:v[d[0]] }, d[2]); });
 }
-const PL_SECTIONS = [
-  { key:'jeonsa', title:'1. 전사', rows: makePlRows({
-      sales:[58893757955,58573061564,81199313531,115540451837],
-      cogs:[24245056366,23702314020,32989071159,47024575196],
-      gross:[34648701589,34870747544,48210242372,68515876641],
-      sgaD:[12593015304,21606008564,23622886181,39061472228],
-      sgaD_adv:[5704348970,11356752874,11043837045,21477170617],
-      sgaD_log:[3432397854,5365555585,5413276729,9080797804],
-      sgaD_fee:[2085728183,2402363521,5831613761,4922206630],
-      sgaD_hr:[858693210,932436266,752567198,892898737],
-      sgaD_etc:[511847087,1548900318,581591448,2688398440],
-      direct:[22055686285,13264738980,24587356191,29454404413],
-      sgaO:[2206590404,4711598881,4892660867,5871607243],
-      sgaO_adv:[229612039,344151454,392592381,259882634],
-      sgaO_log:[719165712,2825359854,3219528625,4116086984],
-      sgaO_fee:[308263872,407071699,414240368,440985118],
-      sgaO_hr:[759236619,888963091,692836129,892092869],
-      sgaO_etc:[190312162,246052783,173463364,162559638],
-      contrib:[19849095881,8553140099,19694695324,23582797170],
-      sgaC:[3094657037,2633591002,2701552968,2622972663],
-      sgaC_adv:[88588029,0,-12129500,0],
-      sgaC_log:[242196,266800,1188939,180632],
-      sgaC_fee:[171629278,375701450,502134538,369882465],
-      sgaC_hr:[2176459522,1647983415,1511024081,1538506677],
-      sgaC_etc:[657738012,609639337,699334910,714402889],
-      op:[16754438844,5919549097,16993142356,20959824507]
-  }) },
-  { key:'brand', title:'2. 브랜드 부문 (SK)', rows: makePlRows({
-      sales:[46665920852,49671641420,70428454427,77105190181],
-      cogs:[16925707682,17975901055,23835867158,26651444054],
-      gross:[29740213170,31695740365,46592587269,50453746127],
-      sgaD:[11869204589,19667308722,23120748715,38445738835],
-      sgaD_adv:[5513592352,10550831306,10973200487,21388631425],
-      sgaD_log:[3354118299,5320705638,5372785335,9059760936],
-      sgaD_fee:[2028734760,2329870610,5730429617,4837349484],
-      sgaD_hr:[648568165,682067966,560294405,672810543],
-      sgaD_etc:[324191013,783833202,484038871,2487186447],
-      direct:[17871008581,12028431643,23471838554,12008007292],
-      sgaO:[1763782109,2283296210,3240035582,1712086784],
-      sgaO_adv:[200549280,215238930,461420617,245496101],
-      sgaO_log:[732695667,1026936483,1930568312,423554885],
-      sgaO_fee:[165527930,183347025,243109011,290269855],
-      sgaO_hr:[560817967,671047855,500020266,620624162],
-      sgaO_etc:[104191265,186725917,104917376,132141781],
-      contrib:[16107226472,9745135433,20231802972,10295920508],
-      sgaC:[2458612179,2247954276,1870987526,2043872767],
-      sgaC_adv:[70380532,0,-8400405,0],
-      sgaC_log:[192418,227733,823412,140755],
-      sgaC_fee:[136354311,320687483,347758294,288219818],
-      sgaC_hr:[1729131800,1406669207,1046474842,1198835169],
-      sgaC_etc:[522553118,520369853,484331383,556677025],
-      op:[13648614293,7497181157,18360815446,8252047741]
-  }) },
-  { key:'dist', title:'3. 유통 부문', rows: makePlRows({
-      sales:[12222037103,8895620144,10938012734,38513989206],
-      cogs:[7333132556,5723018027,8267785763,20396031883],
-      gross:[4888904547,3172602117,2670226971,18117957323],
-      sgaD:[723810715,1938699842,502137466,615733393],
-      sgaD_adv:[190756618,805921568,70636558,88539192],
-      sgaD_log:[78279555,44849947,40491394,21036868],
-      sgaD_fee:[56993423,72492911,101184144,84857146],
-      sgaD_hr:[210125045,250368300,192272793,220088194],
-      sgaD_etc:[187656074,765067116,97552577,201211993],
-      direct:[4165093832,1233902275,2168089505,17502223930],
-      sgaO:[442808295,2428302671,1652625285,4159520459],
-      sgaO_adv:[29062759,128912524,-68828236,14386533],
-      sgaO_log:[-13529955,1798423371,1288960313,3692532099],
-      sgaO_fee:[142735942,223724674,171131357,150715263],
-      sgaO_hr:[198418652,217915236,192815863,271468707],
-      sgaO_etc:[86120897,59326866,68545988,30417857],
-      contrib:[3722285537,-1194400396,515464220,13342703471],
-      sgaC:[636044858,385636726,830565442,579099896],
-      sgaC_adv:[18207497,0,-3729095,0],
-      sgaC_log:[49778,39067,365527,39877],
-      sgaC_fee:[35274967,55013967,154376244,81662647],
-      sgaC_hr:[447327722,241314208,464549239,339671508],
-      sgaC_etc:[135184894,89269484,215003527,157725864],
-      op:[3086240679,-1580037122,-315101222,12763603575]
-  }) },
-];
+let PL_SECTIONS = [];
+
+function loadPlSummary(){
+  const months = activeMonths();
+  // Fields that come directly from the API node
+  const PL_API_FIELDS = ['sales','cogs','gross','sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
+    'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
+    'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc','op'];
+  // All fields including derived ones (direct = gross-sgaD, contrib = direct-sgaO)
+  const PL_ALL_FIELDS = PL_API_FIELDS.concat(['direct','contrib']);
+  const zeros = months.map(function(){ return 0; });
+  function mkVals(node){
+    const v = {};
+    PL_API_FIELDS.forEach(function(f){ v[f] = node ? (node[f] || zeros.map(function(){ return 0; })) : zeros.slice(); });
+    // Derive direct = gross - sgaD
+    v.direct = v.gross.map(function(x, i){ return x - v.sgaD[i]; });
+    // Derive contrib = direct - sgaO
+    v.contrib = v.direct.map(function(x, i){ return x - v.sgaO[i]; });
+    return v;
+  }
+  function sumVals(a, b){
+    const v = {};
+    PL_ALL_FIELDS.forEach(function(f){
+      v[f] = a[f].map(function(x, i){ return x + (b[f][i] || 0); });
+    });
+    return v;
+  }
+  const p = new URLSearchParams();
+  p.append('dim', 'Brand');
+  months.forEach(function(m){ p.append('months', m); });
+  const wrap = document.getElementById('plSummaryWrap');
+  if (wrap) wrap.innerHTML = '<div style="padding:20px;color:var(--text-tertiary)">불러오는 중…</div>';
+  fetch('/api/pl?' + p.toString(), { credentials: 'same-origin' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      const nodes = data.nodes || [];
+      const skNode = nodes.find(function(n){ return n.name === 'SK'; });
+      const umNode = nodes.find(function(n){ return n.name === 'UM'; });
+      const skVals = mkVals(skNode);
+      const umVals = mkVals(umNode);
+      const jeonsaVals = sumVals(skVals, umVals);
+      PL_SECTIONS = [
+        { key:'jeonsa', title:'1. 전사', rows: makePlRows(jeonsaVals) },
+        { key:'brand',  title:'2. 브랜드 부문 (SK)', rows: makePlRows(skVals) },
+        { key:'dist',   title:'3. 유통 부문', rows: makePlRows(umVals) },
+      ];
+      renderPlSummary();
+    })
+    .catch(function(err){
+      console.error('[PL] /api/pl fetch failed', err);
+      if (wrap) wrap.innerHTML = '<div style="padding:20px;color:var(--text-tertiary)">데이터를 불러오지 못했습니다.</div>';
+    });
+}
 const plExpanded = new Set();
 
 function renderPlSummary(){
   const wrap = document.getElementById('plSummaryWrap');
   if (!wrap) return;
+  if (!PL_SECTIONS.length) {
+    wrap.innerHTML = '<div style="padding:20px;color:var(--text-tertiary)">불러오는 중…</div>';
+    return;
+  }
   const M = 12;
   const empty = '<span class="pl-empty">–</span>';
   const fmtM = function(v){
@@ -4679,7 +4656,7 @@ function renderCategoryPl(){
 }
 
 function buildOverviewCharts(){
-  renderPlSummary();
+  loadPlSummary();
   const c = chartColors();
   const trend = api.monthlyTrend();
   const months = activeMonths();
