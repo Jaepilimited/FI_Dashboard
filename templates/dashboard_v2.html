@@ -932,6 +932,9 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
 .raw-filter-bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
 .raw-filter-bar .select-sm{flex:1;min-width:110px;max-width:160px}
 .raw-filter-bar .input-sm-wrap{flex:1;min-width:140px}
+.raw-source-bar{display:flex;gap:8px;padding:10px 16px 6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.src-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-size:11px;cursor:pointer;transition:all .15s}
+.src-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .raw-bar{
   display:flex; align-items:center; gap:10px;
   padding:12px 16px;
@@ -2827,7 +2830,8 @@ const state = {
   salesView: 'all',
   rangeStart: 0,
   rangeEnd: 0,
-  rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false,
+  rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false, rawSource: 'fi',
+  rawSmFilter: { yearMonth:'', department:'', indirectCostClass:'', mainCategory:'' },
   rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'', yearMonth:'' },
   tableau: {
     views: [],
@@ -2884,6 +2888,7 @@ let _real = {
   priorBreakdown: [],
   treeData: {},      // { 'cat|drill|level': rows }
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
+  raw_sm: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
 };
 let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS1=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
 let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
@@ -5083,20 +5088,38 @@ function renderRawDataView(){
   const brandOpts = _brands.map(v=>`<option value="${v}"${state.rawFilter.brand===v?' selected':''}>${v}</option>`).join('');
   const stOpts    = _sts.map(v=>`<option value="${v}"${state.rawFilter.salesType===v?' selected':''}>${v}</option>`).join('');
   const ymOpts    = (USE_MOCK ? ALL_MONTHS : ALL_MONTHS).map(v=>`<option value="${v}"${state.rawFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const smIccOpts = ['직접','조직간접','SSG간접'].map(v=>`<option value="${v}"${state.rawSmFilter.indirectCostClass===v?' selected':''}>${v}</option>`).join('');
+  const smMainCatOpts = ['광고선전비','물류비','수수료','인건비','기타'].map(v=>`<option value="${v}"${state.rawSmFilter.mainCategory===v?' selected':''}>${v}</option>`).join('');
+  const smDeptOpts = _depts.map(v=>`<option value="${v}"${state.rawSmFilter.department===v?' selected':''}>${v}</option>`).join('');
+  const smYmOpts = (USE_MOCK ? ALL_MONTHS : ALL_MONTHS).map(v=>`<option value="${v}"${state.rawSmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const filterBarHtml = state.rawSource === 'sm'
+    ? `<div class="raw-filter-bar">
+        <select class="select-sm" id="rawSmYmSel"><option value="">전체 기간</option>${smYmOpts}</select>
+        <select class="select-sm" id="rawSmDeptSel"><option value="">전체 부서</option>${smDeptOpts}</select>
+        <select class="select-sm" id="rawSmIccSel"><option value="">전체 간접비분류</option>${smIccOpts}</select>
+        <select class="select-sm" id="rawSmMainCatSel"><option value="">전체 대분류</option>${smMainCatOpts}</select>
+        <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
+      </div>`
+    : `<div class="raw-filter-bar">
+        <select class="select-sm" id="rawYmSel"><option value="">전체 기간</option>${ymOpts}</select>
+        <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
+        <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
+        <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
+        <select class="select-sm" id="rawDeptSel"><option value="">전체 부서</option>${deptOpts}</select>
+        <select class="select-sm" id="rawCont1Sel"><option value="">전체 권역</option>${cont1Opts}</select>
+        <select class="select-sm" id="rawContSel"><option value="">전체 대륙</option>${cont2Opts}</select>
+        <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
+        <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
+        <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
+        <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
+      </div>`;
   return `<div class="raw-view">
-    <div class="raw-filter-bar">
-      <select class="select-sm" id="rawYmSel"><option value="">전체 기간</option>${ymOpts}</select>
-      <select class="select-sm" id="rawBrandSel"><option value="">전체 브랜드</option>${brandOpts}</select>
-      <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
-      <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
-      <select class="select-sm" id="rawDeptSel"><option value="">전체 부서</option>${deptOpts}</select>
-      <select class="select-sm" id="rawCont1Sel"><option value="">전체 권역</option>${cont1Opts}</select>
-      <select class="select-sm" id="rawContSel"><option value="">전체 대륙</option>${cont2Opts}</select>
-      <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
-      <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
-      <select class="select-sm" id="rawCatSel"><option value="">전체 카테고리</option>${catOpts}</select>
-      <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
+    <div class="raw-source-bar">
+      <span style="font-size:11px;color:var(--text-tertiary);font-weight:600">데이터 소스</span>
+      <button class="src-btn${state.rawSource==='fi'?' active':''}" id="rawSrcFi">FI_Final (거래)</button>
+      <button class="src-btn${state.rawSource==='sm'?' active':''}" id="rawSrcSm">FI_SM (판관비)</button>
     </div>
+    ${filterBarHtml}
     <div class="raw-bar">
       <div class="raw-info">총 <strong id="rawTotal">—</strong>건 &nbsp;·&nbsp; <span id="rawPgInfo"></span></div>
       <div class="raw-acts">
@@ -5117,6 +5140,28 @@ function renderRawDataView(){
 }
 
 function initRawDataView(){
+  // Source toggle buttons
+  const srcFi = $('#rawSrcFi');
+  const srcSm = $('#rawSrcSm');
+  if (srcFi) srcFi.onclick = () => {
+    if (state.rawSource === 'fi') return;
+    state.rawSource = 'fi';
+    state.rawPage = 1; state.rawSearch = '';
+    const rawSection = document.querySelector('.raw-view');
+    if (rawSection) rawSection.outerHTML = renderRawDataView();
+    initRawDataView();
+    loadRawPage();
+  };
+  if (srcSm) srcSm.onclick = () => {
+    if (state.rawSource === 'sm') return;
+    state.rawSource = 'sm';
+    state.rawPage = 1; state.rawSearch = '';
+    const rawSection = document.querySelector('.raw-view');
+    if (rawSection) rawSection.outerHTML = renderRawDataView();
+    initRawDataView();
+    loadRawPage();
+  };
+
   const onFilterChange = () => {
     state.rawFilter.yearMonth  = ($('#rawYmSel')||{}).value     || '';
     state.rawFilter.group      = ($('#rawGrpSel')||{}).value    || '';
@@ -5135,6 +5180,20 @@ function initRawDataView(){
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
+
+  const onSmFilterChange = () => {
+    state.rawSmFilter.yearMonth         = ($('#rawSmYmSel')||{}).value      || '';
+    state.rawSmFilter.department        = ($('#rawSmDeptSel')||{}).value    || '';
+    state.rawSmFilter.indirectCostClass = ($('#rawSmIccSel')||{}).value     || '';
+    state.rawSmFilter.mainCategory      = ($('#rawSmMainCatSel')||{}).value || '';
+    state.rawPage = 1;
+    loadRawPage();
+  };
+  ['rawSmYmSel','rawSmDeptSel','rawSmIccSel','rawSmMainCatSel'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.onchange = onSmFilterChange;
+  });
+
   const srch = $('#rawSearch');
   if (srch) srch.oninput = e => { state.rawSearch = e.target.value; state.rawPage = 1; loadRawPage(); };
   const pp = $('#rawPerPage');
@@ -7752,33 +7811,70 @@ function buildSalesCharts(){
    ═════════════════════════════════════════════════════════════════════ */
 async function loadRawPage(){
   if(!USE_MOCK){
-    const p = new URLSearchParams();
-    const ymFilter = state.rawFilter.yearMonth;
-    if(ymFilter) {
-      p.append('months', ymFilter);
+    if(state.rawSource === 'sm'){
+      const p = new URLSearchParams();
+      const ymFilter = state.rawSmFilter.yearMonth;
+      if(ymFilter){
+        p.append('months', ymFilter);
+      } else {
+        activeMonths().forEach(m => p.append('months', m));
+      }
+      if(state.rawSmFilter.department)        p.set('department',          state.rawSmFilter.department);
+      if(state.rawSmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSmFilter.indirectCostClass);
+      if(state.rawSmFilter.mainCategory)      p.set('main_category',       state.rawSmFilter.mainCategory);
+      p.set('page',     state.rawPage);
+      p.set('per_page', state.rawPerPage);
+      try{ _real.raw_sm = await fetch('/api/raw_sm?'+p).then(r=>r.json()); } catch(e){}
     } else {
-      activeMonths().forEach(m => p.append('months', m));
+      const p = new URLSearchParams();
+      const ymFilter = state.rawFilter.yearMonth;
+      if(ymFilter) {
+        p.append('months', ymFilter);
+      } else {
+        activeMonths().forEach(m => p.append('months', m));
+      }
+      if(state.rawFilter.group)       p.set('group',       state.rawFilter.group);
+      if(state.rawFilter.department)  p.set('department',  state.rawFilter.department);
+      if(state.rawFilter.continent1)  p.set('continent1',  state.rawFilter.continent1);
+      if(state.rawFilter.continent)   p.set('continent',   state.rawFilter.continent);
+      if(state.rawFilter.country)     p.set('country',     state.rawFilter.country);
+      if(state.rawFilter.line)        p.set('line',        state.rawFilter.line);
+      if(state.rawFilter.category)   p.set('category',   state.rawFilter.category);
+      if(state.rawFilter.brand)      p.set('brand',      state.rawFilter.brand);
+      if(state.rawFilter.salesType)  p.set('sales_type', state.rawFilter.salesType);
+      p.set('page',     state.rawPage);
+      p.set('per_page', state.rawPerPage);
+      if(state.rawSearch) p.set('search', state.rawSearch);
+      try{ _real.raw = await fetch('/api/raw?'+p).then(r=>r.json()); } catch(e){}
     }
-    if(state.rawFilter.group)       p.set('group',       state.rawFilter.group);
-    if(state.rawFilter.department)  p.set('department',  state.rawFilter.department);
-    if(state.rawFilter.continent1)  p.set('continent1',  state.rawFilter.continent1);
-    if(state.rawFilter.continent)   p.set('continent',   state.rawFilter.continent);
-    if(state.rawFilter.country)     p.set('country',     state.rawFilter.country);
-    if(state.rawFilter.line)        p.set('line',        state.rawFilter.line);
-    if(state.rawFilter.category)   p.set('category',   state.rawFilter.category);
-    if(state.rawFilter.brand)      p.set('brand',      state.rawFilter.brand);
-    if(state.rawFilter.salesType)  p.set('sales_type', state.rawFilter.salesType);
-    p.set('page',     state.rawPage);
-    p.set('per_page', state.rawPerPage);
-    if(state.rawSearch) p.set('search', state.rawSearch);
-    try{ _real.raw = await fetch('/api/raw?'+p).then(r=>r.json()); } catch(e){}
   }
   renderRaw();
 }
 
 function renderRaw(){
   if (state.category !== 'rawdata') return;
-  const res = USE_MOCK ? api.raw(state.rawPage, state.rawPerPage) : (_real.raw||{total:0,page:1,per_page:100,rows:[],columns:[]});
+
+  // SM column labels and order
+  const SM_COL_LABEL = {
+    Year_Month:'연월', Department:'부서', Cost_Center_Class:'코스트센터분류',
+    Sending_Cost_Center:'보내는센터', Cost_Account:'원가계정', Amount:'금액',
+    Account_Name:'계정명', Main_Category:'대분류', Sub_Category:'중분류',
+    Detail_Category:'상세분류', Division:'본부구분', Team:'팀구분',
+    Indirect_Cost_Class:'간접비분류',
+  };
+  const SM_COL_ORDER = [
+    'Year_Month','Department','Indirect_Cost_Class','Cost_Center_Class',
+    'Main_Category','Sub_Category','Detail_Category',
+    'Cost_Account','Account_Name','Amount',
+    'Sending_Cost_Center','Division','Team',
+  ];
+
+  const isSm = state.rawSource === 'sm';
+  const res = USE_MOCK
+    ? api.raw(state.rawPage, state.rawPerPage)
+    : (isSm ? (_real.raw_sm||{total:0,page:1,per_page:100,rows:[],columns:[]})
+             : (_real.raw||{total:0,page:1,per_page:100,rows:[],columns:[]}));
+
   if($('#rawTotal')) $('#rawTotal').textContent = fmtFull(res.total);
   const pages = Math.max(1, Math.ceil(res.total / state.rawPerPage));
   if($('#rawPgInfo')) $('#rawPgInfo').textContent = `페이지 ${state.rawPage} / ${pages}`;
@@ -7796,6 +7892,7 @@ function renderRaw(){
   };
   const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']);
   const NUM_QTY  = new Set(['Sales_Quantity']);
+  const SM_NUM_KRW = new Set(['Amount']);
 
   // fixed display order (user-specified)
   const COL_ORDER = [
@@ -7812,23 +7909,28 @@ function renderRaw(){
     'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit', 'SG_and_A_Expenses', 'Operating_Income',
   ];
 
+  // Use SM columns/labels when source is sm
+  const activeColLabel = isSm ? SM_COL_LABEL : COL_LABEL;
+  const activeColOrder = isSm ? SM_COL_ORDER  : COL_ORDER;
+  const activeNumKrw   = isSm ? SM_NUM_KRW    : NUM_KRW;
+
   // available keys from data (to skip columns that don't exist in this dataset)
   const available = (res.columns && res.columns.length)
     ? res.columns
     : (res.rows[0] ? Object.keys(res.rows[0]) : []);
   const availSet = new Set(available);
-  const orderedSet = new Set(COL_ORDER);
+  const orderedSet = new Set(activeColOrder);
   // COL_ORDER first (for preferred ordering), then any extra columns from the server
   const cols = [
-    ...COL_ORDER.filter(c => availSet.has(c)),
+    ...activeColOrder.filter(c => availSet.has(c)),
     ...available.filter(c => !orderedSet.has(c)),
   ];
 
   // update thead
   const thead = $('#rawThead');
   if(thead) thead.innerHTML = '<tr>' + cols.map(c => {
-    const num = NUM_KRW.has(c) || NUM_QTY.has(c);
-    return `<th${num?' class="num"':''}>${COL_LABEL[c]||c}</th>`;
+    const num = activeNumKrw.has(c) || NUM_QTY.has(c);
+    return `<th${num?' class="num"':''}>${activeColLabel[c]||c}</th>`;
   }).join('') + '</tr>';
 
   const rawTb = $('#rawTb');
@@ -7840,8 +7942,8 @@ function renderRaw(){
       const sv = v == null ? '' : String(v);
       if(c === 'Sales_Type') return `<td><span class="pill ${v==='B2C'?'b2c':'b2b'}">${sv}</span></td>`;
       if(c === 'Country' && flag) return `<td class="td-clip-sm"><span class="flag">${flag}</span> ${sv}</td>`;
-      if(c === 'Year_Month' || c === 'Product_Code') return `<td class="mono td-clip-sm">${sv}</td>`;
-      if(NUM_KRW.has(c)){
+      if(c === 'Year_Month' || c === 'Product_Code' || c === 'Cost_Account') return `<td class="mono td-clip-sm">${sv}</td>`;
+      if(activeNumKrw.has(c)){
         const n = Number(v)||0;
         const cls = (c==='Gross_Profit'||c==='Operating_Income') ? (n>=0?'pos':'neg') : '';
         return `<td class="num">${cls?`<span class="${cls}">`:''}${fmtKRW(n)}${cls?'</span>':''}</td>`;
@@ -7908,6 +8010,48 @@ function _hideCsvProgress(){ const m = $('#csvProgModal'); if(m) m.style.display
 
 async function downloadCSV(){
   if(USE_MOCK){ alert('\uBAA8\uC758 \uB370\uC774\uD130 \uBAA8\uB4DC\uC5D0\uC11C\uB294 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.'); return; }
+
+  // FI_SM \uC18C\uC2A4: export=1 \uC9C1\uC811 \uD638\uCD9C (50000 rows max)
+  if(state.rawSource === 'sm'){
+    const p = new URLSearchParams();
+    activeMonths().forEach(m => p.append('months', m));
+    if(state.rawSmFilter.department)        p.set('department',          state.rawSmFilter.department);
+    if(state.rawSmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSmFilter.indirectCostClass);
+    if(state.rawSmFilter.mainCategory)      p.set('main_category',       state.rawSmFilter.mainCategory);
+    p.set('export', '1');
+    _setCsvProgress(0, 'FI_SM \uB370\uC774\uD130 \uC900\uBE44 \uC911\u2026');
+    try {
+      const res = await fetch('/api/raw_sm?' + p).then(r => r.json());
+      const rows = res.rows || [];
+      const cols = res.columns || (rows[0] ? Object.keys(rows[0]) : []);
+      const SM_COL_LABEL = {
+        Year_Month:'\uC5F0\uC6D4', Department:'\uBD80\uC11C', Cost_Center_Class:'\uCF54\uC2A4\uD2B8\uC13C\uD130\uBD84\uB958',
+        Sending_Cost_Center:'\uBCF4\uB0B4\uB294\uC13C\uD130', Cost_Account:'\uC6D0\uAC00\uACC4\uC815', Amount:'\uAE08\uC561',
+        Account_Name:'\uACC4\uC815\uBA85', Main_Category:'\uB300\uBD84\uB958', Sub_Category:'\uC911\uBD84\uB958',
+        Detail_Category:'\uC0C1\uC138\uBD84\uB958', Division:'\uBCF8\uBD80\uAD6C\uBD84', Team:'\uD300\uAD6C\uBD84',
+        Indirect_Cost_Class:'\uAC04\uC811\uBE44\uBD84\uB958',
+      };
+      const header = cols.map(c => SM_COL_LABEL[c]||c).join(',');
+      const csvRows = rows.map(r => cols.map(c => {
+        const v = r[c] == null ? '' : String(r[c]);
+        return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+      }).join(','));
+      const csv = '\uFEFF' + header + '\n' + csvRows.join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const ts2 = new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','_');
+      a.download = `FI_SM_Export_${ts2}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      _setCsvProgress(100, '\uB2E4\uC6B4\uB85C\uB4DC \uC644\uB8CC!');
+      setTimeout(_hideCsvProgress, 1800);
+    } catch(e){
+      _hideCsvProgress();
+      alert('\uB2E4\uC6B4\uB85C\uB4DC \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4:\n' + e.message);
+    }
+    return;
+  }
 
   // Build filter params \u2014 use activeMonths() to respect current slider range
   const p = new URLSearchParams();

@@ -1099,6 +1099,63 @@ def api_raw():
     return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
 
 
+@app.route('/api/raw_sm')
+@login_required
+def api_raw_sm():
+    SM = _fi_sm_table()
+    export = request.args.get('export', '0') == '1'
+    conditions = []
+    params = []
+
+    months = request.args.getlist('months')
+    if months:
+        conditions.append('Year_Month IN UNNEST(@months)')
+        params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
+
+    def _arr(key, col, bq_name):
+        vals = [v.strip() for v in request.args.getlist(key) if v.strip()]
+        if vals:
+            conditions.append(f'{col} IN UNNEST(@{bq_name})')
+            params.append(bigquery.ArrayQueryParameter(bq_name, 'STRING', vals))
+
+    _arr('department',          'Department',         'dept_vals')
+    _arr('cost_center_class',   'Cost_Center_Class',  'ccc_vals')
+    _arr('indirect_cost_class', 'Indirect_Cost_Class','icc_vals')
+    _arr('main_category',       'Main_Category',      'maincat_vals')
+
+    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+    def serialize(raw):
+        rows = []
+        for row in raw:
+            r = {}
+            for k, v in row.items():
+                r[k] = int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else (v or ''))
+            rows.append(r)
+        return rows
+
+    if export:
+        sql = f"SELECT * FROM `{SM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT 50000"
+        rows = serialize(run_query_cached(sql, params))
+        cols = list(rows[0].keys()) if rows else []
+        return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
+
+    try:
+        page     = max(1, int(request.args.get('page', 1)))
+        per_page = min(200, max(10, int(request.args.get('per_page', 100))))
+    except ValueError:
+        page, per_page = 1, 100
+    offset = (page - 1) * per_page
+
+    count_sql = f"SELECT COUNT(*) AS cnt FROM `{SM}` {where}"
+    total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
+
+    sql = f"SELECT * FROM `{SM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT {per_page} OFFSET {offset}"
+    rows = serialize(run_query_cached(sql, params))
+    cols = list(rows[0].keys()) if rows else []
+    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
+
+
 # ─── 어드민 ────────────────────────────────────────────────────────
 @app.route('/admin')
 @admin_required
