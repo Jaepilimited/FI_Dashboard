@@ -4078,7 +4078,7 @@ function renderWaterfallShell(){
       <div class="waterfall-card-hd">
         <div>
           <div class="card-title"><i data-lucide="bar-chart-3"></i>손익 흐름 <span style="color:var(--text-tertiary);font-weight:500;font-size:11px;margin-left:4px">(누적)</span></div>
-          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판관비(직접) → 직접이익 → 판관비(간접) → 영업이익 <span style="opacity:.8">· 막대 안 %는 매출 대비 비중</span></div>
+          <div class="card-sub" style="color:var(--text-tertiary);font-size:11px;margin-top:3px">매출액 → 매출원가 → 매출총이익 → 판관비(직접) → 직접이익 → 판관비(조직간접) → 공헌이익 → 판관비(SSG간접) → 영업이익 <span style="opacity:.8">· 막대 안 %는 매출 대비 비중</span></div>
         </div>
         <div class="waterfall-card-unit">단위: 억원</div>
       </div>
@@ -4109,21 +4109,26 @@ function buildWaterfallChart(k){
   const sales  = k.sales_amount   || 0;
   const cogs   = k.cost_of_sales  || 0;
   const gross  = k.gross_profit   || 0;
-  const sgaD   = k.sga_direct     || 0;
-  const sgaI   = (k.sga_expenses||0) - sgaD;  // sga_indirect = org + ssg combined
+  const sgaD   = k.sga_direct       || 0;
+  const sgaO   = k.sga_org_indirect || 0;
+  const sgaS   = k.sga_ssg_indirect || 0;
   const direct = gross - sgaD;
+  const contrib = direct - sgaO;
   const oi     = k.operating_income || 0;
+  const gray2  = c.isDark ? '#5A6478' : '#AEB7C7';
 
-  // 7 floating-bar columns: [low, high] for each step
+  // 9 floating-bar columns: 매출액→원가→총이익→판관비직접→직접이익→판관비조직→공헌이익→판관비SSG→영업이익
   const pctOf = (v) => sales ? (Math.abs(v) / sales * 100) : 0;
   const data = [
-    { label:'매출액',       base:0,           top:sales,   color:c.accent,                      value:sales,   pct:100 },
-    { label:'매출원가',     base:sales-cogs,  top:sales,   color:c.tertiary,                    value:-cogs,   isSub:true,      pct:pctOf(cogs)   },
-    { label:'매출총이익',   base:0,           top:gross,   color:c.positive,                    value:gross,   isSubtotal:true, pct:pctOf(gross)  },
-    { label:'판관비(직접)', base:gross-sgaD,  top:gross,   color:c.tertiary,                    value:-sgaD,   isSub:true,      pct:pctOf(sgaD)   },
-    { label:'직접이익',     base:0,           top:direct,  color:'rgba(72,199,116,.85)',         value:direct,  isSubtotal:true, pct:pctOf(direct) },
-    { label:'판관비(간접)', base:direct-sgaI, top:direct,  color:c.isDark ? '#5A6478' : '#AEB7C7', value:-sgaI, isSub:true,     pct:pctOf(sgaI)   },
-    { label:'영업이익',     base:0,           top:oi,      color:c.positive,                    value:oi,      isSubtotal:true, emphasized:true,  pct:pctOf(oi)    },
+    { label:'매출액',         base:0,             top:sales,   color:c.accent,             value:sales,   pct:100 },
+    { label:'매출원가',       base:sales-cogs,    top:sales,   color:c.tertiary,           value:-cogs,   isSub:true,      pct:pctOf(cogs)    },
+    { label:'매출총이익',     base:0,             top:gross,   color:c.positive,           value:gross,   isSubtotal:true, pct:pctOf(gross)   },
+    { label:'판관비(직접)',   base:gross-sgaD,    top:gross,   color:c.tertiary,           value:-sgaD,   isSub:true,      pct:pctOf(sgaD)    },
+    { label:'직접이익',       base:0,             top:direct,  color:'rgba(72,199,116,.85)',value:direct,  isSubtotal:true, pct:pctOf(direct)  },
+    { label:'판관비(조직간접)',base:direct-sgaO,  top:direct,  color:gray2,                value:-sgaO,   isSub:true,      pct:pctOf(sgaO)    },
+    { label:'공헌이익',       base:0,             top:contrib, color:'rgba(54,153,255,.85)',value:contrib, isSubtotal:true, pct:pctOf(contrib) },
+    { label:'판관비(SSG간접)',base:contrib-sgaS,  top:contrib, color:gray2,                value:-sgaS,   isSub:true,      pct:pctOf(sgaS)    },
+    { label:'영업이익',       base:0,             top:oi,      color:c.positive,           value:oi,      isSubtotal:true, emphasized:true,   pct:pctOf(oi)     },
   ];
 
   // floating bar requires array data [low, high]
@@ -7198,16 +7203,20 @@ function buildDrillCharts(){
       const navy = c.isDark ? '#5B7CFA' : '#27408B';
       const gray = c.isDark ? '#5A6478' : '#AEB7C7';
       const kTot = api.kpi();
-      const sgaDratio = kTot.sga_expenses > 0 ? (kTot.sga_direct || 0) / kTot.sga_expenses : 0;
+      const sgaDratio = kTot.sga_expenses > 0 ? (kTot.sga_direct       || 0) / kTot.sga_expenses : 0;
+      const sgaOratio = kTot.sga_expenses > 0 ? (kTot.sga_org_indirect || 0) / kTot.sga_expenses : 0;
+      const sgaSratio = kTot.sga_expenses > 0 ? (kTot.sga_ssg_indirect || 0) / kTot.sga_expenses : 0;
       const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
       const dss = [
-        { label:'매출액',       data: mk(()=>0, b=>b.sales_amount),                                                     backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
-        { label:'매출원가',     data: mk(b=>b.gross_profit, b=>b.sales_amount),                                         backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
-        { label:'매출총이익',   data: mk(()=>0, b=>b.gross_profit),                                                      backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
-        { label:'판관비(직접)', data: mk(b=>(b.gross_profit - b.sga_expenses*sgaDratio), b=>b.gross_profit),            backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_expenses*sgaDratio) },
-        { label:'직접이익',     data: mk(()=>0, b=>(b.gross_profit - b.sga_expenses*sgaDratio)),                        backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit - b.sga_expenses*sgaDratio) },
-        { label:'판관비(간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit - b.sga_expenses*sgaDratio)),        backgroundColor: c.plum,                _vals: wfItems.map(b=>b.sga_expenses*(1-sgaDratio)) },
-        { label:'영업이익',     data: mk(()=>0, b=>b.operating_income),                                                  backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
+        { label:'매출액',          data: mk(()=>0, b=>b.sales_amount),                                                                       backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
+        { label:'매출원가',        data: mk(b=>b.gross_profit, b=>b.sales_amount),                                                           backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
+        { label:'매출총이익',      data: mk(()=>0, b=>b.gross_profit),                                                                        backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
+        { label:'판관비(직접)',    data: mk(b=>(b.gross_profit - b.sga_expenses*sgaDratio), b=>b.gross_profit),                              backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_expenses*sgaDratio) },
+        { label:'직접이익',        data: mk(()=>0, b=>(b.gross_profit - b.sga_expenses*sgaDratio)),                                          backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit - b.sga_expenses*sgaDratio) },
+        { label:'판관비(조직간접)',data: mk(b=>(b.gross_profit - b.sga_expenses*(sgaDratio+sgaOratio)), b=>(b.gross_profit - b.sga_expenses*sgaDratio)), backgroundColor: gray,     _vals: wfItems.map(b=>b.sga_expenses*sgaOratio) },
+        { label:'공헌이익',        data: mk(()=>0, b=>(b.gross_profit - b.sga_expenses*(sgaDratio+sgaOratio))),                              backgroundColor: 'rgba(54,153,255,.85)', _vals: wfItems.map(b=>b.gross_profit - b.sga_expenses*(sgaDratio+sgaOratio)) },
+        { label:'판관비(SSG간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit - b.sga_expenses*(sgaDratio+sgaOratio))),              backgroundColor: c.plum,                _vals: wfItems.map(b=>b.sga_expenses*sgaSratio) },
+        { label:'영업이익',        data: mk(()=>0, b=>b.operating_income),                                                                    backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
       ];
       dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.76;
         ds.datalabels = {
@@ -7494,13 +7503,15 @@ function buildSalesWaterfall({b2b, b2c}){
   ];
   const mk = (lo, hi) => wfItems.map(b => [lo(b), hi(b)]);
   const dss = [
-    { label:'매출액',       data: mk(()=>0, b=>b.sales_amount),                                                  backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
-    { label:'매출원가',     data: mk(b=>b.gross_profit, b=>b.sales_amount),                                      backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
-    { label:'매출총이익',   data: mk(()=>0, b=>b.gross_profit),                                                   backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
-    { label:'판관비(직접)', data: mk(b=>(b.gross_profit-(b.sga_direct||0)), b=>b.gross_profit),                  backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_direct||0) },
-    { label:'직접이익',     data: mk(()=>0, b=>(b.gross_profit-(b.sga_direct||0))),                              backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit-(b.sga_direct||0)) },
-    { label:'판관비(간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit-(b.sga_direct||0))),              backgroundColor: c.plum,                _vals: wfItems.map(b=>(b.sga_expenses||0)-(b.sga_direct||0)) },
-    { label:'영업이익',     data: mk(()=>0, b=>b.operating_income),                                               backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
+    { label:'매출액',          data: mk(()=>0, b=>b.sales_amount),                                                                                          backgroundColor: c.accent,              _vals: wfItems.map(b=>b.sales_amount) },
+    { label:'매출원가',        data: mk(b=>b.gross_profit, b=>b.sales_amount),                                                                              backgroundColor: gray,                  _vals: wfItems.map(b=>b.cost_of_sales) },
+    { label:'매출총이익',      data: mk(()=>0, b=>b.gross_profit),                                                                                           backgroundColor: c.positive,            _vals: wfItems.map(b=>b.gross_profit) },
+    { label:'판관비(직접)',    data: mk(b=>(b.gross_profit-(b.sga_direct||0)), b=>b.gross_profit),                                                           backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_direct||0) },
+    { label:'직접이익',        data: mk(()=>0, b=>(b.gross_profit-(b.sga_direct||0))),                                                                      backgroundColor: 'rgba(72,199,116,.85)', _vals: wfItems.map(b=>b.gross_profit-(b.sga_direct||0)) },
+    { label:'판관비(조직간접)',data: mk(b=>(b.gross_profit-(b.sga_direct||0)-(b.sga_org_indirect||0)), b=>(b.gross_profit-(b.sga_direct||0))),               backgroundColor: gray,                  _vals: wfItems.map(b=>b.sga_org_indirect||0) },
+    { label:'공헌이익',        data: mk(()=>0, b=>(b.gross_profit-(b.sga_direct||0)-(b.sga_org_indirect||0))),                                              backgroundColor: 'rgba(54,153,255,.85)', _vals: wfItems.map(b=>b.gross_profit-(b.sga_direct||0)-(b.sga_org_indirect||0)) },
+    { label:'판관비(SSG간접)', data: mk(b=>b.operating_income, b=>(b.gross_profit-(b.sga_direct||0)-(b.sga_org_indirect||0))),                              backgroundColor: c.plum,                _vals: wfItems.map(b=>b.sga_ssg_indirect||0) },
+    { label:'영업이익',        data: mk(()=>0, b=>b.operating_income),                                                                                       backgroundColor: navy,                  _vals: wfItems.map(b=>b.operating_income) },
   ];
   dss.forEach(ds => { ds.borderWidth=0; ds.borderRadius=3; ds.barPercentage=0.9; ds.categoryPercentage=0.58;
     ds.datalabels = {
