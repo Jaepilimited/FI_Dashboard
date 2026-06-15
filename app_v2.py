@@ -1439,6 +1439,183 @@ def api_cache_clear():
     return jsonify({'ok': True, 'message': '캐시 초기화 및 재워밍 시작'})
 
 
+# ─── 손익계산서 (P&L) API ──────────────────────────────────────────
+# 차원별 매출~영업이익 + SG&A를 직접/조직간접/SSG간접 × 5세분류로 월별 반환
+_PL_ALLOWED_DIM = {
+    'Brand', 'Group', 'Department', 'Continent1', 'Continent2',
+    'Country', 'Customer', 'Line', 'Category', 'Product_Name', 'Sales_Type',
+}
+_PL_BQ_RESERVED = {'Group'}  # 백틱 필요 컬럼
+
+# FI_SM 테이블 경로 (config.BQ_TABLE에서 project.dataset 추출)
+def _fi_sm_table():
+    parts = config.BQ_TABLE.replace('`', '').split('.')
+    # project.dataset.table → project.dataset.FI_SM
+    return '.'.join(parts[:-1]) + '.FI_SM'
+
+
+@app.route('/api/pl')
+@login_required
+def api_pl():
+    dim = request.args.get('dim', '').strip()
+    if dim not in _PL_ALLOWED_DIM:
+        return jsonify({'error': f'invalid dim. allowed: {sorted(_PL_ALLOWED_DIM)}'}), 400
+
+    # 백틱 처리: Group은 BQ 예약어
+    dimcol = f'`{dim}`' if dim in _PL_BQ_RESERVED else dim
+
+    where, params = build_bq_filters(request.args)
+    T = config.BQ_TABLE
+    SM = _fi_sm_table()
+
+    # 파트 A: 노드×월 직접 측정값 (sales / cogs / gross / op)
+    sql_a = f"""
+        SELECT {dimcol} AS node, Year_Month,
+            SUM(Sales_Amount)      AS sales,
+            SUM(Cost_of_Sales)     AS cogs,
+            SUM(Gross_Profit)      AS gross,
+            SUM(Operating_Income)  AS op
+        FROM `{T}` {where}
+        GROUP BY node, Year_Month
+    """
+
+    # 파트 B: SGA 배분 (노드×월×cls×cat)
+    # ff: 노드+부서+월 단위 SGA, sm: FI_SM 비율 원천, sm_tot: 부서×월 합계
+    sql_b = f"""
+        WITH ff AS (
+            SELECT {dimcol} AS node, Department, Year_Month,
+                SUM(SG_and_A_Expenses) AS sga
+            FROM `{T}` {where}
+            GROUP BY node, Department, Year_Month
+        ),
+        sm AS (
+            SELECT Department, Year_Month,
+                Indirect_Cost_Class AS cls,
+                CASE Main_Category
+                    WHEN '광고선전비' THEN 'adv'
+                    WHEN '물류비'     THEN 'log'
+                    WHEN '수수료'     THEN 'fee'
+                    WHEN '인건비'     THEN 'hr'
+                    ELSE 'etc'
+                END AS cat,
+                SUM(Amount) AS amt
+            FROM `{SM}`
+            GROUP BY Department, Year_Month, Indirect_Cost_Class, Main_Category
+        ),
+        sm_tot AS (
+            SELECT Department, Year_Month, SUM(Amount) AS tot
+            FROM `{SM}`
+            GROUP BY Department, Year_Month
+        )
+        SELECT ff.node, ff.Year_Month, sm.cls, sm.cat,
+            SUM(CAST(ff.sga AS FLOAT64) * sm.amt / NULLIF(sm_tot.tot, 0)) AS val
+        FROM ff
+        JOIN sm     ON ff.Department = sm.Department     AND ff.Year_Month = sm.Year_Month
+        JOIN sm_tot ON ff.Department = sm_tot.Department AND ff.Year_Month = sm_tot.Year_Month
+        GROUP BY ff.node, ff.Year_Month, sm.cls, sm.cat
+    """
+
+    # 두 쿼리를 병렬 실행
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        fut_a = ex.submit(run_query_cached, sql_a, params)
+        fut_b = ex.submit(run_query_cached, sql_b, params)
+        rows_a = fut_a.result()
+        rows_b = fut_b.result()
+
+    # cls 매핑: FI_SM의 Indirect_Cost_Class 값 → JSON 키 prefix
+    _cls_map = {'직접': 'sgaD', '조직간접': 'sgaO', 'SSG간접': 'sgaC'}
+    _cat_keys = ['adv', 'log', 'fee', 'hr', 'etc']
+
+    # 월 목록 수집 (오름차순)
+    months_set = set()
+    for r in rows_a:
+        if r['Year_Month']:
+            months_set.add(str(r['Year_Month']))
+    for r in rows_b:
+        if r['Year_Month']:
+            months_set.add(str(r['Year_Month']))
+    months = sorted(months_set)
+    month_idx = {m: i for i, m in enumerate(months)}
+    n = len(months)
+
+    # 노드별 데이터 초기화
+    nodes = {}
+
+    def _node(name):
+        if name not in nodes:
+            nd = {
+                'name': name,
+                'sales': [0] * n, 'cogs': [0] * n,
+                'gross': [0] * n, 'op':   [0] * n,
+            }
+            for prefix in ('sgaD', 'sgaO', 'sgaC'):
+                nd[prefix] = [0.0] * n
+                for cat in _cat_keys:
+                    nd[f'{prefix}_{cat}'] = [0.0] * n
+            nodes[name] = nd
+        return nodes[name]
+
+    # 파트 A 병합
+    for r in rows_a:
+        nm = str(r['node']) if r['node'] is not None else '(없음)'
+        ym = str(r['Year_Month']) if r['Year_Month'] else None
+        if ym not in month_idx:
+            continue
+        idx = month_idx[ym]
+        nd = _node(nm)
+        nd['sales'][idx] += (r['sales'] or 0)
+        nd['cogs'][idx]  += (r['cogs']  or 0)
+        nd['gross'][idx] += (r['gross'] or 0)
+        nd['op'][idx]    += (r['op']    or 0)
+
+    # 파트 B 병합
+    for r in rows_b:
+        nm = str(r['node']) if r['node'] is not None else '(없음)'
+        ym = str(r['Year_Month']) if r['Year_Month'] else None
+        if ym not in month_idx:
+            continue
+        idx = month_idx[ym]
+        prefix = _cls_map.get(str(r['cls'] or ''), None)
+        cat = str(r['cat'] or 'etc')
+        if cat not in _cat_keys:
+            cat = 'etc'
+        val = float(r['val'] or 0)
+        if prefix is None:
+            continue
+        nd = _node(nm)
+        nd[f'{prefix}_{cat}'][idx] += val
+
+    # cls 합계 (sgaD = sgaD_adv + sgaD_log + ...) 계산
+    for nd in nodes.values():
+        for prefix in ('sgaD', 'sgaO', 'sgaC'):
+            for i in range(n):
+                nd[prefix][i] = sum(nd[f'{prefix}_{cat}'][i] for cat in _cat_keys)
+
+    # 노드 정렬: sales 총합 내림차순
+    sorted_nodes = sorted(nodes.values(), key=lambda nd: sum(nd['sales']), reverse=True)
+
+    # 정수 반올림
+    def _int_arr(arr):
+        return [int(round(v)) for v in arr]
+
+    result_nodes = []
+    for nd in sorted_nodes:
+        out = {
+            'name':  nd['name'],
+            'sales': _int_arr(nd['sales']),
+            'cogs':  _int_arr(nd['cogs']),
+            'gross': _int_arr(nd['gross']),
+            'op':    _int_arr(nd['op']),
+        }
+        for prefix in ('sgaD', 'sgaO', 'sgaC'):
+            out[prefix] = _int_arr(nd[prefix])
+            for cat in _cat_keys:
+                out[f'{prefix}_{cat}'] = _int_arr(nd[f'{prefix}_{cat}'])
+        result_nodes.append(out)
+
+    return jsonify({'months': months, 'nodes': result_nodes})
+
+
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host='0.0.0.0', port=5001)
