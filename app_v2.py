@@ -3,7 +3,6 @@ import functools
 import time
 import threading
 import json
-import decimal
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import pymysql
@@ -12,9 +11,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import config
-
-OTHERS_GROUPS = ['ETC', 'FI', 'Sales Operation', '전사']
-_GN = "CASE WHEN `Group` IN ('ETC','FI','Sales Operation','전사') THEN 'Others' ELSE `Group` END"
 
 # ─── 쿼리 결과 캐시 (데이터가 월 1회 업데이트이므로 서버 재시작 전까지 유지) ──
 _query_cache: dict = {}
@@ -32,57 +28,47 @@ def _cache_key(sql: str, params) -> str:
     return '||'.join(parts)
 
 
-_CACHE_MAX_ENTRIES = 500  # 무한 증가 방지 (탐색형 쿼리가 키를 무한 생성)
-
-
 def run_query_cached(sql, params=None, ttl=CACHE_TTL):
     key = _cache_key(sql, params)
-    now = time.time()
     with _cache_lock:
         entry = _query_cache.get(key)
-        if entry and now - entry[0] < ttl:
+        if entry and time.time() - entry[0] < ttl:
             return entry[1]
     result = run_query(sql, params)
     with _cache_lock:
-        # 만료 항목 정리 + 상한 초과 시 오래된 항목부터 제거
-        if len(_query_cache) >= _CACHE_MAX_ENTRIES:
-            expired = [k for k, (ts, _) in _query_cache.items() if now - ts >= CACHE_TTL]
-            for k in expired:
-                del _query_cache[k]
-            while len(_query_cache) >= _CACHE_MAX_ENTRIES:
-                oldest = min(_query_cache, key=lambda k: _query_cache[k][0])
-                del _query_cache[oldest]
-        _query_cache[key] = (now, result)
+        _query_cache[key] = (time.time(), result)
     return result
 
 
-_DATE_NAME_HINTS = {'date', 'month', 'year', 'time', 'period', 'quarter', 'week', 'day'}
+# ─── 테이블 스키마 introspection (Brand/Continent1 등 선택 컬럼 존재 여부 캐시) ──
+_columns_cache = None
+_columns_lock = threading.Lock()
 
-def _get_tableau_fields():
-    cache_key = '__tableau_fields__'
-    with _cache_lock:
-        entry = _query_cache.get(cache_key)
-        if entry and time.time() - entry[0] < 3600:
-            return entry[1]
-    client = get_bq_client()
-    table = client.get_table(config.BQ_TABLE)
-    dimensions, measures, date_dims = [], [], []
-    for field in table.schema:
-        ftype = field.field_type.upper()
-        fname_lower = field.name.lower()
-        if ftype in ('DATE', 'DATETIME', 'TIMESTAMP'):
-            dimensions.append(field.name)
-            date_dims.append(field.name)
-        elif ftype == 'STRING':
-            dimensions.append(field.name)
-            if any(hint in fname_lower for hint in _DATE_NAME_HINTS):
-                date_dims.append(field.name)
-        elif ftype in ('INT64', 'INTEGER', 'FLOAT64', 'FLOAT', 'NUMERIC', 'BIGNUMERIC'):
-            measures.append(field.name)
-    result = (dimensions, measures, date_dims)
-    with _cache_lock:
-        _query_cache[cache_key] = (time.time(), result)
-    return result
+
+def table_columns():
+    """BQ 테이블의 실제 컬럼 집합을 1회 조회 후 캐시. 실패 시 빈 집합.
+
+    Brand / Continent1 같은 선택 컬럼이 테이블에 존재할 때만
+    원시데이터 컬럼·필터 드롭다운을 노출하기 위해 사용 (없으면 조용히 생략).
+    """
+    global _columns_cache
+    if _columns_cache is not None:
+        return _columns_cache
+    with _columns_lock:
+        if _columns_cache is not None:
+            return _columns_cache
+        cols = set()
+        try:
+            parts = config.BQ_TABLE.replace('`', '').split('.')
+            table_name = parts[-1]
+            schema_ref = '.'.join(parts[:-1]) + '.INFORMATION_SCHEMA.COLUMNS'
+            sql = f"SELECT column_name FROM `{schema_ref}` WHERE table_name = @t"
+            rows = run_query(sql, [bigquery.ScalarQueryParameter('t', 'STRING', table_name)])
+            cols = {r['column_name'] for r in rows}
+        except Exception as e:
+            print('[schema] 컬럼 조회 실패 (선택 컬럼 비활성):', e)
+        _columns_cache = cols
+        return _columns_cache
 
 
 def _warm_cache():
@@ -186,18 +172,6 @@ def init_db():
                     token VARCHAR(64) NOT NULL UNIQUE,
                     expires_at DATETIME NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS user_views (
-                    id          INT AUTO_INCREMENT PRIMARY KEY,
-                    username    VARCHAR(100) NOT NULL,
-                    name        VARCHAR(100) NOT NULL DEFAULT '시트 1',
-                    config      JSON NOT NULL,
-                    sort_order  INT NOT NULL DEFAULT 0,
-                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    INDEX idx_uv_username (username)
                 )
             """)
         db.commit()
@@ -456,12 +430,6 @@ def dashboard():
     return render_template('dashboard_v2.html', user=session['user'])
 
 
-@app.route('/report')
-@login_required
-def report():
-    return render_template('report.html', user=session['user'])
-
-
 # ─── BigQuery 필터 빌더 ────────────────────────────────────────────
 def build_bq_filters(args):
     conditions = []
@@ -478,25 +446,21 @@ def build_bq_filters(args):
         conditions.append('Year_Month IN UNNEST(@months)')
         params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
 
-    group_vals = [v.strip() for v in args.getlist('group') if v.strip()]
-    if group_vals:
-        expanded = []
-        for g in group_vals:
-            if g == 'Others':
-                expanded.extend(OTHERS_GROUPS)
-            else:
-                expanded.append(g)
-        conditions.append('`Group` IN UNNEST(@group_vals)')
-        params.append(bigquery.ArrayQueryParameter('group_vals', 'STRING', expanded))
+    _arr('group',      '`Group`',    'group_vals')
     _arr('department', 'Department', 'dept_vals')
-    _arr('continent1', 'Continent1', 'continent1_vals')
     _arr('continent',  'Continent2', 'continent_vals')
     _arr('country',    'Country',    'country_vals')
     _arr('customer',   'Customer',   'customer_vals')
     _arr('line',       'Line',       'line_vals')
     _arr('category',   'Category',   'category_vals')
-    _arr('brand',      'Brand',      'brand_vals')
     _arr('sales_type', 'Sales_Type', 'sales_type_vals')
+
+    # 선택 컬럼(테이블에 존재할 때만) — 브랜드·권역
+    _cols = table_columns()
+    if 'Brand' in _cols:
+        _arr('brand', 'Brand', 'brand_vals')
+    if 'Continent1' in _cols:
+        _arr('continent1', 'Continent1', 'cont1_vals')
 
     product = args.get('product', '').strip()
     if product:
@@ -525,307 +489,6 @@ def api_clear_cache():
     return jsonify({'ok': True, 'cleared': count})
 
 
-# ─── Tableau Builder API ───────────────────────────────────────────
-@app.route('/api/tableau/fields')
-@login_required
-def api_tableau_fields():
-    dims, meas, date_dims = _get_tableau_fields()
-    return jsonify({'dimensions': dims, 'measures': meas, 'date_dims': date_dims})
-
-
-@app.route('/api/views')
-@login_required
-def api_views_list():
-    username = session['user']['username']
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT id, name, config, sort_order FROM user_views "
-                "WHERE username=%s ORDER BY sort_order ASC, id ASC",
-                (username,)
-            )
-            rows = cur.fetchall()
-        for r in rows:
-            if isinstance(r['config'], str):
-                r['config'] = json.loads(r['config'])
-        return jsonify({'views': rows})
-    finally:
-        db.close()
-
-
-@app.route('/api/views', methods=['POST'])
-@login_required
-def api_views_create():
-    username = session['user']['username']
-    data = request.get_json() or {}
-    name = data.get('name', '시트 1')
-    cfg = data.get('config', {
-        'chartType': 'bar', 'mode': 'chart',
-        'rows': [], 'columns': [], 'measures': [],
-        'color': None, 'size': None, 'filters': {},
-        'sort': 'desc', 'limit': 500
-    })
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_ord "
-                "FROM user_views WHERE username=%s", (username,)
-            )
-            next_ord = (cur.fetchone() or {}).get('next_ord', 0)
-            cur.execute(
-                "INSERT INTO user_views (username, name, config, sort_order) "
-                "VALUES (%s,%s,%s,%s)",
-                (username, name, json.dumps(cfg), next_ord)
-            )
-            new_id = cur.lastrowid
-        db.commit()
-        return jsonify({'id': new_id, 'name': name, 'config': cfg, 'sort_order': next_ord})
-    finally:
-        db.close()
-
-
-@app.route('/api/views/<int:view_id>', methods=['PUT'])
-@login_required
-def api_views_update(view_id):
-    username = session['user']['username']
-    data = request.get_json() or {}
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT id FROM user_views WHERE id=%s AND username=%s",
-                (view_id, username)
-            )
-            if not cur.fetchone():
-                return jsonify({'error': '권한 없음'}), 403
-            parts, vals = [], []
-            if 'name' in data:
-                parts.append('name=%s'); vals.append(data['name'])
-            if 'config' in data:
-                parts.append('config=%s'); vals.append(json.dumps(data['config']))
-            if parts:
-                vals.append(view_id)
-                cur.execute(f"UPDATE user_views SET {', '.join(parts)} WHERE id=%s", vals)
-        db.commit()
-        return jsonify({'ok': True})
-    finally:
-        db.close()
-
-
-@app.route('/api/views/<int:view_id>', methods=['DELETE'])
-@login_required
-def api_views_delete(view_id):
-    username = session['user']['username']
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT id FROM user_views WHERE id=%s AND username=%s",
-                (view_id, username)
-            )
-            if not cur.fetchone():
-                return jsonify({'error': '권한 없음'}), 403
-            cur.execute("DELETE FROM user_views WHERE id=%s", (view_id,))
-        db.commit()
-        return jsonify({'ok': True})
-    finally:
-        db.close()
-
-
-@app.route('/api/tableau/query', methods=['POST'])
-@login_required
-def api_tableau_query():
-    data = request.get_json() or {}
-    cfg = data.get('config', {})
-    dims, meas_list, _date_dims = _get_tableau_fields()
-    allowed = set(dims + meas_list)
-
-    rows_fields = [f for f in (cfg.get('rows') or []) if f in allowed]
-    cols_fields  = [f for f in (cfg.get('columns') or []) if f in allowed]
-    measures     = [f for f in (cfg.get('measures') or []) if f in allowed]
-    color_field  = cfg.get('color') if cfg.get('color') in allowed else None
-    size_field   = cfg.get('size')  if cfg.get('size')  in allowed else None
-    label_field  = cfg.get('label') if cfg.get('label') in allowed else None
-    detail_fields = [f for f in (cfg.get('detail') or []) if f in allowed and f in set(dims)]
-    size_is_measure = size_field and size_field in set(meas_list)
-    size_is_dim     = size_field and not size_is_measure
-    label_is_dim    = label_field and label_field in set(dims)
-
-    # dateGranularity: 날짜 차원에만 허용 (일반 차원에 적용 시 NULL 그룹으로 붕괴 방지)
-    _date_set = set(_date_dims)
-    date_gran = {k: v for k, v in (cfg.get('dateGranularity') or {}).items()
-                 if k in _date_set and v in ('YEAR', 'QUARTER', 'MONTH')}
-    # BQ FORMAT_DATE output patterns per granularity
-    _gran_fmt = {'YEAR': '%Y', 'QUARTER': '%Y-Q%Q', 'MONTH': '%Y-%m'}
-    # PARSE_DATE input pattern — Year_Month is 'YYYY-MM'
-    _parse_fmt = '%Y-%m'
-
-    if not measures:
-        return jsonify({'error': '측정값을 선택하세요'}), 400
-
-    group_by = list(dict.fromkeys(
-        rows_fields + cols_fields
-        + ([color_field] if color_field else [])
-        + ([size_field]  if size_is_dim  else [])
-        + ([label_field] if label_is_dim else [])
-        + detail_fields
-    ))
-    measures_query = list(measures)
-    if size_is_measure and size_field not in measures_query:
-        measures_query.append(size_field)
-    # 레이블 선반에 측정값이 놓이면 데이터에 포함 (차트 데이터 레이블용)
-    if label_field and not label_is_dim and label_field not in measures_query:
-        measures_query.append(label_field)
-
-    # Build SELECT parts — apply dateGranularity for date fields
-    def _dim_expr(f):
-        if f in date_gran:
-            fmt = _gran_fmt[date_gran[f]]
-            return f"FORMAT_DATE('{fmt}', SAFE.PARSE_DATE('{_parse_fmt}', CAST(`{f}` AS STRING))) AS `{f}`"
-        return f'`{f}`'
-
-    select_parts = [_dim_expr(f) for f in group_by]
-    _valid_aggs = {'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNTD'}
-    measure_aggs = cfg.get('measureAggs') or {}
-    for m in measures_query:
-        raw_agg = str(measure_aggs.get(m, 'SUM')).upper()
-        agg = raw_agg if raw_agg in _valid_aggs else 'SUM'
-        if agg == 'COUNTD':
-            select_parts.append(f'COUNT(DISTINCT `{m}`) AS `{m}`')
-        else:
-            select_parts.append(f'{agg}(`{m}`) AS `{m}`')
-
-    conditions, params = [], []
-    for idx, (field, values) in enumerate((cfg.get('filters') or {}).items()):
-        # 와일드카드 필터: {'__wc__FieldName': {'field':..., 'patterns':[...], 'exclude':bool}}
-        if field.startswith('__wc__') and isinstance(values, dict):
-            real_field = values.get('field')
-            patterns = values.get('patterns') or []
-            exclude = bool(values.get('exclude'))
-            if real_field in allowed and patterns and isinstance(patterns, list):
-                likes = []
-                for pi, pat in enumerate(patterns[:10]):
-                    pname = f'wc_{idx}_{pi}'
-                    # LIKE 이스케이프: \ → \\ 먼저, 그다음 % _ 리터럴 처리, * 는 와일드카드로
-                    s = str(pat).replace('\\', '\\\\').replace('%', r'\%').replace('_', r'\_')
-                    had_star = '*' in s
-                    sql_pat = s.replace('*', '%')
-                    if not had_star:  # 와일드카드 없으면 부분일치로 감싸기
-                        sql_pat = f'%{sql_pat}%'
-                    likes.append(f"LOWER(CAST(`{real_field}` AS STRING)) LIKE LOWER(@{pname})")
-                    params.append(bigquery.ScalarQueryParameter(pname, 'STRING', sql_pat))
-                clause = '(' + ' OR '.join(likes) + ')'
-                if exclude:
-                    clause = 'NOT ' + clause
-                conditions.append(clause)
-            continue
-        if field not in allowed or not values or not isinstance(values, list):
-            continue
-        pname = f'tf_{idx}'
-        conditions.append(f'`{field}` IN UNNEST(@{pname})')
-        params.append(bigquery.ArrayQueryParameter(pname, 'STRING', [str(v) for v in values]))
-
-    where_clause = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-    # GROUP BY: use expression for granularity fields, column alias for others
-    def _group_expr(f):
-        if f in date_gran:
-            fmt = _gran_fmt[date_gran[f]]
-            return f"FORMAT_DATE('{fmt}', SAFE.PARSE_DATE('{_parse_fmt}', CAST(`{f}` AS STRING)))"
-        return f'`{f}`'
-    group_clause = ('GROUP BY ' + ', '.join(_group_expr(f) for f in group_by)) if group_by else ''
-    try:
-        limit = min(10000, max(1, int(cfg.get('limit', 500))))
-    except (TypeError, ValueError):
-        limit = 500
-    sort_dir = 'DESC' if cfg.get('sort', 'desc') == 'desc' else 'ASC'
-    gb_set = set(group_by)
-    raw_fs = cfg.get('fieldSorts') or []
-    field_sorts_list = []
-    if isinstance(raw_fs, list):
-        for s in raw_fs:
-            if isinstance(s, dict) and s.get('field') in gb_set and s.get('dir') in ('asc', 'desc'):
-                field_sorts_list.append(s)
-    elif isinstance(raw_fs, dict):
-        for f in group_by:
-            if raw_fs.get(f) in ('asc', 'desc'):
-                field_sorts_list.append({'field': f, 'dir': raw_fs[f]})
-    sort_measure = cfg.get('sortMeasure')
-    primary_sort_m = sort_measure if sort_measure in (measures_query or []) else (measures[0] if measures else None)
-    if field_sorts_list:
-        order_clause = 'ORDER BY ' + ', '.join(f'`{s["field"]}` {s["dir"].upper()}' for s in field_sorts_list)
-    elif group_by and primary_sort_m:
-        order_clause = f'ORDER BY `{primary_sort_m}` {sort_dir}'
-    else:
-        order_clause = ''
-
-    # topN: ORDER BY 측정값 + LIMIT N
-    top_n_cfg = cfg.get('topN')
-    if (top_n_cfg and isinstance(top_n_cfg, dict)
-            and top_n_cfg.get('measure') in measures_query):
-        try:
-            top_n = max(1, min(int(top_n_cfg.get('n', 10)), limit))
-        except (TypeError, ValueError):
-            top_n = None
-        if top_n:
-            top_n_dir = 'DESC' if top_n_cfg.get('dir', 'desc') == 'desc' else 'ASC'
-            order_clause = f'ORDER BY `{top_n_cfg["measure"]}` {top_n_dir}'
-            limit = top_n
-
-    sql = (
-        f"SELECT {', '.join(select_parts)} "
-        f"FROM `{config.BQ_TABLE}` "
-        f"{where_clause} {group_clause} {order_clause} LIMIT {limit}"
-    )
-    try:
-        result = run_query_cached(sql, params, ttl=300)
-        out = []
-        for row in result:
-            r = {}
-            for k, v in row.items():
-                if isinstance(v, bool):
-                    r[k] = v
-                elif isinstance(v, (int, float, decimal.Decimal)):
-                    r[k] = float(v)  # NUMERIC(Decimal)도 JSON 직렬화 가능하게
-                else:
-                    r[k] = v if v is not None else ''
-            out.append(r)
-        return jsonify({
-            'columns': group_by + measures_query,
-            'rows': out,
-            'group_by': group_by,
-            'measures': measures,
-            'row_fields': rows_fields,
-            'col_fields': cols_fields,
-            'color_field': color_field,
-            'size_field': size_field,
-            'label_field': label_field,
-            'detail_fields': detail_fields,
-            'date_granularity': date_gran,
-        })
-    except Exception as e:
-        # 내부 오류(SQL/프로젝트 ID 등)는 서버 로그에만 남기고 클라이언트에는 일반 메시지
-        print(f'[tableau-query] error: {e}', flush=True)
-        return jsonify({'error': '쿼리 실행 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.'}), 500
-
-
-@app.route('/api/tableau/filter-values')
-@login_required
-def api_tableau_filter_values():
-    field = request.args.get('field', '')
-    dims, meas_list, _date_dims = _get_tableau_fields()
-    if field not in set(dims + meas_list):
-        return jsonify({'error': '유효하지 않은 필드'}), 400
-    sql = f"SELECT DISTINCT `{field}` FROM `{config.BQ_TABLE}` WHERE `{field}` IS NOT NULL ORDER BY `{field}` LIMIT 500"
-    try:
-        rows = run_query_cached(sql, [], ttl=300)
-        values = [str(r[field]) for r in rows if r[field] is not None]
-        return jsonify({'values': values})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
 @app.route('/api/filters')
 @login_required
 def api_filters():
@@ -838,15 +501,18 @@ def api_filters():
         'lines':       (f"SELECT DISTINCT Line FROM `{T}` WHERE Line IS NOT NULL AND Line != '' ORDER BY Line",               'Line'),
         'categories':  (f"SELECT DISTINCT Category FROM `{T}` WHERE Category IS NOT NULL AND Category != '' ORDER BY Category",   'Category'),
         'countries':   (f"SELECT DISTINCT Country FROM `{T}` WHERE Country IS NOT NULL AND Country != '' ORDER BY Country", 'Country'),
-        'continents':  (f"SELECT DISTINCT Continent1 FROM `{T}` WHERE Continent1 IS NOT NULL AND Continent1 != '' ORDER BY Continent1", 'Continent1'),
-        'continents2': (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2'),
-        'groups':      (f"SELECT DISTINCT {_GN} AS norm_group FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' ORDER BY norm_group", 'norm_group'),
-        'brands':      (f"SELECT DISTINCT Brand FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' ORDER BY Brand", 'Brand'),
+        'continents':  (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2'),
+        'groups':      (f"SELECT DISTINCT `Group` FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' ORDER BY `Group`", 'Group'),
     }
+    # 대륙(Continent2) — 항상 존재. 권역(Continent1)·브랜드(Brand)는 컬럼이 있을 때만.
+    _fcols = table_columns()
+    queries['continents2'] = (f"SELECT DISTINCT Continent2 FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent2", 'Continent2')
+    if 'Continent1' in _fcols:
+        queries['continents1'] = (f"SELECT DISTINCT Continent1 FROM `{T}` WHERE Continent1 IS NOT NULL AND Continent1 != '' ORDER BY Continent1", 'Continent1')
+    if 'Brand' in _fcols:
+        queries['brands'] = (f"SELECT DISTINCT Brand FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' ORDER BY Brand", 'Brand')
     hier_queries = {
-        'group_dept':      f"SELECT DISTINCT {_GN} AS norm_group, Department FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' AND Department IS NOT NULL AND Department != '' ORDER BY norm_group, Department",
-        'brand_group':     f"SELECT DISTINCT Brand, {_GN} AS norm_group FROM `{T}` WHERE Brand IS NOT NULL AND Brand != '' AND `Group` IS NOT NULL AND `Group` != '' ORDER BY Brand, norm_group",
-        'cont1_cont2':       f"SELECT DISTINCT Continent1, Continent2 FROM `{T}` WHERE Continent1 IS NOT NULL AND Continent1 != '' AND Continent2 IS NOT NULL AND Continent2 != '' ORDER BY Continent1, Continent2",
+        'group_dept':      f"SELECT DISTINCT `Group`, Department FROM `{T}` WHERE `Group` IS NOT NULL AND `Group` != '' AND Department IS NOT NULL AND Department != '' ORDER BY `Group`, Department",
         'continent_country': f"SELECT DISTINCT Continent2, Country FROM `{T}` WHERE Continent2 IS NOT NULL AND Continent2 != '' AND Country IS NOT NULL AND Country != '' ORDER BY Continent2, Country",
         'country_customer':  f"SELECT DISTINCT Country, Customer FROM `{T}` WHERE Country IS NOT NULL AND Country != '' AND Customer IS NOT NULL AND Customer != '' ORDER BY Country, Customer",
         'line_category':   f"SELECT DISTINCT Line, Category FROM `{T}` WHERE Line IS NOT NULL AND Line != '' AND Category IS NOT NULL AND Category != '' ORDER BY Line, Category",
@@ -862,13 +528,7 @@ def api_filters():
         mapping = {}
         if key == 'group_dept':
             for r in rows:
-                mapping.setdefault(r['norm_group'], []).append(r['Department'])
-        elif key == 'brand_group':
-            for r in rows:
-                mapping.setdefault(r['Brand'], []).append(r['norm_group'])
-        elif key == 'cont1_cont2':
-            for r in rows:
-                mapping.setdefault(r['Continent1'], []).append(r['Continent2'])
+                mapping.setdefault(r['Group'], []).append(r['Department'])
         elif key == 'continent_country':
             for r in rows:
                 mapping.setdefault(r['Continent2'], []).append(r['Country'])
@@ -1122,21 +782,26 @@ def api_export_csv():
     chunk_size = int(request.args.get('chunk_size', 0))
     chunk_num  = int(request.args.get('chunk_num',  1))
 
-    sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
+    SELECT_COLS = ("Year_Month, `Group`, Department, Sales_Type, Line, Category, Country, Customer,"
+                   " Product_Name, Product_Code, Specification, Sales_Quantity, Sales_Amount,"
+                   " Cost_of_Sales, Gross_Profit, SG_and_A_Expenses, Operating_Income")
+    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
     if chunk_size > 0:
         offset = (chunk_num - 1) * chunk_size
         sql += f" LIMIT {chunk_size} OFFSET {offset}"
 
     rows = run_query_cached(sql, params)
-    rows_list = list(rows)
 
-    # column names from first row; fall back to empty
-    col_names = list(rows_list[0].keys()) if rows_list else []
+    col_names  = ['Year_Month','Group','Department','Sales_Type','Line','Category','Country','Customer',
+                  'Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount',
+                  'Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']
+    col_labels = ['연월','그룹','부서','판매유형','라인','카테고리','국가','거래처','품명','품번','규격',
+                  '수량','매출액','매출원가','매출총이익','판관비','공헌이익']
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(col_names)
-    for row in rows_list:
+    writer.writerow(col_labels)
+    for row in rows:
         writer.writerow([row.get(c, '') if row.get(c) is not None else '' for c in col_names])
 
     filename = f"FI_Export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -1170,11 +835,21 @@ def api_raw():
             rows.append(r)
         return rows
 
+    _base_cols = [
+        'Year_Month', 'Department', '`Group`', 'Sales_Type', 'Line', 'Category', 'Country',
+        'Customer', 'Product_Name', 'Product_Code', 'Specification',
+        'Sales_Quantity', 'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit',
+        'SG_and_A_Expenses', 'Operating_Income',
+    ]
+    # 테이블에 있을 때만 브랜드·권역·대륙 컬럼 추가 (프론트가 COL_ORDER로 재정렬)
+    _rcols = table_columns()
+    _opt = [c for c in ('Brand', 'Continent1', 'Continent2') if c in _rcols]
+    SELECT_COLS = ', '.join(_base_cols + _opt)
+
     if export:
-        sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
+        sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
         rows = serialize(run_query_cached(sql, params))
-        cols = list(rows[0].keys()) if rows else []
-        return jsonify({'total': len(rows), 'rows': rows, 'columns': cols})
+        return jsonify({'total': len(rows), 'rows': rows})
 
     try:
         page     = max(1, int(request.args.get('page', 1)))
@@ -1186,10 +861,9 @@ def api_raw():
     count_sql = f"SELECT COUNT(*) AS cnt FROM `{config.BQ_TABLE}` {where}"
     total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
 
-    sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
+    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
     rows = serialize(run_query_cached(sql, params))
-    cols = list(rows[0].keys()) if rows else []
-    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'rows': rows, 'columns': cols})
+    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'rows': rows})
 
 
 # ─── 어드민 ────────────────────────────────────────────────────────
@@ -1275,7 +949,7 @@ def admin_toggle_user(uid):
         db.close()
 
 
-_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent1','Continent2','Customer','Country','Group'}
+_ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent2','Customer','Country','Group'}
 _BQ_RESERVED = {'Group'}
 
 def _col(dim):
@@ -1307,7 +981,7 @@ def api_group():
     where, params = build_bq_filters(request.args)
     sql = f"""
         SELECT
-            Brand,
+            `Group`,
             SUM(Sales_Amount)      AS sales_amount,
             SUM(Cost_of_Sales)     AS cost_of_sales,
             SUM(Gross_Profit)      AS gross_profit,
@@ -1317,29 +991,7 @@ def api_group():
             SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
         FROM `{config.BQ_TABLE}`
         {where}
-        GROUP BY Brand ORDER BY sales_amount DESC
-    """
-    return jsonify(run_query_cached(sql, params))
-
-
-@app.route('/api/org-group')
-@login_required
-def api_org_group():
-    where, params = build_bq_filters(request.args)
-    T = config.BQ_TABLE
-    sql = f"""
-        SELECT
-            {_GN} AS `Group`,
-            SUM(Sales_Amount)      AS sales_amount,
-            SUM(Cost_of_Sales)     AS cost_of_sales,
-            SUM(Gross_Profit)      AS gross_profit,
-            SUM(Operating_Income)  AS operating_income,
-            SUM(SG_and_A_Expenses) AS sga_expenses,
-            SAFE_DIVIDE(SUM(Gross_Profit), SUM(Sales_Amount)) * 100 AS gross_margin,
-            SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
-        FROM `{T}`
-        {where}
-        GROUP BY {_GN} ORDER BY sales_amount DESC
+        GROUP BY `Group` ORDER BY sales_amount DESC
     """
     return jsonify(run_query_cached(sql, params))
 
@@ -1366,30 +1018,6 @@ def api_continent():
         FROM `{config.BQ_TABLE}`
         {full_where}
         GROUP BY Continent2 ORDER BY sales_amount DESC
-    """
-    return jsonify(run_query_cached(sql, params))
-
-
-@app.route('/api/continent1')
-@login_required
-def api_continent1():
-    where, params = build_bq_filters(request.args)
-    cont_cond = "Continent1 IS NOT NULL AND Continent1 != ''"
-    full_where = (where + f' AND {cont_cond}') if where else f'WHERE {cont_cond}'
-    T = config.BQ_TABLE
-    sql = f"""
-        SELECT
-            Continent1,
-            SUM(Sales_Amount)      AS sales_amount,
-            SUM(Cost_of_Sales)     AS cost_of_sales,
-            SUM(Gross_Profit)      AS gross_profit,
-            SUM(Operating_Income)  AS operating_income,
-            SUM(SG_and_A_Expenses) AS sga_expenses,
-            SAFE_DIVIDE(SUM(Gross_Profit), SUM(Sales_Amount)) * 100 AS gross_margin,
-            SAFE_DIVIDE(SUM(Operating_Income), SUM(Sales_Amount)) * 100 AS operating_margin
-        FROM `{T}`
-        {full_where}
-        GROUP BY Continent1 ORDER BY sales_amount DESC
     """
     return jsonify(run_query_cached(sql, params))
 
@@ -1429,32 +1057,29 @@ def api_prefetch():
 
     # dim → monthly-by-dim
     _dim_map = {
-        ('org', 0): 'Brand', ('org', 1): 'Group', ('org', 2): 'Department',
-        ('region', 0): 'Continent1', ('region', 1): 'Continent2', ('region', 2): 'Country', ('region', 3): 'Customer',
+        ('org', 0): 'Group', ('org', 1): 'Department',
+        ('region', 0): 'Continent2', ('region', 1): 'Country', ('region', 2): 'Customer',
         ('product', 0): 'Line', ('product', 1): 'Category',
         ('sales', 0): 'Sales_Type',
     }
     dim = _dim_map.get((cat, vl))
 
     def tbd_sql(w, d):
-        if d == 'Group':
-            expr = _GN
-            null_c = "`Group` IS NOT NULL AND `Group` != ''"
-        else:
-            expr = d
-            null_c = f"{expr} IS NOT NULL AND {expr} != ''"
+        col = f'`{d}`' if d in ('Group',) else d
+        null_c = f"{col} IS NOT NULL AND {col} != ''"
         fw = (w + f' AND {null_c}') if w else f'WHERE {null_c}'
-        return f"SELECT Year_Month, {expr} AS dim_value, SUM(Sales_Amount) AS sales_amount FROM `{T}` {fw} GROUP BY Year_Month, {expr} ORDER BY Year_Month, sales_amount DESC"
+        return f"""
+            SELECT Year_Month, {col} AS dim_value, SUM(Sales_Amount) AS sales_amount
+            FROM `{T}` {fw} GROUP BY Year_Month, {col} ORDER BY Year_Month, sales_amount DESC
+        """
 
     # Breakdown SQL
     _bkd_sql = {
-        ('org', 0):     lambda w: f"SELECT Brand, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Brand ORDER BY sales_amount DESC",
-        ('org', 1):     lambda w: f"SELECT {_GN} AS `Group`, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY {_GN} ORDER BY sales_amount DESC",
-        ('org', 2):     lambda w: f"SELECT Department, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Department ORDER BY sales_amount DESC",
-        ('region', 0):  lambda w: f"SELECT Continent1, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent1 IS NOT NULL AND Continent1!='' GROUP BY Continent1 ORDER BY sales_amount DESC",
-        ('region', 1):  lambda w: f"SELECT Continent2, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent2 IS NOT NULL AND Continent2!='' GROUP BY Continent2 ORDER BY sales_amount DESC",
-        ('region', 2):  lambda w: f"SELECT Country, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Country ORDER BY sales_amount DESC LIMIT 30",
-        ('region', 3):  lambda w: f"SELECT Customer, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
+        ('org', 0):     lambda w: f"SELECT `Group`, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY `Group` ORDER BY sales_amount DESC",
+        ('org', 1):     lambda w: f"SELECT Department, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Department ORDER BY sales_amount DESC",
+        ('region', 0):  lambda w: f"SELECT Continent2, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent2 IS NOT NULL AND Continent2!='' GROUP BY Continent2 ORDER BY sales_amount DESC",
+        ('region', 1):  lambda w: f"SELECT Country, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Country ORDER BY sales_amount DESC LIMIT 30",
+        ('region', 2):  lambda w: f"SELECT Customer, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
         ('product', 0): lambda w: f"SELECT Line, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Line ORDER BY sales_amount DESC",
         ('product', 1): lambda w: f"SELECT Category, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Category ORDER BY sales_amount DESC",
         ('product', 2): lambda w: f"SELECT Product_Name, Product_Code, SUM(Sales_Quantity) AS sales_quantity, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Product_Name,Product_Code ORDER BY sales_amount DESC LIMIT 30",
@@ -1472,29 +1097,11 @@ def api_prefetch():
         return build_bq_filters(ImmutableMultiDict([(k, v) for k, vs in d.items() for v in vs]))
 
     # Assemble parallel tasks
-    breakdown_sql = _bkd_sql.get((cat, vl), lambda w: '')(where)
     tasks = {
-        'kpi':   (kpi_sql(where), params),
-        'trend': (trend_sql(where), params),
+        'kpi':       (kpi_sql(where), params),
+        'trend':     (trend_sql(where), params),
+        'breakdown': (_bkd_sql.get((cat, vl), lambda w: '')(where), params),
     }
-    if breakdown_sql:
-        tasks['breakdown'] = (breakdown_sql, params)
-
-    # Prior period: same-length window immediately before selected months
-    prior_months_list = request.args.getlist('prior_months')
-    if prior_months_list:
-        from werkzeug.datastructures import ImmutableMultiDict
-        prior_args = request.args.to_dict(flat=False)
-        prior_args['months'] = prior_months_list
-        # Remove any prior_months key to avoid recursion
-        prior_args.pop('prior_months', None)
-        pw, pp = build_bq_filters(ImmutableMultiDict([(k, v) for k, vs in prior_args.items() for v in vs]))
-        tasks['priorKpi']       = (kpi_sql(pw), pp)
-        tasks['priorTrend']     = (trend_sql(pw), pp)
-        prior_bkd_sql = _bkd_sql.get((cat, vl), lambda w: '')(pw)
-        if prior_bkd_sql:
-            tasks['priorBreakdown'] = (prior_bkd_sql, pp)
-
     if dim:
         tasks['trendByDim'] = (tbd_sql(where, dim), params)
     if is_sales:
@@ -1523,9 +1130,6 @@ def api_prefetch():
         'trend':     results.get('trend', []),
         'breakdown': results.get('breakdown', []),
         'trendByDim': results.get('trendByDim', []),
-        'priorKpi':   fmt_kpi(results.get('priorKpi', [])),
-        'priorTrend': results.get('priorTrend', []),
-        'priorBreakdown': results.get('priorBreakdown', []),
     }
     if is_sales:
         out['kpiAll']   = fmt_kpi(results.get('kpiAll', []))
@@ -1549,4 +1153,4 @@ def api_cache_clear():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

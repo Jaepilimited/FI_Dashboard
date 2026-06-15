@@ -1445,6 +1445,51 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
 .detail-tbl .delta.flat{color:var(--text-tertiary)}
 .detail-tbl .delta .ic{width:10px;height:10px;stroke-width:2.5}
 
+/* ═══ 전사 P&L table ═══════════════════════════════════════════════ */
+.pl-table-wrap{overflow-x:auto; padding:4px 8px 12px}
+table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width:1080px}
+.pl-table th{font-size:10.5px; font-weight:700; color:var(--text-tertiary); text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-strong); white-space:nowrap}
+.pl-table th:first-child{text-align:left; position:sticky; left:0; background:var(--surface); z-index:2; min-width:170px}
+.pl-table td{padding:5px 10px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary); white-space:nowrap; border-bottom:1px solid var(--border)}
+.pl-table td:first-child{text-align:left; font-family:'Pretendard Variable','Pretendard',sans-serif; font-size:11.5px; position:sticky; left:0; background:var(--surface); z-index:1}
+.pl-table tr.pl-bold td{color:var(--text); font-weight:700}
+.pl-table tr.pl-bold td:first-child{background:var(--surface)}
+.pl-table tr.pl-hl td{background:var(--accent-soft); color:var(--text); font-weight:700}
+.pl-table tr.pl-hl td:first-child{background:var(--accent-soft)}
+.pl-table tr.pl-group td{cursor:pointer}
+.pl-table tr.pl-group:hover td{background:var(--surface-hover)}
+.pl-table tr.pl-group:hover td:first-child{background:var(--surface-hover)}
+.pl-chev{width:12px;height:12px;vertical-align:-2px;margin-right:5px;stroke-width:2.25;color:var(--text-tertiary)}
+.pl-table tr.pl-sub td:first-child{padding-left:36px;color:var(--text-tertiary);font-weight:500}
+.pl-table tr.pl-sub td{background:var(--surface-2)}
+.pl-table tr.pl-sub td:first-child{background:var(--surface-2)}
+.pl-table tr.pl-pct td{font-size:9.5px;color:var(--text-tertiary);padding:2px 10px 6px;border-bottom:1px solid var(--border)}
+.pl-table tr.pl-pct td:first-child{padding-left:24px;font-size:9.5px}
+.pl-table tr.pl-pct.pl-sub td:first-child{padding-left:48px}
+.pl-table tr.pl-pct.pl-sub td{background:var(--surface-2)}
+.pl-table .pl-neg{color:var(--negative)}
+.pl-table .pl-empty{opacity:.32}
+.pl-mom{display:block;font-size:9px;font-weight:700;line-height:1.1;margin-top:2px}
+.pl-mom.pl-up{color:var(--positive)}
+.pl-mom.pl-down{color:var(--negative)}
+.pl-mom.pl-mom-na{opacity:.3}
+.pl-modeseg{display:inline-flex;gap:2px;padding:2px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px}
+.pl-modeseg button{font-family:inherit;font-size:11.5px;font-weight:600;line-height:1.5;padding:3px 12px;border:none;border-radius:6px;background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .12s ease;white-space:nowrap}
+.pl-modeseg button:hover{color:var(--text)}
+.pl-modeseg button.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(15,15,13,.12)}
+.pl-month-matrix th.pl-month-group{cursor:pointer;text-align:center;color:var(--text);border-left:2px solid var(--border-strong);border-bottom:1px solid var(--border-strong)}
+.pl-month-matrix th.pl-month-group:hover{background:var(--surface-hover);color:var(--accent)}
+.pl-month-matrix th.pl-month-group .pl-chev{margin-right:2px;vertical-align:-1px}
+.pl-month-matrix .pl-col-total{border-right:2px solid var(--border-strong);background:var(--surface-2);font-weight:700}
+.pl-month-matrix th.pl-col-total{color:var(--text)}
+.pl-section-title{font-size:12.5px;font-weight:800;color:var(--text);padding:16px 10px 8px;display:flex;align-items:center;gap:7px}
+.pl-section-title::before{content:'';width:3px;height:13px;border-radius:2px;background:var(--accent)}
+.pl-table th.pl-col-parent{cursor:pointer}
+.pl-table th.pl-col-parent:hover{color:var(--accent)}
+.pl-table th.pl-col-child, .pl-table td.pl-col-child{background:var(--surface-2)}
+.pl-table th.pl-col-child{font-weight:600;color:var(--text-tertiary)}
+table.pl-table{margin-bottom:4px}
+
 /* ═══ Data scope footer ═══════════════════════════════════════════════ */
 .scope-note{
   background:var(--surface);
@@ -2682,6 +2727,10 @@ const CATEGORIES_BY_LINE = {
   'Vitamin C':    ['세럼', '앰플'],
 };
 const CONTINENTS = ['Asia', 'Europe', 'North America', 'Oceania', 'Latin America', 'Middle East'];
+// 권역(Continent1) — 대륙(Continent2) 상위 그룹
+const CONT1_MAP = { 'Asia':'APAC', 'Oceania':'APAC', 'Europe':'EMEA', 'Middle East':'EMEA', 'North America':'Americas', 'Latin America':'Americas' };
+const CONTINENTS1 = ['APAC', 'EMEA', 'Americas'];
+const BRANDS = ['SKIN1004', 'SKIN1004 Derma', 'SKIN1004 Homme'];
 const COUNTRIES = [
   { name:'United States',  flag:'🇺🇸', cont:'North America' },
   { name:'France',         flag:'🇫🇷', cont:'Europe' },
@@ -2912,6 +2961,22 @@ function metricsForSales(amount){
   return { cogs, gp, sga: sgaExp, oi };
 }
 
+// Synthesize a prior-period (전월) row for a breakdown item in mock-preview
+// mode, so 조직/지역/상품/판매유형 detail views can show 전월비 without a
+// backend — mirrors what the 요약 page does. Deterministic per item name so
+// the numbers stay stable across re-renders.
+function synthPriorRow(b){
+  const r = (s) => rng(b.name || '', s);
+  const dS = -0.06 + r('pS') * 0.20;   // 매출액     -6% .. +14%
+  const dG = -0.08 + r('pG') * 0.24;   // 매출총이익 -8% .. +16%
+  const dO = -0.12 + r('pO') * 0.32;   // 공헌이익   -12% .. +20%
+  return {
+    sales_amount:     (b.sales_amount     || 0) / (1 + dS),
+    gross_profit:     (b.gross_profit     || 0) / (1 + dG),
+    operating_income: (b.operating_income || 0) / (1 + dO),
+  };
+}
+
 /* ─── Mock API ──────────────────────────────────────────────────────── */
 const MockApi = {
   monthlyTrend(){
@@ -3048,6 +3113,7 @@ const MockApi = {
       for (let i = 0; i < 14; i++) {
         const seed = ym + i;
         const honbu = HONBUS[Math.floor(rng(seed, 'h') * HONBUS.length)];
+        const brand = BRANDS[Math.floor(rng(seed, 'b') * BRANDS.length)];
         const team = HONBU_TEAM_MAP[honbu][Math.floor(rng(seed, 't') * HONBU_TEAM_MAP[honbu].length)];
         const st = rng(seed, 's') > 0.28 ? 'B2B' : 'B2C';
         const sku = SKUS[Math.floor(rng(seed, 'sk') * SKUS.length)];
@@ -3058,10 +3124,11 @@ const MockApi = {
         const sales = Math.round(qty * unit * seasonality(ym) / 1.2);
         const m = metricsForSales(sales);
         rows.push({
-          Year_Month: ym, Honbu: honbu, Team: team, Sales_Type: st,
+          Year_Month: ym, Brand: brand, Honbu: honbu, Team: team, Sales_Type: st,
           Line: sku.line, Category: sku.cat,
+          Continent1: CONT1_MAP[country.cont] || country.cont, Continent2: country.cont,
           Continent: country.cont, Country: country.name, Country_Flag: country.flag,
-          Customer: cust, Product_Name: sku.name, Product_Code: sku.code,
+          Customer: cust, Product_Name: sku.name, Product_Code: sku.code, Specification: sku.spec,
           Sales_Quantity: qty, Sales_Amount: sales,
           Cost_of_Sales: m.cogs, Gross_Profit: m.gp,
           SG_and_A_Expenses: m.sga, Operating_Income: m.oi,
@@ -3072,8 +3139,10 @@ const MockApi = {
     let f = rows;
     if (state.category === 'rawdata') {
       const rf = state.rawFilter;
+      if (rf.brand)      f = f.filter(r => r.Brand === rf.brand);
       if (rf.group)      f = f.filter(r => r.Honbu === rf.group);
       if (rf.department) f = f.filter(r => r.Team === rf.department);
+      if (rf.continent1) f = f.filter(r => r.Continent1 === rf.continent1);
       if (rf.continent)  f = f.filter(r => r.Continent === rf.continent);
       if (rf.country)    f = f.filter(r => r.Country === rf.country);
       if (rf.line)       f = f.filter(r => r.Line === rf.line);
@@ -4164,6 +4233,17 @@ function renderOverviewView(){
       <div class="card-body"><div class="chart-wrap"><canvas id="overviewTrendChart"></canvas></div></div>
     </div>
 
+    <div class="card row-grid-full" style="margin-bottom:14px">
+      <div class="card-hd">
+        <div>
+          <div class="card-title"><i data-lucide="table-2"></i>손익계산서 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(PL 요약 · 전사 / 브랜드 / 유통)</span></div>
+          <div class="card-sub">굵은 행을 클릭하면 세부 계정이 펼쳐집니다 · 1~4월 실적 · 값 아래 ▲▼는 전월 대비 증감률</div>
+        </div>
+        <div class="waterfall-card-unit">단위: 백만원</div>
+      </div>
+      <div class="card-body card-body-flush"><div class="pl-table-wrap" id="plSummaryWrap"></div></div>
+    </div>
+
     <div class="scope-note">
       <div class="scope-note-hd"><i data-lucide="info" class="ic"></i>데이터 범위 안내</div>
       <div class="scope-grid" id="scopeGrid"></div>
@@ -4171,7 +4251,435 @@ function renderOverviewView(){
   `;
 }
 
+/* ─── 손익계산서 (PL_요약 시트 · 전사/브랜드(SK)/유통 — 0610 RAW 기준, 단위: 원) ─── */
+const PL_ROW_DEFS = [
+  ['sales','매출액',{bold:true,pct:true,pctMember:'gross'}],
+  ['cogs','매출원가',{member:'gross',pct:true}],
+  ['gross','매출총이익',{bold:true,pct:true,toggle:'gross'}],
+  ['sgaD','판매관리비(직접)',{bold:true,pct:true,toggle:'direct'}],
+  ['sgaD_adv','광고선전비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_log','물류비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_fee','수수료',{member:'direct',sub:true,pct:true}],
+  ['sgaD_hr','인건비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_etc','기타',{member:'direct',sub:true,pct:true}],
+  ['direct','직접이익',{bold:true,pct:true}],
+  ['sgaO','판매관리비 간접비(조직)',{bold:true,pct:true,toggle:'org'}],
+  ['sgaO_adv','광고선전비',{member:'org',sub:true,pct:true}],
+  ['sgaO_log','물류비',{member:'org',sub:true,pct:true}],
+  ['sgaO_fee','수수료',{member:'org',sub:true,pct:true}],
+  ['sgaO_hr','인건비',{member:'org',sub:true,pct:true}],
+  ['sgaO_etc','기타',{member:'org',sub:true,pct:true}],
+  ['contrib','공헌이익',{bold:true,pct:true,hl:true}],
+  ['sgaC','판매관리비 간접비(전사)',{bold:true,pct:true,toggle:'corp'}],
+  ['sgaC_adv','광고선전비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_log','물류비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_fee','수수료',{member:'corp',sub:true,pct:true}],
+  ['sgaC_hr','인건비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_etc','기타',{member:'corp',sub:true,pct:true}],
+  ['op','영업이익',{bold:true,pct:true,hl:true}],
+];
+function makePlRows(v){
+  return PL_ROW_DEFS.map(function(d){ return Object.assign({ id:d[0], label:d[1], vals:v[d[0]] }, d[2]); });
+}
+const PL_SECTIONS = [
+  { key:'jeonsa', title:'1. 전사', rows: makePlRows({
+      sales:[58893757955,58573061564,81199313531,115540451837],
+      cogs:[24245056366,23702314020,32989071159,47024575196],
+      gross:[34648701589,34870747544,48210242372,68515876641],
+      sgaD:[12593015304,21606008564,23622886181,39061472228],
+      sgaD_adv:[5704348970,11356752874,11043837045,21477170617],
+      sgaD_log:[3432397854,5365555585,5413276729,9080797804],
+      sgaD_fee:[2085728183,2402363521,5831613761,4922206630],
+      sgaD_hr:[858693210,932436266,752567198,892898737],
+      sgaD_etc:[511847087,1548900318,581591448,2688398440],
+      direct:[22055686285,13264738980,24587356191,29454404413],
+      sgaO:[2206590404,4711598881,4892660867,5871607243],
+      sgaO_adv:[229612039,344151454,392592381,259882634],
+      sgaO_log:[719165712,2825359854,3219528625,4116086984],
+      sgaO_fee:[308263872,407071699,414240368,440985118],
+      sgaO_hr:[759236619,888963091,692836129,892092869],
+      sgaO_etc:[190312162,246052783,173463364,162559638],
+      contrib:[19849095881,8553140099,19694695324,23582797170],
+      sgaC:[3094657037,2633591002,2701552968,2622972663],
+      sgaC_adv:[88588029,0,-12129500,0],
+      sgaC_log:[242196,266800,1188939,180632],
+      sgaC_fee:[171629278,375701450,502134538,369882465],
+      sgaC_hr:[2176459522,1647983415,1511024081,1538506677],
+      sgaC_etc:[657738012,609639337,699334910,714402889],
+      op:[16754438844,5919549097,16993142356,20959824507]
+  }) },
+  { key:'brand', title:'2. 브랜드 부문 (SK)', rows: makePlRows({
+      sales:[46665920852,49671641420,70428454427,77105190181],
+      cogs:[16925707682,17975901055,23835867158,26651444054],
+      gross:[29740213170,31695740365,46592587269,50453746127],
+      sgaD:[11869204589,19667308722,23120748715,38445738835],
+      sgaD_adv:[5513592352,10550831306,10973200487,21388631425],
+      sgaD_log:[3354118299,5320705638,5372785335,9059760936],
+      sgaD_fee:[2028734760,2329870610,5730429617,4837349484],
+      sgaD_hr:[648568165,682067966,560294405,672810543],
+      sgaD_etc:[324191013,783833202,484038871,2487186447],
+      direct:[17871008581,12028431643,23471838554,12008007292],
+      sgaO:[1763782109,2283296210,3240035582,1712086784],
+      sgaO_adv:[200549280,215238930,461420617,245496101],
+      sgaO_log:[732695667,1026936483,1930568312,423554885],
+      sgaO_fee:[165527930,183347025,243109011,290269855],
+      sgaO_hr:[560817967,671047855,500020266,620624162],
+      sgaO_etc:[104191265,186725917,104917376,132141781],
+      contrib:[16107226472,9745135433,20231802972,10295920508],
+      sgaC:[2458612179,2247954276,1870987526,2043872767],
+      sgaC_adv:[70380532,0,-8400405,0],
+      sgaC_log:[192418,227733,823412,140755],
+      sgaC_fee:[136354311,320687483,347758294,288219818],
+      sgaC_hr:[1729131800,1406669207,1046474842,1198835169],
+      sgaC_etc:[522553118,520369853,484331383,556677025],
+      op:[13648614293,7497181157,18360815446,8252047741]
+  }) },
+  { key:'dist', title:'3. 유통 부문', rows: makePlRows({
+      sales:[12222037103,8895620144,10938012734,38513989206],
+      cogs:[7333132556,5723018027,8267785763,20396031883],
+      gross:[4888904547,3172602117,2670226971,18117957323],
+      sgaD:[723810715,1938699842,502137466,615733393],
+      sgaD_adv:[190756618,805921568,70636558,88539192],
+      sgaD_log:[78279555,44849947,40491394,21036868],
+      sgaD_fee:[56993423,72492911,101184144,84857146],
+      sgaD_hr:[210125045,250368300,192272793,220088194],
+      sgaD_etc:[187656074,765067116,97552577,201211993],
+      direct:[4165093832,1233902275,2168089505,17502223930],
+      sgaO:[442808295,2428302671,1652625285,4159520459],
+      sgaO_adv:[29062759,128912524,-68828236,14386533],
+      sgaO_log:[-13529955,1798423371,1288960313,3692532099],
+      sgaO_fee:[142735942,223724674,171131357,150715263],
+      sgaO_hr:[198418652,217915236,192815863,271468707],
+      sgaO_etc:[86120897,59326866,68545988,30417857],
+      contrib:[3722285537,-1194400396,515464220,13342703471],
+      sgaC:[636044858,385636726,830565442,579099896],
+      sgaC_adv:[18207497,0,-3729095,0],
+      sgaC_log:[49778,39067,365527,39877],
+      sgaC_fee:[35274967,55013967,154376244,81662647],
+      sgaC_hr:[447327722,241314208,464549239,339671508],
+      sgaC_etc:[135184894,89269484,215003527,157725864],
+      op:[3086240679,-1580037122,-315101222,12763603575]
+  }) },
+];
+const plExpanded = new Set();
+
+function renderPlSummary(){
+  const wrap = document.getElementById('plSummaryWrap');
+  if (!wrap) return;
+  const M = 12;
+  const empty = '<span class="pl-empty">–</span>';
+  const fmtM = function(v){
+    const m = Math.round(v / 1e6);
+    return (m < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(m).toLocaleString('ko-KR') + '</span>';
+  };
+  let html = '';
+  for (const sec of PL_SECTIONS) {
+    const salesRow = sec.rows.find(function(x){ return x.id === 'sales'; });
+    const salesTot = salesRow.vals.reduce(function(a,b){ return a+b; },0);
+    html += '<div class="pl-section-title">' + sec.title + '</div>';
+    html += '<table class="pl-table"><thead><tr><th>구분</th><th>합계</th>';
+    for (let i = 0; i < M; i++) html += '<th>' + (i+1) + '월</th>';
+    html += '</tr></thead><tbody>';
+    for (const row of sec.rows) {
+      const memberKey = row.member ? sec.key + ':' + row.member : null;
+      if (memberKey && !plExpanded.has(memberKey)) continue;
+      const toggleKey = row.toggle ? sec.key + ':' + row.toggle : null;
+      const tot = row.vals.reduce(function(a,b){ return a+b; },0);
+      const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl':'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
+      const chev = toggleKey ? '<i data-lucide="' + (plExpanded.has(toggleKey)?'chevron-down':'chevron-right') + '" class="pl-chev"></i>' : '';
+      const n = row.vals.length;
+      const valCell = function(i){
+        if (i >= n) return empty;
+        let h = fmtM(row.vals[i]);
+        if (i > 0 && row.vals[i-1]) {
+          const d = (row.vals[i] - row.vals[i-1]) / Math.abs(row.vals[i-1]) * 100;
+          const up = d > 0.05, down = d < -0.05;
+          h += '<div class="pl-mom ' + (up?'pl-up':down?'pl-down':'') + '">' + (up?'▲':down?'▼':'–') + Math.abs(d).toFixed(1) + '%</div>';
+        } else {
+          h += '<div class="pl-mom pl-mom-na">–</div>';
+        }
+        return h;
+      };
+      html += '<tr class="' + cls + '"' + (toggleKey ? ' data-pl-toggle="' + toggleKey + '"' : '') + '><td>' + chev + row.label + '</td><td>' + fmtM(tot) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+      for (let i = 0; i < M; i++) html += '<td>' + valCell(i) + '</td>';
+      html += '</tr>';
+      const showPct = row.pct && (!row.pctMember || plExpanded.has(sec.key + ':' + row.pctMember));
+      if (showPct) {
+        const pctCell = function(num, den){ return den ? ((num/den*100).toFixed(1) + '%') : empty; };
+        html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + '"><td>%</td><td>' + pctCell(tot, salesTot) + '</td>';
+        for (let i = 0; i < M; i++) html += '<td>' + (i < n ? pctCell(row.vals[i], salesRow.vals[i]) : empty) + '</td>';
+        html += '</tr>';
+      }
+    }
+    html += '</tbody></table>';
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('[data-pl-toggle]').forEach(function(tr){ tr.addEventListener('click', function(){
+    const k = tr.dataset.plToggle;
+    if (plExpanded.has(k)) plExpanded.delete(k); else plExpanded.add(k);
+    renderPlSummary();
+  }); });
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ─── 카테고리별 손익계산서 (PL 프레임: 섹션 전체/SK/유통 × 열 차원 + 하위 top10 펼치기) ─── */
+const CPL_SEC_DEFS = [
+  { key:'all',  label:'전체', salesMul:1,    r:{ cogs:0.377, sgaD:0.298, sgaO:0.054, sgaC:0.034 }, useActual:true },
+  { key:'sk',   label:'SK',   salesMul:0.753, r:{ cogs:0.332, sgaD:0.351, sgaO:0.064, sgaC:0.040 } },
+  { key:'dist', label:'유통', salesMul:0.247, r:{ cogs:0.514, sgaD:0.136, sgaO:0.025, sgaC:0.016 } },
+];
+const CPL_SUB_W = {
+  direct: { adv:0.512, log:0.240, fee:0.157, hr:0.035, etc:0.056 },
+  org:    { adv:0.069, log:0.615, fee:0.089, hr:0.183, etc:0.044 },
+  corp:   { adv:0.007, log:0.001, fee:0.128, hr:0.622, etc:0.242 },
+};
+const CPL_SUB_LABELS = { adv:'광고선전비', log:'물류비', fee:'수수료', hr:'인건비', etc:'기타' };
+const cplColExp = new Set();
+// Detail 손익계산서 column mode: 'dim' (차원별 columns) or 'month' (월별 columns, 요약처럼)
+let cplViewMode = 'dim';
+// Month-mode 차원별 open/close state (per category:ym) + one-time seed flag.
+const cplMonthExp = new Set();
+let cplMonthSeeded = false;
+
+function cplDims(){
+  const cat = state.category;
+  const catDef = CATEGORY_DEFS.find(function(c){ return c.id === cat; });
+  const savedVl = state.viewLevel ? state.viewLevel[cat] : undefined;
+  const savedDrill = (state.drill && state.drill[cat]) ? state.drill[cat].slice() : [];
+  let dims = [];
+  try {
+    if (state.viewLevel) state.viewLevel[cat] = 0;
+    if (state.drill) state.drill[cat] = [];
+    dims = (api.breakdown() || []).slice(0, 8);
+    const canChild = USE_MOCK && catDef && catDef.path && catDef.path.length > 1;
+    dims.forEach(function(d){
+      d._children = [];
+      if (!canChild) return;
+      try {
+        state.viewLevel[cat] = 1; state.drill[cat] = [d.name];
+        d._children = (api.breakdown() || []).slice(0, 10);
+      } catch(e){}
+    });
+  } catch(e){}
+  if (state.viewLevel) state.viewLevel[cat] = savedVl;
+  if (state.drill) state.drill[cat] = savedDrill;
+  return dims;
+}
+
+function cplMetrics(sec, b){
+  const sales = (b.sales_amount || 0) * sec.salesMul;
+  let cogs, sgaD, sgaO, sgaC;
+  if (sec.useActual) {
+    cogs = (b.cost_of_sales != null) ? b.cost_of_sales : sales * sec.r.cogs;
+    const sgaT = (b.sga_expenses != null) ? b.sga_expenses : sales * (sec.r.sgaD + sec.r.sgaO + sec.r.sgaC);
+    sgaD = sgaT * 0.771; sgaO = sgaT * 0.141; sgaC = sgaT * 0.088;
+  } else {
+    cogs = sales * sec.r.cogs; sgaD = sales * sec.r.sgaD; sgaO = sales * sec.r.sgaO; sgaC = sales * sec.r.sgaC;
+  }
+  const gross = sales - cogs, direct = gross - sgaD, contrib = direct - sgaO, op = contrib - sgaC;
+  return { sales:sales, cogs:cogs, gross:gross, sgaD:sgaD, direct:direct, sgaO:sgaO, contrib:contrib, sgaC:sgaC, op:op };
+}
+
+const CPL_ROW_DEFS = [
+  { id:'sales',  label:'매출액',            bold:true, pct:true, pctMember:'gross' },
+  { id:'cogs',   label:'매출원가',          member:'gross', pct:true },
+  { id:'gross',  label:'매출총이익',        bold:true, pct:true, toggle:'gross' },
+  { id:'sgaD',   label:'판매관리비(직접)',  bold:true, pct:true, toggle:'direct' },
+  { id:'sgaD.adv', label:'광고선전비', member:'direct', sub:true, pct:true },
+  { id:'sgaD.log', label:'물류비',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.fee', label:'수수료',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.hr',  label:'인건비',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.etc', label:'기타',       member:'direct', sub:true, pct:true },
+  { id:'direct', label:'직접이익',          bold:true, pct:true },
+  { id:'sgaO',   label:'판매관리비 간접비(조직)', bold:true, pct:true, toggle:'org' },
+  { id:'sgaO.adv', label:'광고선전비', member:'org', sub:true, pct:true },
+  { id:'sgaO.log', label:'물류비',     member:'org', sub:true, pct:true },
+  { id:'sgaO.fee', label:'수수료',     member:'org', sub:true, pct:true },
+  { id:'sgaO.hr',  label:'인건비',     member:'org', sub:true, pct:true },
+  { id:'sgaO.etc', label:'기타',       member:'org', sub:true, pct:true },
+  { id:'contrib', label:'공헌이익',         bold:true, pct:true, hl:true },
+  { id:'sgaC',   label:'판매관리비 간접비(전사)', bold:true, pct:true, toggle:'corp' },
+  { id:'sgaC.adv', label:'광고선전비', member:'corp', sub:true, pct:true },
+  { id:'sgaC.log', label:'물류비',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.fee', label:'수수료',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.hr',  label:'인건비',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.etc', label:'기타',       member:'corp', sub:true, pct:true },
+  { id:'op',     label:'영업이익',          bold:true, pct:true, hl:true },
+];
+
+function cplRowValue(m, id){
+  if (id.indexOf('.') < 0) return m[id];
+  const parts = id.split('.');
+  const bucket = parts[0] === 'sgaD' ? 'direct' : (parts[0] === 'sgaO' ? 'org' : 'corp');
+  return m[parts[0]] * CPL_SUB_W[bucket][parts[1]];
+}
+
+function renderCategoryPl(){
+  const wrap = document.getElementById('categoryPlSection');
+  if (!wrap) return;
+  const dims = cplDims();
+  if (!dims.length) { wrap.innerHTML = ''; return; }
+  const cat = CATEGORY_DEFS.find(function(c){ return c.id === state.category; });
+  const dimLabel = (cat && cat.path && cat.path[0]) || (cat && cat.label) || '항목';
+  const childLabel = (cat && cat.path && cat.path[1]) || '';
+  const agg = { sales_amount:0, cost_of_sales:0, gross_profit:0, sga_expenses:0 };
+  dims.forEach(function(d){
+    agg.sales_amount += d.sales_amount || 0;
+    agg.cost_of_sales += d.cost_of_sales || 0;
+    agg.gross_profit += d.gross_profit || 0;
+    agg.sga_expenses += d.sga_expenses || 0;
+  });
+  const cols = [{ label:'전체', b:agg, total:true }];
+  dims.forEach(function(d){
+    const ck = state.category + ':' + d.name;
+    const exp = cplColExp.has(ck);
+    cols.push({ label:(d.flag ? d.flag + ' ' : '') + d.name, b:d, key:d.name, ck:ck, expandable:(d._children||[]).length > 0, expanded:exp });
+    if (exp) (d._children||[]).forEach(function(c){
+      cols.push({ label:(c.flag ? c.flag + ' ' : '') + c.name, b:c, child:true });
+    });
+  });
+  const empty = '<span class="pl-empty">–</span>';
+  const fmtMm = function(v){
+    const m = Math.round(v / 1e6);
+    return (m < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(m).toLocaleString('ko-KR') + '</span>';
+  };
+  // Mock 전월 대비 (%) per (section × column × account) — deterministic & stable,
+  // so 조직/지역/상품/판매유형 손익계산서 shows 전월비 like the 요약 page.
+  const momHtml = function(sec, col, rowId){
+    const seed = sec.key + '|' + (col.key || (col.total ? '전체' : col.label) || '') + '|' + rowId;
+    const d = (rng(seed, 'mom') - 0.45) * 36;
+    const up = d > 0.05, down = d < -0.05;
+    return '<div class="pl-mom ' + (up ? 'pl-up' : down ? 'pl-down' : '') + '">' + (up ? '▲' : down ? '▼' : '–') + Math.abs(d).toFixed(1) + '%</div>';
+  };
+  const colSpanLabel = '전체 / SK / 유통 × 월별';
+  const subText = '월(月) 헤더 클릭 → 차원별 펼침 · 차원 헤더 클릭 → 하위 드릴다운 · 굵은 행 클릭 → 세부 계정 · 값 아래 ▲▼는 전월 대비';
+  let html = '<div class="card row-grid-full" style="margin-bottom:14px">'
+    + '<div class="card-hd"><div>'
+    + '<div class="card-title"><i data-lucide="table-2"></i>손익계산서 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(' + colSpanLabel + ')</span></div>'
+    + '<div class="card-sub">' + subText + '</div>'
+    + '</div><div style="display:flex;align-items:center;gap:12px">'
+    + '<div class="waterfall-card-unit">단위: 백만원</div></div></div>'
+    + '<div class="card-body card-body-flush"><div class="pl-table-wrap">';
+  {
+    const months = activeMonths();
+    const mTotals = months.map(function(ym){ return monthlyTotal(ym); });
+    const mSum = mTotals.reduce(function(a,b){ return a+b; }, 0) || 1;
+    const baseShare = mTotals.map(function(v){ return v / mSum; });
+    // Default: open the first month so the 차원별 breakdown is visible at a glance.
+    if (!cplMonthSeeded) { if (months[0]) cplMonthExp.add(state.category + ':' + months[0]); cplMonthSeeded = true; }
+    const isMonthOpen = function(ym){ return cplMonthExp.has(state.category + ':' + ym); };
+    const momCell = function(cur, prev){
+      if (prev === undefined || !prev) return '<div class="pl-mom pl-mom-na">–</div>';
+      const d = (cur - prev) / Math.abs(prev) * 100;
+      const up = d > 0.05, down = d < -0.05;
+      return '<div class="pl-mom ' + (up ? 'pl-up' : down ? 'pl-down' : '') + '">' + (up ? '▲' : down ? '▼' : '–') + Math.abs(d).toFixed(1) + '%</div>';
+    };
+    // Split a cumulative value across months by seasonal share, jittered per seed.
+    const monthSeries = function(V, seed){
+      const jit = months.map(function(ym, i){ return baseShare[i] * (0.78 + rng(seed, ym) * 0.44); });
+      const s = jit.reduce(function(a,b){ return a+b; }, 0) || 1;
+      return jit.map(function(x){ return V * x / s; });
+    };
+    CPL_SEC_DEFS.forEach(function(sec){
+      const secKey = state.category + ':' + sec.key;
+      // Display columns inside an open month: top-level dims, each drillable to
+      // its children (cplColExp is global, so every open month drills together).
+      const dcols = [];
+      dims.forEach(function(d){
+        const ck = state.category + ':' + d.name;
+        const exp = cplColExp.has(ck);
+        const kids = d._children || [];
+        dcols.push({ b:d, name:d.name, flag:d.flag, key:d.name, ck:ck, expandable:kids.length > 0, expanded:exp, child:false });
+        if (exp) kids.forEach(function(c){ dcols.push({ b:c, name:c.name, flag:c.flag, child:true }); });
+      });
+      const colM = dcols.map(function(col){ return { col:col, M:cplMetrics(sec, col.b) }; });
+      const topM = dims.map(function(d){ return cplMetrics(sec, d); });
+      const salesByCol = colM.map(function(cm){ return monthSeries(cplRowValue(cm.M, 'sales'), secKey + '|' + cm.col.name + '|sales'); });
+      const salesByTop = dims.map(function(d, ti){ return monthSeries(cplRowValue(topM[ti], 'sales'), secKey + '|' + d.name + '|sales'); });
+      const totSalesSeries = months.map(function(ym, i){ return salesByTop.reduce(function(a, ss){ return a + ss[i]; }, 0); });
+      const totSalesV = topM.reduce(function(a, M){ return a + cplRowValue(M, 'sales'); }, 0);
+      html += '<div class="pl-section-title">▶ ' + sec.label + '</div>';
+      html += '<table class="pl-table pl-month-matrix"><thead>';
+      // header row 1 — month groups (click to open/close 차원별 columns)
+      html += '<tr><th rowspan="2">구분</th><th rowspan="2">합계</th>';
+      months.forEach(function(ym){
+        const open = isMonthOpen(ym);
+        const span = open ? (dcols.length + 1) : 1;
+        html += '<th class="pl-month-group" colspan="' + span + '" data-cpl-month="' + ym + '"><i data-lucide="' + (open ? 'chevron-down' : 'chevron-right') + '" class="pl-chev"></i>' + ym.slice(2).replace('-', '.') + '</th>';
+      });
+      html += '</tr><tr>';
+      // header row 2 — dimension sub-columns + 계 (month total)
+      months.forEach(function(ym){
+        if (isMonthOpen(ym)) {
+          dcols.forEach(function(col){
+            const lbl = (col.flag ? col.flag + ' ' : '') + col.name;
+            if (col.child) { html += '<th class="pl-col-child">' + lbl + '</th>'; }
+            else if (col.expandable) { html += '<th class="pl-col-dim pl-col-parent" data-cpl-col="' + col.key + '"><i data-lucide="' + (col.expanded ? 'chevron-down' : 'chevron-right') + '" class="pl-chev"></i>' + lbl + '</th>'; }
+            else { html += '<th class="pl-col-dim">' + lbl + '</th>'; }
+          });
+        }
+        html += '<th class="pl-col-total">계</th>';
+      });
+      html += '</tr></thead><tbody>';
+      CPL_ROW_DEFS.forEach(function(row){
+        const memberKey = row.member ? secKey + ':' + row.member : null;
+        if (memberKey && !plExpanded.has(memberKey)) return;
+        const toggleKey = row.toggle ? secKey + ':' + row.toggle : null;
+        const cls = ['pl-row', row.bold?'pl-bold':'', row.sub?'pl-sub':'', row.hl?'pl-hl':'', row.toggle?'pl-group':''].filter(Boolean).join(' ');
+        const chev = toggleKey ? '<i data-lucide="' + (plExpanded.has(toggleKey)?'chevron-down':'chevron-right') + '" class="pl-chev"></i>' : '';
+        const isSales = row.id === 'sales';
+        const seriesByCol = colM.map(function(cm, ci){ return isSales ? salesByCol[ci] : monthSeries(cplRowValue(cm.M, row.id), secKey + '|' + cm.col.name + '|' + row.id); });
+        const topSeries = dims.map(function(d, ti){ return isSales ? salesByTop[ti] : monthSeries(cplRowValue(topM[ti], row.id), secKey + '|' + d.name + '|' + row.id); });
+        const totSeries = months.map(function(ym, i){ return topSeries.reduce(function(a, ss){ return a + ss[i]; }, 0); });
+        const totV = topM.reduce(function(a, M){ return a + cplRowValue(M, row.id); }, 0);
+        html += '<tr class="' + cls + '"' + (toggleKey ? ' data-cpl-toggle="' + toggleKey + '"' : '') + '><td>' + chev + row.label + '</td>';
+        html += '<td>' + fmtMm(totV) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+        months.forEach(function(ym, i){
+          if (isMonthOpen(ym)) {
+            seriesByCol.forEach(function(ss, ci){ html += '<td' + (colM[ci].col.child ? ' class="pl-col-child"' : '') + '>' + fmtMm(ss[i]) + momCell(ss[i], i > 0 ? ss[i-1] : undefined) + '</td>'; });
+          }
+          html += '<td class="pl-col-total">' + fmtMm(totSeries[i]) + momCell(totSeries[i], i > 0 ? totSeries[i-1] : undefined) + '</td>';
+        });
+        html += '</tr>';
+        const showPct = row.pct && (!row.pctMember || plExpanded.has(secKey + ':' + row.pctMember));
+        if (showPct) {
+          html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + '"><td>%</td>';
+          html += '<td>' + (totSalesV ? (totV/totSalesV*100).toFixed(1) + '%' : empty) + '</td>';
+          months.forEach(function(ym, i){
+            if (isMonthOpen(ym)) {
+              seriesByCol.forEach(function(ss, ci){ const den = salesByCol[ci][i]; html += '<td' + (colM[ci].col.child ? ' class="pl-col-child"' : '') + '>' + (den ? (ss[i]/den*100).toFixed(1) + '%' : empty) + '</td>'; });
+            }
+            const td = totSalesSeries[i];
+            html += '<td class="pl-col-total">' + (td ? (totSeries[i]/td*100).toFixed(1) + '%' : empty) + '</td>';
+          });
+          html += '</tr>';
+        }
+      });
+      html += '</tbody></table>';
+    });
+  }
+  html += '</div></div></div>';
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('[data-cpl-toggle]').forEach(function(tr){ tr.addEventListener('click', function(){
+    const k = tr.dataset.cplToggle;
+    if (plExpanded.has(k)) plExpanded.delete(k); else plExpanded.add(k);
+    renderCategoryPl();
+  }); });
+  wrap.querySelectorAll('[data-cpl-col]').forEach(function(th){ th.addEventListener('click', function(){
+    const k = state.category + ':' + th.dataset.cplCol;
+    if (cplColExp.has(k)) cplColExp.delete(k); else cplColExp.add(k);
+    renderCategoryPl();
+  }); });
+  wrap.querySelectorAll('[data-cpl-month]').forEach(function(th){ th.addEventListener('click', function(){
+    const k = state.category + ':' + th.dataset.cplMonth;
+    if (cplMonthExp.has(k)) cplMonthExp.delete(k); else cplMonthExp.add(k);
+    renderCategoryPl();
+  }); });
+  if (window.lucide) lucide.createIcons();
+}
+
 function buildOverviewCharts(){
+  renderPlSummary();
   const c = chartColors();
   const trend = api.monthlyTrend();
   const months = activeMonths();
@@ -4309,12 +4817,12 @@ function renderKPI(){
 function renderRawDataView(){
   const _grps  = USE_MOCK ? HONBUS                                  : REAL_GROUPS;
   const _depts = USE_MOCK ? ALL_TEAMS                               : REAL_DEPARTMENTS;
-  const _conts1 = USE_MOCK ? CONTINENTS                              : REAL_CONTINENTS1;
+  const _conts1 = USE_MOCK ? CONTINENTS1                            : REAL_CONTINENTS1;
   const _conts2 = USE_MOCK ? CONTINENTS                              : REAL_CONTINENTS;
   const _ctrys = USE_MOCK ? COUNTRIES.map(c=>c.name)               : REAL_COUNTRIES;
   const _lines = USE_MOCK ? LINES                                   : REAL_LINES;
   const _cats  = USE_MOCK ? [...new Set(Object.values(CATEGORIES_BY_LINE).flat())] : REAL_CATEGORIES;
-  const _brands = USE_MOCK ? []                                    : REAL_BRANDS;
+  const _brands = USE_MOCK ? BRANDS                                : REAL_BRANDS;
   const _sts   = USE_MOCK ? ['B2B','B2C']                          : REAL_SALES_TYPES;
   const grpOpts   = _grps.map(v=>`<option value="${v}"${state.rawFilter.group===v?' selected':''}>${v}</option>`).join('');
   const deptOpts  = _depts.map(v=>`<option value="${v}"${state.rawFilter.department===v?' selected':''}>${v}</option>`).join('');
@@ -4331,6 +4839,7 @@ function renderRawDataView(){
       <select class="select-sm" id="rawSalesSel"><option value="">전체 판매유형</option>${stOpts}</select>
       <select class="select-sm" id="rawGrpSel"><option value="">전체 그룹</option>${grpOpts}</select>
       <select class="select-sm" id="rawDeptSel"><option value="">전체 부서</option>${deptOpts}</select>
+      <select class="select-sm" id="rawCont1Sel"><option value="">전체 권역</option>${cont1Opts}</select>
       <select class="select-sm" id="rawContSel"><option value="">전체 대륙</option>${cont2Opts}</select>
       <select class="select-sm" id="rawCtrySel"><option value="">전체 국가</option>${ctryOpts}</select>
       <select class="select-sm" id="rawLineSel"><option value="">전체 라인</option>${lineOpts}</select>
@@ -4370,7 +4879,7 @@ function initRawDataView(){
     state.rawPage = 1;
     loadRawPage();
   };
-  ['rawBrandSel','rawSalesSel','rawGrpSel','rawDeptSel','rawContSel','rawCtrySel','rawLineSel','rawCatSel'].forEach(id => {
+  ['rawBrandSel','rawSalesSel','rawGrpSel','rawDeptSel','rawCont1Sel','rawContSel','rawCtrySel','rawLineSel','rawCatSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFilterChange;
   });
@@ -6085,7 +6594,7 @@ function renderDrillView(){
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
 
-    <div id="detailSummaryTable"></div>
+    <div id="categoryPlSection"></div>
   `;
   }
 
@@ -6128,7 +6637,7 @@ function renderDrillView(){
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
 
-    <div id="detailSummaryTable"></div>
+    <div id="categoryPlSection"></div>
   `;
   }
 
@@ -6170,7 +6679,7 @@ function renderDrillView(){
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
 
-    <div id="detailSummaryTable"></div>
+    <div id="categoryPlSection"></div>
   `;
 }
 
@@ -6213,7 +6722,7 @@ function renderSalesView(){
       <div class="topn-grid topn-grid-stack" id="topNGrid"></div>
     </div>
 
-    <div id="salesDetailTable"></div>
+    <div id="categoryPlSection"></div>
   `;
 }
 
@@ -6227,16 +6736,17 @@ function renderTopNCards(breakdown){
   const lv = state.viewLevel?.[state.category] ?? 0;
   const dimLabel = cat?.path?.[lv] || cat?.label || '항목';
 
-  // Build prior period lookup from real API data
+  // Prior-period lookup: real backend data when available, otherwise
+  // synthesized in mock-preview mode so 전월비 shows like the 요약 page.
   const priorBkd = (!USE_MOCK && _real.priorBreakdown) ? _real.priorBreakdown : [];
   const priorMap = Object.fromEntries(priorBkd.map(b => [b.name, b]));
-  const hasPrior = priorBkd.length > 0;
+  const hasPrior = USE_MOCK ? true : priorBkd.length > 0;
 
   const items = breakdown.map(b => {
     const oi = b.operating_income || 0;
     const sales = b.sales_amount || 0;
     const margin = sales ? oi / sales * 100 : 0;
-    const pb = priorMap[b.name] || {};
+    const pb = USE_MOCK ? synthPriorRow(b) : (priorMap[b.name] || {});
     const priorOI = pb.operating_income || 0;
     const priorSales = pb.sales_amount || 0;
     const priorMargin = priorSales ? priorOI / priorSales * 100 : 0;
@@ -6300,10 +6810,11 @@ function renderDetailSummaryTable(breakdown){
   const dimLabel = cat?.path?.[lv] || cat?.label || '항목';
   const catLabel = cat?.label || '';
 
-  // Real prior period data
+  // Prior-period: real backend data when available, otherwise synthesized
+  // in mock-preview mode so 전월비 shows like the 요약 page.
   const priorBkd = (!USE_MOCK && _real.priorBreakdown) ? _real.priorBreakdown : [];
   const priorMap = Object.fromEntries(priorBkd.map(b => [b.name, b]));
-  const hasPrior = priorBkd.length > 0;
+  const hasPrior = USE_MOCK ? true : priorBkd.length > 0;
   const periodLabel = hasPrior ? '전월 대비' : '—';
 
   const tot = breakdown.reduce((acc, b) => {
@@ -6314,7 +6825,7 @@ function renderDetailSummaryTable(breakdown){
   }, { sales: 0, gross: 0, oi: 0 });
   const totMgn = tot.sales ? tot.oi / tot.sales * 100 : 0;
 
-  const priorTot = priorBkd.reduce((acc, b) => {
+  const priorTot = (USE_MOCK ? breakdown.map(synthPriorRow) : priorBkd).reduce((acc, b) => {
     acc.sales += b.sales_amount || 0;
     acc.gross += b.gross_profit || 0;
     acc.oi    += b.operating_income || 0;
@@ -6333,7 +6844,7 @@ function renderDetailSummaryTable(breakdown){
   }
 
   function bodyRow(b, depth){
-    const pb = priorMap[b.name] || {};
+    const pb = USE_MOCK ? synthPriorRow(b) : (priorMap[b.name] || {});
     const margin = (b.sales_amount) ? b.operating_income / b.sales_amount * 100 : 0;
     const priorMargin = (pb.sales_amount) ? (pb.operating_income||0) / pb.sales_amount * 100 : 0;
     const dSales = pctDelta(b.sales_amount, pb.sales_amount);
@@ -6431,7 +6942,7 @@ function buildDrillCharts(){
 
   // ── render TOP 5 cards + detail summary table ──────────────────────
   renderTopNCards(breakdown);
-  renderDetailSummaryTable(breakdown);
+  renderCategoryPl();
 
   // ── per-dimension profit waterfall (region & product) ──
   destroyChart('dimWaterfall');
@@ -6913,7 +7424,7 @@ function buildSalesCharts(){
   // ── TOP N + 성과요약 ──
   const _salesBkd = api.breakdown() || [];
   renderTopNCards(_salesBkd);
-  renderSalesDetailTable({all, b2b, b2c});
+  renderCategoryPl();
 
   // ── Profit waterfall (B2B / B2C) + 매출 비중 donut ──
   buildSalesWaterfall({b2b, b2c});
@@ -7004,7 +7515,7 @@ function renderRaw(){
   // column name → Korean label mapping
   const COL_LABEL = {
     Year_Month:'연월', Group:'그룹', Honbu:'그룹', Department:'부서', Team:'부서',
-    Sales_Type:'판매유형', Continent:'대륙', Continent1:'대륙1', Continent2:'대륙2',
+    Sales_Type:'판매유형', Continent:'대륙', Continent1:'권역', Continent2:'대륙',
     Country:'국가', Country_Flag:'국기', Customer:'거래처', Brand:'브랜드',
     Line:'라인', Category:'카테고리', Product_Name:'품명', Product_Code:'품번',
     Specification:'규격', Sales_Quantity:'수량', Sales_Amount:'매출액',
@@ -7812,8 +8323,8 @@ async function init(){
       state.rangeStart = 0;
       REAL_GROUPS      = filters.groups||[];
       REAL_DEPARTMENTS = filters.departments||[];
-      REAL_CONTINENTS1 = filters.continents||[];
-      REAL_CONTINENTS  = filters.continents2||[];
+      REAL_CONTINENTS1 = filters.continents1||filters.continents||[];
+      REAL_CONTINENTS  = filters.continents2||filters.continents||[];
       REAL_COUNTRIES   = filters.countries||[];
       REAL_LINES       = filters.lines||[];
       REAL_CATEGORIES  = filters.categories||[];
