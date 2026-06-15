@@ -4256,38 +4256,28 @@ function renderOverviewView(){
 const PL_ROW_DEFS = [
   ['sales','매출액',{bold:true,pct:true,pctMember:'gross'}],
   ['cogs','매출원가',{member:'gross',pct:true}],
-  ['gross','매출총이익',{bold:true,pct:true,hl:true}],
-  ['sga','판매비와 관리비(합)',{bold:true,pct:true,toggle:'sga'}],
-  ['sga_adv','광고선전비',{member:'sga',sub:true,pct:true}],
-  ['sga_log','물류비',{member:'sga',sub:true,pct:true}],
-  ['sga_fee','수수료',{member:'sga',sub:true,pct:true}],
-  ['sga_hr','인건비',{member:'sga',sub:true,pct:true}],
-  ['sga_etc','기타',{member:'sga',sub:true,pct:true}],
-  ['sgaD','판매비와 관리비(직접)',{bold:true,pct:true,toggle:'direct'}],
-  ['sgaD_adv','직접 광고선전비',{member:'direct',sub:true,pct:true}],
-  ['sgaD_log','직접 물류비',{member:'direct',sub:true,pct:true}],
-  ['sgaD_fee','직접 수수료',{member:'direct',sub:true,pct:true}],
-  ['sgaD_hr','직접 인건비',{member:'direct',sub:true,pct:true}],
-  ['sgaD_etc','직접 기타',{member:'direct',sub:true,pct:true}],
-  ['sgaI','판매비와 관리비(간접_all)',{bold:true,pct:true,toggle:'indirect'}],
-  ['sgaI_adv','간접 광고선전비',{member:'indirect',sub:true,pct:true}],
-  ['sgaI_log','간접 물류비',{member:'indirect',sub:true,pct:true}],
-  ['sgaI_fee','간접 수수료',{member:'indirect',sub:true,pct:true}],
-  ['sgaI_hr','간접 인건비',{member:'indirect',sub:true,pct:true}],
-  ['sgaI_etc','간접 기타',{member:'indirect',sub:true,pct:true}],
+  ['gross','매출총이익',{bold:true,pct:true,toggle:'gross'}],
+  ['sgaD','판매관리비(직접)',{bold:true,pct:true,toggle:'direct'}],
+  ['sgaD_adv','광고선전비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_log','물류비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_fee','수수료',{member:'direct',sub:true,pct:true}],
+  ['sgaD_hr','인건비',{member:'direct',sub:true,pct:true}],
+  ['sgaD_etc','기타',{member:'direct',sub:true,pct:true}],
+  ['direct','직접이익',{bold:true,pct:true}],
+  ['sgaO','판매관리비 간접비(조직)',{bold:true,pct:true,toggle:'org'}],
+  ['sgaO_adv','광고선전비',{member:'org',sub:true,pct:true}],
+  ['sgaO_log','물류비',{member:'org',sub:true,pct:true}],
+  ['sgaO_fee','수수료',{member:'org',sub:true,pct:true}],
+  ['sgaO_hr','인건비',{member:'org',sub:true,pct:true}],
+  ['sgaO_etc','기타',{member:'org',sub:true,pct:true}],
+  ['contrib','공헌이익',{bold:true,pct:true,hl:true}],
+  ['sgaC','판매관리비 간접비(전사)',{bold:true,pct:true,toggle:'corp'}],
+  ['sgaC_adv','광고선전비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_log','물류비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_fee','수수료',{member:'corp',sub:true,pct:true}],
+  ['sgaC_hr','인건비',{member:'corp',sub:true,pct:true}],
+  ['sgaC_etc','기타',{member:'corp',sub:true,pct:true}],
   ['op','영업이익',{bold:true,pct:true,hl:true}],
-  ['sgaC','판매비와 관리비(ssg)',{bold:true,pct:true,toggle:'corp'}],
-  ['sgaC_adv','ssg 광고선전비',{member:'corp',sub:true,pct:true}],
-  ['sgaC_log','ssg 물류비',{member:'corp',sub:true,pct:true}],
-  ['sgaC_fee','ssg 수수료',{member:'corp',sub:true,pct:true}],
-  ['sgaC_hr','ssg 인건비',{member:'corp',sub:true,pct:true}],
-  ['sgaC_etc','ssg 기타',{member:'corp',sub:true,pct:true}],
-  ['sgaO','판매비와 관리비(조직)',{bold:true,pct:true,toggle:'org'}],
-  ['sgaO_adv','조직 광고선전비',{member:'org',sub:true,pct:true}],
-  ['sgaO_log','조직 물류비',{member:'org',sub:true,pct:true}],
-  ['sgaO_fee','조직 수수료',{member:'org',sub:true,pct:true}],
-  ['sgaO_hr','조직 인건비',{member:'org',sub:true,pct:true}],
-  ['sgaO_etc','조직 기타',{member:'org',sub:true,pct:true}],
 ];
 function makePlRows(v){
   return PL_ROW_DEFS.map(function(d){ return Object.assign({ id:d[0], label:d[1], vals:v[d[0]] }, d[2]); });
@@ -4300,30 +4290,16 @@ function loadPlSummary(){
   const PL_API_FIELDS = ['sales','cogs','gross','sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
     'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
     'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc','op'];
-  // All fields including derived ones
-  const PL_ALL_FIELDS = PL_API_FIELDS.concat([
-    'sga','sga_adv','sga_log','sga_fee','sga_hr','sga_etc',
-    'sgaI','sgaI_adv','sgaI_log','sgaI_fee','sgaI_hr','sgaI_etc'
-  ]);
+  // All fields including derived ones (direct = gross-sgaD, contrib = direct-sgaO)
+  const PL_ALL_FIELDS = PL_API_FIELDS.concat(['direct','contrib']);
   const zeros = months.map(function(){ return 0; });
   function mkVals(node){
     const v = {};
     PL_API_FIELDS.forEach(function(f){ v[f] = node ? (node[f] || zeros.map(function(){ return 0; })) : zeros.slice(); });
-    const za = function(a, b){ return (a||[]).map(function(x, i){ return x + ((b||[])[i]||0); }); };
-    // Derive sga = sgaD + sgaO + sgaC
-    v.sga     = za(za(v.sgaD,     v.sgaO),     v.sgaC);
-    v.sga_adv = za(za(v.sgaD_adv, v.sgaO_adv), v.sgaC_adv);
-    v.sga_log = za(za(v.sgaD_log, v.sgaO_log), v.sgaC_log);
-    v.sga_fee = za(za(v.sgaD_fee, v.sgaO_fee), v.sgaC_fee);
-    v.sga_hr  = za(za(v.sgaD_hr,  v.sgaO_hr),  v.sgaC_hr);
-    v.sga_etc = za(za(v.sgaD_etc, v.sgaO_etc), v.sgaC_etc);
-    // Derive sgaI = sgaO + sgaC (간접_all)
-    v.sgaI     = za(v.sgaO,     v.sgaC);
-    v.sgaI_adv = za(v.sgaO_adv, v.sgaC_adv);
-    v.sgaI_log = za(v.sgaO_log, v.sgaC_log);
-    v.sgaI_fee = za(v.sgaO_fee, v.sgaC_fee);
-    v.sgaI_hr  = za(v.sgaO_hr,  v.sgaC_hr);
-    v.sgaI_etc = za(v.sgaO_etc, v.sgaC_etc);
+    // Derive direct = gross - sgaD
+    v.direct = v.gross.map(function(x, i){ return x - v.sgaD[i]; });
+    // Derive contrib = direct - sgaO
+    v.contrib = v.direct.map(function(x, i){ return x - v.sgaO[i]; });
     return v;
   }
   function sumVals(a, b){
@@ -4529,20 +4505,9 @@ async function loadCplData(){
             if (si != null && src[si] != null) target[f][ti] += src[si];
           });
         });
-        // 파생: sga = sgaD+sgaO+sgaC, sgaI = sgaO+sgaC
-        const za = function(a, b){ return a.map(function(v, i){ return v + (b[i]||0); }); };
-        target.sga     = za(za(target.sgaD,     target.sgaO),     target.sgaC);
-        target.sga_adv = za(za(target.sgaD_adv, target.sgaO_adv), target.sgaC_adv);
-        target.sga_log = za(za(target.sgaD_log, target.sgaO_log), target.sgaC_log);
-        target.sga_fee = za(za(target.sgaD_fee, target.sgaO_fee), target.sgaC_fee);
-        target.sga_hr  = za(za(target.sgaD_hr,  target.sgaO_hr),  target.sgaC_hr);
-        target.sga_etc = za(za(target.sgaD_etc, target.sgaO_etc), target.sgaC_etc);
-        target.sgaI     = za(target.sgaO,     target.sgaC);
-        target.sgaI_adv = za(target.sgaO_adv, target.sgaC_adv);
-        target.sgaI_log = za(target.sgaO_log, target.sgaC_log);
-        target.sgaI_fee = za(target.sgaO_fee, target.sgaC_fee);
-        target.sgaI_hr  = za(target.sgaO_hr,  target.sgaC_hr);
-        target.sgaI_etc = za(target.sgaO_etc, target.sgaC_etc);
+        // 파생: direct = gross - sgaD, contrib = direct - sgaO
+        target.direct = target.gross.map(function(v, i){ return v - target.sgaD[i]; });
+        target.contrib = target.direct.map(function(v, i){ return v - target.sgaO[i]; });
       });
     }
     mergeNode('SK', dSK);
@@ -4559,8 +4524,7 @@ async function loadCplData(){
 }
 
 // 노드 이름에서 sec(all/sk/dist)에 맞는 월별 배열 객체 반환
-// 반환 키: sales, cogs, gross, sgaD, sgaD_adv, ..., sgaO, ..., sgaC, ..., op,
-//          sga, sga_adv/log/fee/hr/etc, sgaI, sgaI_adv/log/fee/hr/etc (모두 月별 배열)
+// 반환 키: sales, cogs, gross, sgaD, sgaD_adv, ..., sgaO, ..., sgaC, ..., op, direct, contrib (모두 月별 배열)
 function cplMetrics(sec, nodeName){
   const cplData = state.cplData;
   const months = (cplData && cplData.months) ? cplData.months : activeMonths();
@@ -4570,8 +4534,7 @@ function cplMetrics(sec, nodeName){
     'sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
     'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
     'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc',
-    'sga','sga_adv','sga_log','sga_fee','sga_hr','sga_etc',
-    'sgaI','sgaI_adv','sgaI_log','sgaI_fee','sgaI_hr','sgaI_etc'];
+    'direct','contrib'];
   const nodeData = (cplData && cplData.byNode) ? cplData.byNode[nodeName] : null;
   function getArr(brand, field){
     return (nodeData && nodeData[brand] && nodeData[brand][field]) ? nodeData[brand][field] : zeros();
@@ -4613,40 +4576,30 @@ function cplDims(){
 }
 
 const CPL_ROW_DEFS = [
-  { id:'sales',    label:'매출액',                   bold:true, pct:true, pctMember:'gross' },
-  { id:'cogs',     label:'매출원가',                 member:'gross', pct:true },
-  { id:'gross',    label:'매출총이익',               bold:true, pct:true, hl:true },
-  { id:'sga',      label:'판매비와 관리비(합)',       bold:true, pct:true, toggle:'sga' },
-  { id:'sga.adv',  label:'광고선전비',               member:'sga', sub:true, pct:true },
-  { id:'sga.log',  label:'물류비',                   member:'sga', sub:true, pct:true },
-  { id:'sga.fee',  label:'수수료',                   member:'sga', sub:true, pct:true },
-  { id:'sga.hr',   label:'인건비',                   member:'sga', sub:true, pct:true },
-  { id:'sga.etc',  label:'기타',                     member:'sga', sub:true, pct:true },
-  { id:'sgaD',     label:'판매비와 관리비(직접)',     bold:true, pct:true, toggle:'direct' },
-  { id:'sgaD.adv', label:'직접 광고선전비',          member:'direct', sub:true, pct:true },
-  { id:'sgaD.log', label:'직접 물류비',              member:'direct', sub:true, pct:true },
-  { id:'sgaD.fee', label:'직접 수수료',              member:'direct', sub:true, pct:true },
-  { id:'sgaD.hr',  label:'직접 인건비',              member:'direct', sub:true, pct:true },
-  { id:'sgaD.etc', label:'직접 기타',                member:'direct', sub:true, pct:true },
-  { id:'sgaI',     label:'판매비와 관리비(간접_all)', bold:true, pct:true, toggle:'indirect' },
-  { id:'sgaI.adv', label:'간접 광고선전비',          member:'indirect', sub:true, pct:true },
-  { id:'sgaI.log', label:'간접 물류비',              member:'indirect', sub:true, pct:true },
-  { id:'sgaI.fee', label:'간접 수수료',              member:'indirect', sub:true, pct:true },
-  { id:'sgaI.hr',  label:'간접 인건비',              member:'indirect', sub:true, pct:true },
-  { id:'sgaI.etc', label:'간접 기타',                member:'indirect', sub:true, pct:true },
-  { id:'op',       label:'영업이익',                 bold:true, pct:true, hl:true },
-  { id:'sgaC',     label:'판매비와 관리비(ssg)',      bold:true, pct:true, toggle:'corp' },
-  { id:'sgaC.adv', label:'ssg 광고선전비',           member:'corp', sub:true, pct:true },
-  { id:'sgaC.log', label:'ssg 물류비',               member:'corp', sub:true, pct:true },
-  { id:'sgaC.fee', label:'ssg 수수료',               member:'corp', sub:true, pct:true },
-  { id:'sgaC.hr',  label:'ssg 인건비',               member:'corp', sub:true, pct:true },
-  { id:'sgaC.etc', label:'ssg 기타',                 member:'corp', sub:true, pct:true },
-  { id:'sgaO',     label:'판매비와 관리비(조직)',     bold:true, pct:true, toggle:'org' },
-  { id:'sgaO.adv', label:'조직 광고선전비',          member:'org', sub:true, pct:true },
-  { id:'sgaO.log', label:'조직 물류비',              member:'org', sub:true, pct:true },
-  { id:'sgaO.fee', label:'조직 수수료',              member:'org', sub:true, pct:true },
-  { id:'sgaO.hr',  label:'조직 인건비',              member:'org', sub:true, pct:true },
-  { id:'sgaO.etc', label:'조직 기타',                member:'org', sub:true, pct:true },
+  { id:'sales',  label:'매출액',            bold:true, pct:true, pctMember:'gross' },
+  { id:'cogs',   label:'매출원가',          member:'gross', pct:true },
+  { id:'gross',  label:'매출총이익',        bold:true, pct:true, toggle:'gross' },
+  { id:'sgaD',   label:'판매관리비(직접)',  bold:true, pct:true, toggle:'direct' },
+  { id:'sgaD.adv', label:'광고선전비', member:'direct', sub:true, pct:true },
+  { id:'sgaD.log', label:'물류비',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.fee', label:'수수료',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.hr',  label:'인건비',     member:'direct', sub:true, pct:true },
+  { id:'sgaD.etc', label:'기타',       member:'direct', sub:true, pct:true },
+  { id:'direct', label:'직접이익',          bold:true, pct:true },
+  { id:'sgaO',   label:'판매관리비 간접비(조직)', bold:true, pct:true, toggle:'org' },
+  { id:'sgaO.adv', label:'광고선전비', member:'org', sub:true, pct:true },
+  { id:'sgaO.log', label:'물류비',     member:'org', sub:true, pct:true },
+  { id:'sgaO.fee', label:'수수료',     member:'org', sub:true, pct:true },
+  { id:'sgaO.hr',  label:'인건비',     member:'org', sub:true, pct:true },
+  { id:'sgaO.etc', label:'기타',       member:'org', sub:true, pct:true },
+  { id:'contrib', label:'공헌이익',         bold:true, pct:true, hl:true },
+  { id:'sgaC',   label:'판매관리비 간접비(전사)', bold:true, pct:true, toggle:'corp' },
+  { id:'sgaC.adv', label:'광고선전비', member:'corp', sub:true, pct:true },
+  { id:'sgaC.log', label:'물류비',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.fee', label:'수수료',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.hr',  label:'인건비',     member:'corp', sub:true, pct:true },
+  { id:'sgaC.etc', label:'기타',       member:'corp', sub:true, pct:true },
+  { id:'op',     label:'영업이익',          bold:true, pct:true, hl:true },
 ];
 
 // id가 'sgaD.adv' 형태면 'm.sgaD_adv' 배열, 단순 id면 'm[id]' 배열을 반환
@@ -4722,9 +4675,7 @@ function renderCategoryPl(){
       const totM = {};
       ['sales','cogs','gross','op','sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
        'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
-       'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc',
-       'sga','sga_adv','sga_log','sga_fee','sga_hr','sga_etc',
-       'sgaI','sgaI_adv','sgaI_log','sgaI_fee','sgaI_hr','sgaI_etc'].forEach(function(f){
+       'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc','direct','contrib'].forEach(function(f){
         const arrs = topM.map(function(M){ return M[f] || []; });
         totM[f] = cplMonths.map(function(_, ci){ return arrs.reduce(function(a, arr){ return a + (arr[ci] || 0); }, 0); });
       });
