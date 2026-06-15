@@ -1345,9 +1345,9 @@ def api_prefetch():
 
     # dim → monthly-by-dim
     _dim_map = {
-        ('org', 0): 'Group', ('org', 1): 'Department',
-        ('region', 0): 'Continent2', ('region', 1): 'Country', ('region', 2): 'Customer',
-        ('product', 0): 'Line', ('product', 1): 'Category',
+        ('org', 0): 'Brand', ('org', 1): 'Group', ('org', 2): 'Department',
+        ('region', 0): 'Continent1', ('region', 1): 'Continent2', ('region', 2): 'Country', ('region', 3): 'Customer',
+        ('product', 0): 'Line', ('product', 1): 'Category', ('product', 2): 'Product_Name',
         ('sales', 0): 'Sales_Type',
     }
     dim = _dim_map.get((cat, vl))
@@ -1362,16 +1362,24 @@ def api_prefetch():
         """
 
     # Breakdown SQL
+    _m = "SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin"
+
+    def nf(col, w):
+        nc = f"{col} IS NOT NULL AND {col} != ''"
+        return f"{w} AND {nc}" if w else f"WHERE {nc}"
+
     _bkd_sql = {
-        ('org', 0):     lambda w: f"SELECT `Group`, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY `Group` ORDER BY sales_amount DESC",
-        ('org', 1):     lambda w: f"SELECT Department, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Department ORDER BY sales_amount DESC",
-        ('region', 0):  lambda w: f"SELECT Continent2, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {(w + ' AND') if w else 'WHERE'} Continent2 IS NOT NULL AND Continent2!='' GROUP BY Continent2 ORDER BY sales_amount DESC",
-        ('region', 1):  lambda w: f"SELECT Country, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Country ORDER BY sales_amount DESC LIMIT 30",
-        ('region', 2):  lambda w: f"SELECT Customer, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
-        ('product', 0): lambda w: f"SELECT Line, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Line ORDER BY sales_amount DESC",
-        ('product', 1): lambda w: f"SELECT Category, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Category ORDER BY sales_amount DESC",
-        ('product', 2): lambda w: f"SELECT Product_Name, Product_Code, SUM(Sales_Quantity) AS sales_quantity, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Product_Name,Product_Code ORDER BY sales_amount DESC LIMIT 30",
-        ('sales', 0):   lambda w: f"SELECT Sales_Type, SUM(Sales_Amount) AS sales_amount, SUM(Cost_of_Sales) AS cost_of_sales, SUM(Gross_Profit) AS gross_profit, SUM(Operating_Income) AS operating_income, SUM(SG_and_A_Expenses) AS sga_expenses, SUM(Sales_Quantity) AS sales_quantity, SAFE_DIVIDE(SUM(Gross_Profit),SUM(Sales_Amount))*100 AS gross_margin, SAFE_DIVIDE(SUM(Operating_Income),SUM(Sales_Amount))*100 AS operating_margin FROM `{T}` {w} GROUP BY Sales_Type ORDER BY sales_amount DESC",
+        ('org', 0):     lambda w: f"SELECT Brand, {_m} FROM `{T}` {w} GROUP BY Brand ORDER BY sales_amount DESC",
+        ('org', 1):     lambda w: f"SELECT `Group`, {_m} FROM `{T}` {w} GROUP BY `Group` ORDER BY sales_amount DESC",
+        ('org', 2):     lambda w: f"SELECT Department, {_m} FROM `{T}` {nf('Department', w)} GROUP BY Department ORDER BY sales_amount DESC",
+        ('region', 0):  lambda w: f"SELECT Continent1, {_m} FROM `{T}` {nf('Continent1', w)} GROUP BY Continent1 ORDER BY sales_amount DESC",
+        ('region', 1):  lambda w: f"SELECT Continent2, {_m} FROM `{T}` {nf('Continent2', w)} GROUP BY Continent2 ORDER BY sales_amount DESC",
+        ('region', 2):  lambda w: f"SELECT Country, {_m} FROM `{T}` {nf('Country', w)} GROUP BY Country ORDER BY sales_amount DESC LIMIT 50",
+        ('region', 3):  lambda w: f"SELECT Customer, {_m} FROM `{T}` {nf('Customer', w)} GROUP BY Customer ORDER BY sales_amount DESC LIMIT 30",
+        ('product', 0): lambda w: f"SELECT Line, {_m} FROM `{T}` {nf('Line', w)} GROUP BY Line ORDER BY sales_amount DESC",
+        ('product', 1): lambda w: f"SELECT Category, {_m} FROM `{T}` {nf('Category', w)} GROUP BY Category ORDER BY sales_amount DESC",
+        ('product', 2): lambda w: f"SELECT Product_Name, Product_Code, SUM(Sales_Quantity) AS sales_quantity, {_m} FROM `{T}` {nf('Product_Name', w)} GROUP BY Product_Name, Product_Code ORDER BY sales_amount DESC LIMIT 30",
+        ('sales', 0):   lambda w: f"SELECT Sales_Type, {_m} FROM `{T}` {nf('Sales_Type', w)} GROUP BY Sales_Type ORDER BY sales_amount DESC",
     }
 
     # Build params for B2B / B2C (sales category only)
