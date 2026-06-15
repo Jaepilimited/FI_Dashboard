@@ -1464,6 +1464,10 @@ table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width
 .pl-pt{padding:3px 10px;border:none;background:transparent;border-radius:5px;font-size:11px;font-weight:600;color:var(--text-tertiary);cursor:pointer;transition:background .15s,color .15s}
 .pl-pt.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .pl-table thead tr th{background:var(--text);color:var(--surface);font-weight:700}
+.pl-table thead tr th:first-child{background:var(--text);color:var(--surface)}
+.pl-table tr.pl-pct-hl-direct td,.pl-table tr.pl-pct-hl-direct td:first-child{background:rgba(72,199,116,.06)}
+.pl-table tr.pl-pct-hl-contrib td,.pl-table tr.pl-pct-hl-contrib td:first-child{background:rgba(54,153,255,.06)}
+.pl-table tr.pl-pct-hl-op td,.pl-table tr.pl-pct-hl-op td:first-child{background:rgba(255,99,99,.06)}
 .pl-table tr.pl-group td{cursor:pointer}
 .pl-table tr.pl-group:hover td{background:var(--surface-hover)}
 .pl-table tr.pl-group:hover td:first-child{background:var(--surface-hover)}
@@ -4254,6 +4258,7 @@ function renderOverviewView(){
             <button class="pl-pt active" data-period="monthly">월별</button>
             <button class="pl-pt" data-period="quarterly">분기별</button>
             <button class="pl-pt" data-period="halfyear">반기별</button>
+            <button class="pl-pt" data-period="total">합계만</button>
           </div>
           <div class="waterfall-card-unit">단위: 백만원</div>
         </div>
@@ -4353,6 +4358,7 @@ function loadPlSummary(){
 }
 function plAggPeriods(period){
   const months = activeMonths();
+  if(period === 'total') return [];
   if(period === 'monthly'){
     return months.map(function(ym,i){ return {label:parseInt(ym.split('-')[1])+'월', monthIndices:[i]}; });
   }
@@ -4430,7 +4436,7 @@ function renderPlSummary(){
       const showPct = row.pct && (!row.pctMember || plExpanded.has(sec.key + ':' + row.pctMember));
       if (showPct) {
         const pctCell = function(num, den){ return den ? ((num/den*100).toFixed(1) + '%') : empty; };
-        html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + '"><td>%</td><td>' + pctCell(tot, salesTot) + '</td>';
+        html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + (row.hl?' pl-pct-hl-'+row.hl:'') + '"><td>%</td><td>' + pctCell(tot, salesTot) + '</td>';
         for (let i = 0; i < N; i++) html += '<td>' + pctCell(aggV[i], salesAggV[i]) + '</td>';
         html += '</tr>';
       }
@@ -4788,7 +4794,7 @@ function renderCategoryPl(){
         const showPct = row.pct && (!row.pctMember || plExpanded.has(secKey + ':' + row.pctMember));
         if (showPct) {
           const salesByDim = dims.map(function(d, di){ return seriesForDimId(di, 'sales'); });
-          html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + '"><td>%</td>';
+          html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + (row.hl?' pl-pct-hl-'+row.hl:'') + '"><td>%</td>';
           html += '<td>' + (totSalesV ? (totV/totSalesV*100).toFixed(1) + '%' : empty) + '</td>';
           months.forEach(function(ym, i){
             if (isMonthOpen(ym)) {
