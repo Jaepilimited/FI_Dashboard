@@ -1447,9 +1447,9 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
 
 /* ═══ 전사 P&L table ═══════════════════════════════════════════════ */
 .pl-table-wrap{overflow-x:auto; padding:4px 8px 12px}
-table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width:1080px}
+table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width:1080px; table-layout:fixed}
 .pl-table th{font-size:10.5px; font-weight:700; color:var(--text-tertiary); text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-strong); white-space:nowrap}
-.pl-table th:first-child{text-align:left; position:sticky; left:0; background:var(--surface); z-index:2; min-width:170px}
+.pl-table th:first-child{text-align:left; position:sticky; left:0; background:var(--surface); z-index:2; width:170px}
 .pl-table td{padding:5px 10px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary); white-space:nowrap; border-bottom:1px solid var(--border)}
 .pl-table td:first-child{text-align:left; font-family:'Pretendard Variable','Pretendard',sans-serif; font-size:11.5px; position:sticky; left:0; background:var(--surface); z-index:1}
 .pl-table tr.pl-bold td{color:var(--text); font-weight:700}
@@ -4355,7 +4355,11 @@ function renderPlSummary(){
     const salesRow = sec.rows.find(function(x){ return x.id === 'sales'; });
     const salesTot = salesRow.vals.reduce(function(a,b){ return a+b; },0);
     html += '<div class="pl-section-title">' + sec.title + '</div>';
-    html += '<table class="pl-table"><thead><tr><th>구분</th><th>합계</th>';
+    html += '<table class="pl-table">';
+    html += '<colgroup><col style="width:170px"><col style="width:88px">';
+    for (let i = 0; i < M; i++) html += '<col>';
+    html += '</colgroup>';
+    html += '<thead><tr><th>구분</th><th>합계</th>';
     for (let i = 0; i < M; i++) html += '<th>' + (i+1) + '월</th>';
     html += '</tr></thead><tbody>';
     for (const row of sec.rows) {
@@ -4686,7 +4690,12 @@ function renderCategoryPl(){
       const totSalesSeries = seriesForTotId('sales');
       const totSalesV = totSalesSeries.reduce(function(a, v){ return a + v; }, 0);
       html += '<div class="pl-section-title">▶ ' + sec.label + '</div>';
-      html += '<table class="pl-table pl-month-matrix"><thead>';
+      const totalLeafCols = months.reduce(function(acc, ym){ return acc + (isMonthOpen(ym) ? dcols.length+1 : 1); }, 0);
+      html += '<table class="pl-table pl-month-matrix">';
+      html += '<colgroup><col style="width:170px"><col style="width:88px">';
+      for (let c = 0; c < totalLeafCols; c++) html += '<col>';
+      html += '</colgroup>';
+      html += '<thead>';
       html += '<tr><th rowspan="2">구분</th><th rowspan="2">합계</th>';
       months.forEach(function(ym){
         const open = isMonthOpen(ym);
