@@ -12,6 +12,14 @@ PASSW = "skin1004!"
 failures = []
 
 
+# CPL_SEC_DEFS 순서와 동일: 전체(all) / SK(SK) / 유통(UM) — 테이블은 이 순서로 렌더링됨
+SECTIONS = [
+    (0, 'all', '전체'),
+    (1, 'SK', 'SK'),
+    (2, 'UM', '유통'),
+]
+
+
 def check_category(page, cat_id, cat_label):
     page.click(f'.cat-tab[data-cat="{cat_id}"]')
     page.wait_for_timeout(1000)
@@ -24,8 +32,6 @@ def check_category(page, cat_id, cat_label):
         print(f"[{cat_label}] 기간 헤더 없음 — 데이터 부족으로 스킵")
         return
 
-    # 1) DOM 스모크 체크: 전체 섹션(첫 번째 table)의 2번째 헤더 행에 '기타'가 있는지
-    #    (전체 노드 수가 10개 초과일 때만 나타나므로, 원본 데이터로 먼저 노드 수를 확인한다)
     data = page.evaluate("""() => {
         const byNode = (state.cplData && state.cplData.byNode) || {};
         const months = (state.cplData && state.cplData.months) || [];
@@ -40,40 +46,49 @@ def check_category(page, cat_id, cat_label):
         print(f"[{cat_label}] 노드 수가 10개 이하 — 기타 컬럼 없어야 정상, 검증 스킵")
         return
 
-    first_table = page.locator("#categoryPlSection table.pl-table").first
-    header_row2 = first_table.locator("thead tr").nth(1).locator("th").all_text_contents()
-    if "기타" not in header_row2:
-        failures.append(f"[{cat_label}] 전체 섹션 헤더에 '기타' 컬럼이 없음: {header_row2}")
-    else:
-        print(f"[{cat_label}] '기타' 헤더 확인됨")
-
-    # 2) 원본 데이터로 재계산: 서로 다른 두 시점(월)에 대해
-    #    그 시점 매출 기준 top10 재선정 + 기타 = 전체 합계 인지 확인
     sample_idxs = [0]
     if len(months) > 1:
         sample_idxs.append(len(months) - 1)
 
-    def sales_at(name, idx):
-        node = byNode.get(name) or {}
-        allb = node.get('all') or {}
-        arr = allb.get('sales') or []
-        return arr[idx] if idx < len(arr) else 0
+    for table_idx, sec_key, sec_label in SECTIONS:
+        tag = f"{cat_label}/{sec_label}"
 
-    top10_sets = []
-    for idx in sample_idxs:
-        ranked = sorted(names, key=lambda n: sales_at(n, idx), reverse=True)
-        top10 = ranked[:10]
-        top10_sets.append(tuple(top10))
-        top10_sum = sum(sales_at(n, idx) for n in top10)
-        total = sum(sales_at(n, idx) for n in names)
-        other = total - top10_sum
-        ok = (top10_sum + other) == total
-        print(f"[{cat_label}] month idx {idx}: top10합={top10_sum} 기타={other} 합계={total} 검증={ok}")
-        if not ok:
-            failures.append(f"[{cat_label}] month idx {idx}: top10+기타({top10_sum + other}) != 합계({total})")
+        # 1) DOM 스모크 체크: 이 섹션 테이블의 2번째 헤더 행에 '기타'가 있는지.
+        #    hasOthers는 카테고리 전체 노드 수(_allDimNames.length) 기준이라 섹션과 무관하게
+        #    동일하게 적용되므로, 바깥에서 이미 names>10을 확인한 이상 모든 섹션에 반드시 있어야 한다.
+        section_table = page.locator("#categoryPlSection table.pl-table").nth(table_idx)
+        if section_table.count() == 0:
+            failures.append(f"[{tag}] 섹션 테이블(index {table_idx})을 찾을 수 없음")
+            continue
+        header_row2 = section_table.locator("thead tr").nth(1).locator("th").all_text_contents()
+        has_others_header = "기타" in header_row2
+        if not has_others_header:
+            failures.append(f"[{tag}] 헤더에 '기타' 컬럼이 없음: {header_row2}")
 
-    if len(top10_sets) > 1 and top10_sets[0] == top10_sets[1]:
-        print(f"[{cat_label}] 참고: 샘플로 고른 두 시점의 top10 구성이 동일함(데이터 특성상 정상일 수 있음)")
+        def sales_at(name, idx, _sec_key=sec_key):
+            node = byNode.get(name) or {}
+            sec = node.get(_sec_key) or {}
+            arr = sec.get('sales') or []
+            return arr[idx] if idx < len(arr) else 0
+
+        top10_sets = []
+        for idx in sample_idxs:
+            ranked = sorted(names, key=lambda n: sales_at(n, idx), reverse=True)
+            top10 = ranked[:10]
+            top10_sets.append(tuple(top10))
+            top10_sum = sum(sales_at(n, idx) for n in top10)
+            total = sum(sales_at(n, idx) for n in names)
+            other = total - top10_sum
+            ok = (top10_sum + other) == total
+            print(f"[{tag}] month idx {idx}: top10합={top10_sum} 기타={other} 합계={total} 검증={ok}")
+            if not ok:
+                failures.append(f"[{tag}] month idx {idx}: top10+기타({top10_sum + other}) != 합계({total})")
+
+        if len(top10_sets) > 1 and top10_sets[0] == top10_sets[1]:
+            print(f"[{tag}] 참고: 샘플로 고른 두 시점의 top10 구성이 동일함(데이터 특성상 정상일 수 있음)")
+
+        if has_others_header:
+            print(f"[{tag}] '기타' 헤더 확인됨")
 
 
 with sync_playwright() as p:
