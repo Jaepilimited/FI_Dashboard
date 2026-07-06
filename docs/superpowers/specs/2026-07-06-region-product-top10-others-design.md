@@ -11,7 +11,8 @@
 
 ## 범위
 
-- 대상: `region`, `product` 카테고리만 (org는 `renderOrgPl()`에서 이미 전체 부서를 다 보여주므로 top10 캡이 없어 대상 아님)
+- 주요 대상: `region`, `product` 카테고리 (org는 `renderOrgPl()`에서 이미 전체 부서를 다 보여주므로 top10 캡이 없어 대상 아님)
+- `renderCategoryPl()`은 org를 제외한 모든 카테고리(region/product/sales)가 공유하는 함수라, `sales`(판매유형별)도 동일한 기간별 재정렬 로직을 그대로 탄다 — 의도적으로 배제하지 않음. `sales`는 dims(전체/B2B/B2C 등)가 10개를 넘지 않아 "기타" 컬럼은 생기지 않고, 기간별로 컬럼 순서가 그 기간 매출 기준으로 바뀔 수 있는 정도의 영향만 있음. 이 동작을 확인하고 유지하기로 함(2026-07-06 최종 리뷰에서 결정)
 - `renderCategoryPl()` 내부 로직 변경 + `state.viewLevel` 초기값 변경만. 백엔드(API), `cplDims()` 자체, CSV export 엔드포인트는 변경하지 않음
 
 ## 변경 1 — 기간별 Top10 재선정 + 기타 컬럼
