@@ -5025,40 +5025,39 @@ function renderCategoryPl(){
     };
     CPL_SEC_DEFS.forEach(function(sec){
       const secKey = state.category + ':' + sec.key;
-      // 이 섹션(SK/UM/전체)에서 실제 데이터가 있는 열만 표시
-      const secDims = dims.filter(function(d){
-        const m = cplMetrics(sec, d.name);
-        return ['sales','gross','op','sgaD','sgaO'].some(function(f){
-          return (m[f] || []).some(function(v){ return v !== 0; });
-        });
-      });
-      const dcols = [];
-      secDims.forEach(function(d){
-        const ck = state.category + ':' + d.name;
-        dcols.push({ name:d.name, flag:d.flag, key:d.name, ck:ck });
-      });
-      const colsPerOpenPeriod = dcols.length + 1;
-      const topM = secDims.map(function(d){ return cplMetrics(sec, d.name); });
-      // 합계 컬럼은 표시된 top-N 아닌 전체 노드(매핑 없는 행 포함)의 실제 합계를 사용
+      // 합계는 top-N 캡 없이 전체 노드(매핑 없는 행 포함) 기준
       const _allDimNames = Object.keys(state.cplData.byNode || {}).filter(function(n){ return n && n !== ''; });
-      const _allDimM = _allDimNames.map(function(name){ return cplMetrics(sec, name); });
+      const _metricsCache = {};
+      const getM = function(name){
+        if (!(name in _metricsCache)) _metricsCache[name] = cplMetrics(sec, name);
+        return _metricsCache[name];
+      };
+      const nameValForPeriod = function(name, id, prd){
+        const arr = sliceToActive(cplRowValue(getM(name), id));
+        return prd.monthIndices.reduce(function(a,i){ return a+(arr[i]||0); }, 0);
+      };
       const totM = {};
       ['sales','cogs','gross','op','sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
        'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
        'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc','direct','contrib'].forEach(function(f){
-        const arrs = _allDimM.map(function(M){ return M[f] || []; });
+        const arrs = _allDimNames.map(function(name){ return getM(name)[f] || []; });
         totM[f] = cplMonths.map(function(_, ci){ return arrs.reduce(function(a, arr){ return a + (arr[ci] || 0); }, 0); });
       });
-      const seriesForDimId = function(dimIdx, id){ return sliceToActive(cplRowValue(topM[dimIdx], id)); };
       const seriesForTotId = function(id){ return sliceToActive(cplRowValue(totM, id)); };
-      const periodDimVal = function(di, id, prd){
-        const arr = seriesForDimId(di, id);
-        return prd.monthIndices.reduce(function(a,i){ return a+(arr[i]||0); }, 0);
-      };
       const periodTotVal = function(id, prd){
         const arr = seriesForTotId(id);
         return prd.monthIndices.reduce(function(a,i){ return a+(arr[i]||0); }, 0);
       };
+      const dcolsCount = Math.min(10, _allDimNames.length);
+      const hasOthers = _allDimNames.length > dcolsCount;
+      // 기간마다 그 기간 매출 기준으로 top10 재선정 (닫혀있는 기간도 전기간 대비 계산을 위해 미리 계산)
+      const periodTopNames = {};
+      periods.forEach(function(prd){
+        periodTopNames[prd.key] = _allDimNames.slice().sort(function(a, b){
+          return nameValForPeriod(b, 'sales', prd) - nameValForPeriod(a, 'sales', prd);
+        }).slice(0, dcolsCount);
+      });
+      const colsPerOpenPeriod = dcolsCount + (hasOthers ? 1 : 0) + 1;
       const totSalesSeries = seriesForTotId('sales');
       const totSalesV = totSalesSeries.reduce(function(a, v){ return a + v; }, 0);
       html += '<div class="pl-section-title" style="display:flex;align-items:center"><span>▶ ' + sec.label + '</span>' + plDlBtn(sec.key, months.join(','), '') + '</div>';
@@ -5071,16 +5070,16 @@ function renderCategoryPl(){
       html += '<tr><th rowspan="2">구분</th><th rowspan="2">합계</th>';
       periods.forEach(function(prd){
         const open = isPeriodOpen(prd.key);
-        const span = open ? (dcols.length + 1) : 1;
+        const span = open ? colsPerOpenPeriod : 1;
         html += '<th class="pl-month-group" colspan="' + span + '" data-cpl-month="' + prd.key + '"><i data-lucide="' + (open ? 'chevron-down' : 'chevron-right') + '" class="pl-chev"></i>' + prd.label + '</th>';
       });
       html += '</tr><tr>';
       periods.forEach(function(prd){
         if (isPeriodOpen(prd.key)) {
-          dcols.forEach(function(col){
-            const lbl = (col.flag ? col.flag + ' ' : '') + col.name;
-            html += '<th class="pl-col-dim">' + lbl + '</th>';
+          periodTopNames[prd.key].forEach(function(name){
+            html += '<th class="pl-col-dim">' + name + '</th>';
           });
+          if (hasOthers) html += '<th class="pl-col-dim">기타</th>';
         }
         html += '<th class="pl-col-total">계</th>';
       });
@@ -5101,11 +5100,25 @@ function renderCategoryPl(){
           const prevPTot = pi > 0 ? periodTotVal(row.id, periods[pi-1]) : undefined;
           const mStr = prd.monthIndices.map(function(i){ return months[i]; }).join(',');
           if (isPeriodOpen(prd.key)) {
-            secDims.forEach(function(d, di){
-              const pDim = periodDimVal(di, row.id, prd);
-              const prevPDim = pi > 0 ? periodDimVal(di, row.id, periods[pi-1]) : undefined;
-              html += '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="'+escPlAttr(_cplDimCol())+'" data-pldimval="'+escPlAttr(d.name)+'" data-plmonths="'+mStr+'" data-plsec="'+sec.key+'">' + fmtMm(pDim) + momCell(pDim, prevPDim) + '</td>';
+            const topNames = periodTopNames[prd.key];
+            let sumTop = 0;
+            topNames.forEach(function(name){
+              const pDim = nameValForPeriod(name, row.id, prd);
+              sumTop += pDim;
+              const prevPDim = pi > 0 ? nameValForPeriod(name, row.id, periods[pi-1]) : undefined;
+              html += '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="'+escPlAttr(_cplDimCol())+'" data-pldimval="'+escPlAttr(name)+'" data-plmonths="'+mStr+'" data-plsec="'+sec.key+'">' + fmtMm(pDim) + momCell(pDim, prevPDim) + '</td>';
             });
+            if (hasOthers) {
+              const curOther = pTot - sumTop;
+              let prevOther;
+              if (pi > 0) {
+                const prevTopNames = periodTopNames[periods[pi-1].key];
+                let prevSumTop = 0;
+                prevTopNames.forEach(function(name){ prevSumTop += nameValForPeriod(name, row.id, periods[pi-1]); });
+                prevOther = prevPTot - prevSumTop;
+              }
+              html += '<td>' + fmtMm(curOther) + momCell(curOther, prevOther) + '</td>';
+            }
           }
           html += '<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="__sub__" data-pldimval="__sub__" data-plmonths="'+mStr+'" data-plsec="'+sec.key+'">' + fmtMm(pTot) + momCell(pTot, prevPTot) + '</td>';
         });
@@ -5118,11 +5131,19 @@ function renderCategoryPl(){
             const pTotSales = periodTotVal('sales', prd);
             const pTot = periodTotVal(row.id, prd);
             if (isPeriodOpen(prd.key)) {
-              secDims.forEach(function(d, di){
-                const pDim = periodDimVal(di, row.id, prd);
-                const pDimSales = periodDimVal(di, 'sales', prd);
+              const topNames = periodTopNames[prd.key];
+              let sumTop = 0, sumTopSales = 0;
+              topNames.forEach(function(name){
+                const pDim = nameValForPeriod(name, row.id, prd);
+                const pDimSales = nameValForPeriod(name, 'sales', prd);
+                sumTop += pDim; sumTopSales += pDimSales;
                 html += '<td>' + (pDimSales ? (pDim/pDimSales*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
               });
+              if (hasOthers) {
+                const otherVal = pTot - sumTop;
+                const otherSales = pTotSales - sumTopSales;
+                html += '<td>' + (otherSales ? (otherVal/otherSales*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
+              }
             }
             html += '<td class="pl-col-total">' + (pTotSales ? (pTot/pTotSales*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
           });
