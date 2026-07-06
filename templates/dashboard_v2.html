@@ -1452,8 +1452,8 @@ html[data-density="spacious"] .card-body:has(> .chart-wrap){padding-top:4px}
 /* ═══ 전사 P&L table ═══════════════════════════════════════════════ */
 .pl-table-wrap{overflow-x:auto; padding:4px 8px 12px}
 table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width:1080px; table-layout:fixed}
-.pl-table th{font-size:10.5px; font-weight:700; color:var(--text-tertiary); text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-strong); white-space:nowrap}
-.pl-table th:first-child{text-align:left; position:sticky; left:0; background:var(--surface); z-index:2; width:170px}
+.pl-table th{font-size:10.5px; font-weight:700; color:var(--text-tertiary); text-align:center !important; padding:8px 10px; border-bottom:1px solid var(--border-strong); white-space:nowrap}
+.pl-table th:first-child{text-align:left !important; position:sticky; left:0; background:var(--surface); z-index:2; width:170px}
 .pl-table td{padding:5px 10px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary); white-space:nowrap; border-bottom:1px solid var(--border)}
 .pl-table td:first-child{text-align:left; font-family:'Pretendard Variable','Pretendard',sans-serif; font-size:11.5px; position:sticky; left:0; background:var(--surface); z-index:1}
 .pl-table tr.pl-bold td{color:var(--text); font-weight:700}
@@ -1506,6 +1506,7 @@ table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width
 .pl-table th.pl-col-parent:hover{color:var(--accent)}
 .pl-table th.pl-col-child, .pl-table td.pl-col-child{background:var(--surface-2)}
 .pl-table th.pl-col-child{font-weight:600;color:var(--text-tertiary)}
+.pl-month-matrix thead tr th.pl-div-group{background:#374151 !important;color:#e5e7eb !important;border-left:2px solid #6B7280}
 table.pl-table{margin-bottom:4px}
 
 /* ═══ Data scope footer ═══════════════════════════════════════════════ */
@@ -2803,12 +2804,11 @@ const SKUS = [
 
 const CATEGORY_DEFS = [
   { id:'overview', label:'요약',     icon:'home',           path:[]                          },
-  { id:'org',      label:'조직별',    icon:'building-2',     path:['브랜드','그룹','부서'],      startLevel:0 },
+  { id:'org',      label:'조직별',    icon:'building-2',     path:['브랜드','본부','부서'],      startLevel:0 },
   { id:'region',   label:'지역별',    icon:'globe-2',        path:['권역','대륙','국가','거래처'], startLevel:0 },
   { id:'product',  label:'상품별',    icon:'package',        path:['라인','카테고리','SKU'],     startLevel:0 },
   { id:'sales',    label:'판매유형별', icon:'shopping-bag',   path:['전체','B2B/B2C'],           startLevel:0 },
   { id:'rawdata',  label:'원시데이터', icon:'table-2',        path:[]                          },
-  { id:'tableau',  label:'커스텀 분석', icon:'layout-dashboard', path:[]                        },
 ];
 
 /* ─── State ─────────────────────────────────────────────────────────── */
@@ -2833,6 +2833,7 @@ const state = {
   rawPage: 1, rawPerPage: 100, rawSearch: '', rawOpen: false, rawSource: 'fi',
   rawSmFilter:      { yearMonth:'', department:'', indirectCostClass:'', mainCategory:'' },
   rawFsmFilter:     { yearMonth:'', department:'', itemClass:'', indirectCostClass:'', mainCategory:'' },
+  rawSgaFilter:     { yearMonth:'', department:'', country:'', brand:'', costClass:'', indirectCostClass:'', mainCategory:'' },
   rawFilter: { group:'', department:'', continent1:'', continent:'', country:'', line:'', category:'', brand:'', salesType:'', yearMonth:'' },
   tableau: {
     views: [],
@@ -2891,6 +2892,7 @@ let _real = {
   raw: { total: 0, page: 1, per_page: 100, rows: [] },
   raw_sm: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
   raw_final_sm: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
+  raw_sga_agg: { total: 0, page: 1, per_page: 100, rows: [], columns: [] },
 };
 let REAL_GROUPS=[], REAL_DEPARTMENTS=[], REAL_CONTINENTS1=[], REAL_CONTINENTS=[], REAL_COUNTRIES=[];
 let REAL_LINES=[], REAL_CATEGORIES=[], REAL_BRANDS=[], REAL_CUSTOMERS=[], REAL_SALES_TYPES=[];
@@ -3211,14 +3213,14 @@ const RealApi = {
     return null;
   },
   _nameKey(cat, vl){
-    if(cat==='org') return vl===0?'Brand':vl===1?'Group':'Department';
+    if(cat==='org') return vl===0?'Brand':vl===1?'Division':'Department';
     if(cat==='region') return vl===0?'Continent1':vl===1?'Continent2':vl===2?'Country':'Customer';
     if(cat==='product') return vl===0?'Line':vl===1?'Category':'Product_Name';
     if(cat==='sales') return 'Sales_Type';
     return 'name';
   },
   _endpoint(cat, vl){
-    if(cat==='org') return vl===0?'/api/group':vl===1?'/api/org-group':vl===2?'/api/department':null;
+    if(cat==='org') return vl===0?'/api/group':vl===1?'/api/org-division':vl===2?'/api/department':null;
     if(cat==='region') return vl===0?'/api/continent1':vl===1?'/api/continent':vl===2?'/api/country':'/api/customer';
     if(cat==='product') return vl===0?'/api/line':vl===1?'/api/category':'/api/product';
     if(cat==='sales') return '/api/sales-type';
@@ -3241,7 +3243,7 @@ const RealApi = {
     const cat = state.category;
     if(cat==='org'){
       fsArr(cat,0).forEach(v=>p.append('brand',v));
-      fsArr(cat,1).forEach(v=>p.append('group',v));
+      fsArr(cat,1).forEach(v=>p.append('division',v));
       fsArr(cat,2).forEach(v=>p.append('department',v));
     } else if(cat==='region'){
       fsArr(cat,0).forEach(v=>p.append('continent1',v));
@@ -3281,7 +3283,7 @@ const RealApi = {
     // Ensure drill filters
     if(cat==='org'){
       if(drill[0]) p.set('brand', drill[0]); else p.delete('brand');
-      if(drill[1]) p.set('group', drill[1]); else p.delete('group');
+      if(drill[1]) p.set('division', drill[1]); else p.delete('division');
       if(drill[2]) p.set('department', drill[2]); else p.delete('department');
     } else if(cat==='region'){
       if(drill[0]) p.set('continent1', drill[0]); else p.delete('continent1');
@@ -4408,7 +4410,8 @@ function loadPlSummary(){
       const umNode = nodes.find(function(n){ return n.name === 'UM'; });
       const skVals = mkVals(skNode);
       const umVals = mkVals(umNode);
-      const jeonsaVals = sumVals(skVals, umVals);
+      let jeonsaVals = mkVals(null);
+      nodes.forEach(function(n){ jeonsaVals = sumVals(jeonsaVals, mkVals(n)); });
       PL_SECTIONS = [
         { key:'jeonsa', title:'1. 전사', rows: makePlRows(jeonsaVals) },
         { key:'brand',  title:'2. 브랜드 부문 (SK)', rows: makePlRows(skVals) },
@@ -4453,6 +4456,7 @@ function renderPlSummary(){
     wrap.innerHTML = '<div style="padding:20px;color:var(--text-tertiary)">불러오는 중…</div>';
     return;
   }
+  const months = activeMonths();
   const periods = plAggPeriods(state.plPeriod);
   const N = periods.length;
   const empty = '<span class="pl-empty">–</span>';
@@ -4465,7 +4469,9 @@ function renderPlSummary(){
     const salesRow = sec.rows.find(function(x){ return x.id === 'sales'; });
     const salesTot = salesRow.vals.reduce(function(a,b){ return a+b; },0);
     const salesAggV = plAggVals(salesRow.vals, periods);
-    html += '<div class="pl-section-title">' + sec.title + '</div>';
+    const allMStr = months.join(',');
+    const secAttr = sec.key === 'brand' ? 'SK' : sec.key === 'dist' ? 'dist' : 'all';
+    html += '<div class="pl-section-title" style="display:flex;align-items:center"><span>' + sec.title + '</span>' + plDlBtn(secAttr, allMStr, '') + '</div>';
     html += '<table class="pl-table">';
     html += '<colgroup><col style="width:170px"><col style="width:88px">';
     for (let i = 0; i < N; i++) html += '<col>';
@@ -4495,8 +4501,12 @@ function renderPlSummary(){
         }
         return h;
       };
-      html += '<tr class="' + cls + '"' + (toggleKey ? ' data-pl-toggle="' + toggleKey + '"' : '') + '><td>' + chev + row.label + '</td><td>' + fmtM(tot) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
-      for (let i = 0; i < N; i++) html += '<td>' + valCell(i) + '</td>';
+      html += '<tr class="' + cls + '"' + (toggleKey ? ' data-pl-toggle="' + toggleKey + '"' : '') + '><td>' + chev + row.label + '</td>'
+            + '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="__all__" data-pldimval="__all__" data-plmonths="'+allMStr+'" data-plsec="'+secAttr+'">' + fmtM(tot) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+      for (let i = 0; i < N; i++) {
+        const mStr = periods[i].monthIndices.map(function(j){ return months[j]; }).join(',');
+        html += '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="__sub__" data-pldimval="__sub__" data-plmonths="'+mStr+'" data-plsec="'+secAttr+'">' + valCell(i) + '</td>';
+      }
       html += '</tr>';
       const showPct = row.pct && (!row.pctMember || plExpanded.has(sec.key + ':' + row.pctMember));
       if (showPct) {
@@ -4539,7 +4549,7 @@ const cplColExp = new Set();
 let cplViewMode = 'dim';
 // Month-mode 차원별 open/close state (per category:ym) + one-time seed flag.
 const cplMonthExp = new Set();
-let cplMonthSeeded = false;
+const _cplSeededCats = new Set();
 
 // ─── /api/pl 실데이터 캐시 ───────────────────────────────────────────────────
 // state.cplData = { months:[...], byNode:{ '<name>':{ SK:{...}, UM:{...} } } }
@@ -4550,7 +4560,7 @@ let _cplDataLoading = false;
 function _cplDimCol(){
   const cat = state.category;
   const vl = (state.viewLevel && state.viewLevel[cat] != null) ? state.viewLevel[cat] : 0;
-  if (cat === 'org')     return vl <= 1 ? 'Group' : 'Department';
+  if (cat === 'org')     return 'Department';
   if (cat === 'region')  return vl === 0 ? 'Continent1' : vl === 1 ? 'Continent2' : vl === 2 ? 'Country' : 'Customer';
   if (cat === 'product') return vl === 0 ? 'Line' : vl === 1 ? 'Category' : 'Product_Name';
   if (cat === 'sales')   return 'Sales_Type';
@@ -4563,8 +4573,8 @@ function _cplAppendDrillFilters(p){
   const months = activeMonths();
   if (months.length) months.forEach(function(m){ p.append('months', m); });
   if (cat === 'org'){
-    // brand 필터는 SK/UM을 명시적으로 설정했으므로 여기서는 group/department만 추가
-    fsArr(cat,1).forEach(function(v){ p.append('group', v); });
+    // brand 필터는 SK/UM을 명시적으로 설정했으므로 여기서는 division/department만 추가
+    fsArr(cat,1).forEach(function(v){ p.append('division', v); });
     fsArr(cat,2).forEach(function(v){ p.append('department', v); });
   } else if (cat === 'region'){
     fsArr(cat,0).forEach(function(v){ p.append('continent1', v); });
@@ -4598,14 +4608,20 @@ async function loadCplData(){
     pUM.append('dim', dimCol);
     pUM.append('brand', 'UM');
     _cplAppendDrillFilters(pUM);
-    const [dSK, dUM] = await Promise.all([
+    // 전체용: 브랜드 필터 없이 모든 데이터
+    const pAll = new URLSearchParams();
+    pAll.append('dim', dimCol);
+    _cplAppendDrillFilters(pAll);
+    const [dSK, dUM, dAll] = await Promise.all([
       fetch('/api/pl?' + pSK.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
       fetch('/api/pl?' + pUM.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
+      fetch('/api/pl?' + pAll.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
     ]);
-    // months: SK/UM 합집합 정렬
+    // months: SK/UM/All 합집합 정렬
     const monthsSet = new Set();
     (dSK.months || []).forEach(function(m){ monthsSet.add(m); });
     (dUM.months || []).forEach(function(m){ monthsSet.add(m); });
+    (dAll.months || []).forEach(function(m){ monthsSet.add(m); });
     const months = Array.from(monthsSet).sort();
     const n = months.length;
     const zeros = function(){ return months.map(function(){ return 0; }); };
@@ -4613,7 +4629,6 @@ async function loadCplData(){
       'sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
       'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
       'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc'];
-    // node 이름별로 SK/UM 배열 수집
     const byNode = {};
     function mergeNode(brand, apiData){
       const apiMonths = apiData.months || [];
@@ -4621,7 +4636,7 @@ async function loadCplData(){
       apiMonths.forEach(function(m, i){ idxMap[m] = i; });
       (apiData.nodes || []).forEach(function(nd){
         const name = nd.name;
-        if (!byNode[name]) byNode[name] = { SK:{}, UM:{} };
+        if (!byNode[name]) byNode[name] = {};
         if (!byNode[name][brand]) byNode[name][brand] = {};
         const target = byNode[name][brand];
         PL_FIELDS.forEach(function(f){
@@ -4632,14 +4647,13 @@ async function loadCplData(){
             if (si != null && src[si] != null) target[f][ti] += src[si];
           });
         });
-        // 파생: direct = gross - sgaD, contrib = direct - sgaO
         target.direct = target.gross.map(function(v, i){ return v - target.sgaD[i]; });
         target.contrib = target.direct.map(function(v, i){ return v - target.sgaO[i]; });
       });
     }
     mergeNode('SK', dSK);
     mergeNode('UM', dUM);
-    // all 합산용 헬퍼는 cplMetrics에서 처리
+    mergeNode('all', dAll);
     state.cplData = { months: months, byNode: byNode };
   } catch(e){
     console.error('[CPL] loadCplData error', e);
@@ -4650,6 +4664,13 @@ async function loadCplData(){
   renderCategoryPl();
 }
 
+// P&L 노드가 갖는 전체 필드 목록 (cplMetrics/renderOrgPl 공용)
+const PL_ALL = ['sales','cogs','gross','op',
+  'sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
+  'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
+  'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc',
+  'direct','contrib'];
+
 // 노드 이름에서 sec(all/sk/dist)에 맞는 월별 배열 객체 반환
 // 반환 키: sales, cogs, gross, sgaD, sgaD_adv, ..., sgaO, ..., sgaC, ..., op, direct, contrib (모두 月별 배열)
 function cplMetrics(sec, nodeName){
@@ -4657,20 +4678,14 @@ function cplMetrics(sec, nodeName){
   const months = (cplData && cplData.months) ? cplData.months : activeMonths();
   const n = months.length;
   const zeros = function(){ return months.map(function(){ return 0; }); };
-  const PL_ALL = ['sales','cogs','gross','op',
-    'sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
-    'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
-    'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc',
-    'direct','contrib'];
   const nodeData = (cplData && cplData.byNode) ? cplData.byNode[nodeName] : null;
   function getArr(brand, field){
     return (nodeData && nodeData[brand] && nodeData[brand][field]) ? nodeData[brand][field] : zeros();
   }
-  function addArrs(a, b){ return a.map(function(v, i){ return v + b[i]; }); }
   const result = {};
   if (sec.key === 'all'){
     PL_ALL.forEach(function(f){
-      result[f] = addArrs(getArr('SK', f), getArr('UM', f));
+      result[f] = getArr('all', f);
     });
   } else if (sec.key === 'sk'){
     PL_ALL.forEach(function(f){ result[f] = getArr('SK', f); });
@@ -4680,10 +4695,34 @@ function cplMetrics(sec, nodeName){
   return result;
 }
 
+const _DIV_DEPT_MAP = {
+  '글로벌마케팅본부': ['GM CBT','GM EAST 1','GM EAST 2','GM JBT','GM KBT','GM WEST Ecomm','GM WEST MKT'],
+  '영업본부': ['영업1','영업2'],
+  '유통1본부': ['리테일_리테일1','리테일_리테일2','리테일_리테일3','UMMA'],
+  '유통2본부': ['코스트코','뉴비지니스_뉴비즈1','뉴비지니스_뉴비즈2','DD_Distribution 2_Part 1','DD_Distribution 2_Part 2','DD_Distribution 2_Part 3'],
+  '상품본부': ['BCM_플래그십 파트'],
+};
+const _DIV_ORDER = ['글로벌마케팅본부','영업본부','유통1본부','유통2본부','상품본부'];
+const _BRAND_DIV   = { 'SK':['글로벌마케팅본부','영업본부','상품본부'], 'UM':['유통1본부','유통2본부'] };
+const _BRAND_LABEL = { 'SK':'SK 브랜드', 'UM':'유통본부' };
+const _BRAND_ORDER = ['SK','UM'];
+let orgBrandExp = new Set();
+let orgDivExp   = new Set();
+
 function cplDims(){
   // /api/pl 노드 이름 목록을 우선 사용 (state.cplData가 있을 때)
   if (state.cplData && state.cplData.byNode) {
     const names = Object.keys(state.cplData.byNode);
+    if (state.category === 'org') {
+      const ordered = [], added = new Set();
+      _DIV_ORDER.forEach(function(div){
+        (_DIV_DEPT_MAP[div] || []).forEach(function(d){
+          if (names.indexOf(d) >= 0 && !added.has(d)){ ordered.push(d); added.add(d); }
+        });
+      });
+      names.forEach(function(n){ if (!added.has(n)) ordered.push(n); });
+      return ordered.map(function(name){ return { name: name, flag: null, _children: [] }; });
+    }
     return names.slice(0, 10).map(function(name){ return { name: name, flag: null, _children: [] }; });
   }
   // 폴백: api.breakdown() 사용 (cplData 미로드 시)
@@ -4729,6 +4768,30 @@ const CPL_ROW_DEFS = [
   { id:'op',     label:'영업이익',          bold:true, pct:true, hl:'op' },
 ];
 
+// 우클릭 다운로드 data 속성 이스케이프 헬퍼
+function escPlAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+// P&L 테이블 공용 셀 포맷터 (renderOrgPl/renderCategoryPl 공용)
+const PL_EMPTY = '<span class="pl-empty">–</span>';
+function fmtMm(v){
+  const mm = Math.round(v / 1e6);
+  return (mm < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(mm).toLocaleString('ko-KR') + '</span>';
+}
+function momCell(cur, prev){
+  if (prev === undefined || !prev) return '<div class="pl-mom pl-mom-na">–</div>';
+  const d = (cur - prev) / Math.abs(prev) * 100;
+  const up = d > 0.05, down = d < -0.05;
+  return '<div class="pl-mom ' + (up ? 'pl-up' : down ? 'pl-down' : '') + '">' + (up ? '▲' : down ? '▼' : '–') + Math.abs(d).toFixed(1) + '%</div>';
+}
+
+// 테이블 원본 다운로드 버튼 HTML 생성
+const _PL_DL_ICON='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+function plDlBtn(sec, months, depts){
+  var da='data-plsec="'+sec+'" data-plmonths="'+escPlAttr(months)+'" data-pldim="__all__" data-pldimval="__all__"'+(depts?' data-pldepts="'+escPlAttr(depts)+'"':'');
+  var st='margin-left:auto;background:none;border:1px solid var(--border,#3a3a5c);border-radius:5px;padding:2px 8px;cursor:pointer;color:var(--text-tertiary,#888);font-size:11px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0';
+  return '<button class="pl-dl-tbl-btn" '+da+' style="'+st+'" title="원본 데이터 다운로드 (CSV)">'+_PL_DL_ICON+' CSV</button>';
+}
+
 // id가 'sgaD.adv' 형태면 'm.sgaD_adv' 배열, 단순 id면 'm[id]' 배열을 반환
 function cplRowValue(m, id){
   if (id.indexOf('.') < 0) return m[id] || [];
@@ -4755,7 +4818,165 @@ function cplAggPeriods(period, months){
   });
   return result;
 }
+// ─── 조직별 P&L: SK/유통 > 본부 > 부서 계층형 (접기/펼치기) ─────────────
+function renderOrgPl(){
+  const wrap=document.getElementById('categoryPlSection');
+  if(!wrap)return;
+  if(!state.cplData){if(!_cplDataLoading)loadCplData();return;}
+
+  const cplPd  =state.cplPeriod||'monthly';
+  const cplMths=(state.cplData&&state.cplData.months)?state.cplData.months:[];
+  const actSet =new Set(activeMonths());
+  const months =cplMths.filter(function(m){return actSet.has(m);});
+  const idxMap ={};
+  cplMths.forEach(function(m,i){idxMap[m]=i;});
+  const byNode =state.cplData.byNode||{};
+  const periods=cplPd==='filter'?[]:cplAggPeriods(cplPd,months);
+
+  function secMetrics(depts, brand){
+    const m={};
+    PL_ALL.forEach(function(f){m[f]=months.map(function(){return 0;});});
+    const brs = brand ? [brand] : ['SK','UM'];
+    (depts||[]).forEach(function(dept){
+      const nd=byNode[dept];if(!nd)return;
+      brs.forEach(function(br){
+        const bd=nd[br];if(!bd)return;
+        PL_ALL.forEach(function(f){
+          const src=bd[f]||[];
+          months.forEach(function(ym,ti){
+            const si=idxMap[ym];
+            if(si!=null&&src[si]!=null)m[f][ti]+=src[si];
+          });
+        });
+      });
+    });
+    return m;
+  }
+
+  const fmtPct=function(v,b){return b?(v/b*100).toFixed(1)+'%':PL_EMPTY;};
+  const PFX='orgpl';
+
+  function renderTable(M, depts, brand){
+    const deptsAttr=escPlAttr((depts||[]).join(','));
+    const brandKey=brand||'all';
+    const allMStr=months.join(',');
+    const pv=function(id,prd){return prd.monthIndices.reduce(function(a,i){return a+((cplRowValue(M,id)||[])[i]||0);},0);};
+    const tv=function(id){return(cplRowValue(M,id)||[]).reduce(function(a,v){return a+v;},0);};
+    let t='<table class="pl-table pl-month-matrix"><colgroup><col style="width:170px"><col style="width:88px">';
+    for(let c=0;c<periods.length;c++)t+='<col>';
+    t+='</colgroup><thead><tr><th>구분</th><th>합계</th>';
+    periods.forEach(function(prd){t+='<th class="pl-col-total">'+prd.label+'</th>';});
+    t+='</tr></thead><tbody>';
+    CPL_ROW_DEFS.forEach(function(row){
+      const mk=row.member?PFX+':'+row.member:null;
+      if(mk&&!plExpanded.has(mk))return;
+      const tk=row.toggle?PFX+':'+row.toggle:null;
+      const cls=['pl-row',row.bold?'pl-bold':'',row.sub?'pl-sub':'',row.hl?'pl-hl-'+row.hl:'',row.toggle?'pl-group':''].filter(Boolean).join(' ');
+      const chev=tk?'<i data-lucide="'+(plExpanded.has(tk)?'chevron-down':'chevron-right')+'" class="pl-chev"></i>':'';
+      const totV=tv(row.id);
+      t+='<tr class="'+cls+'"'+(tk?' data-cpl-toggle="'+tk+'"':'')+'>'+
+        '<td>'+chev+row.label+'</td>'+
+        '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+fmtMm(totV)+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+      periods.forEach(function(prd,pi){
+        const pV=pv(row.id,prd),prV=pi>0?pv(row.id,periods[pi-1]):undefined;
+        const mStr=prd.monthIndices.map(function(i){return months[i];}).join(',');
+        t+='<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+mStr+'" data-plsec="'+brandKey+'">'+fmtMm(pV)+momCell(pV,prV)+'</td>';
+      });
+      t+='</tr>';
+      if(row.pct&&(!row.pctMember||plExpanded.has(PFX+':'+row.pctMember))){
+        const tS=tv('sales');
+        t+='<tr class="pl-pct'+(row.sub?' pl-sub':'')+(row.hl?' pl-pct-hl-'+row.hl:'')+'"><td>%</td>'+
+          '<td>'+fmtPct(totV,tS)+'</td>';
+        periods.forEach(function(prd){t+='<td class="pl-col-total">'+fmtPct(pv(row.id,prd),pv('sales',prd))+'</td>';});
+        t+='</tr>';
+      }
+    });
+    return t+'</tbody></table>';
+  }
+
+  let html='<div class="card row-grid-full" style="margin-bottom:14px">'
+    +'<div class="card-hd"><div>'
+    +'<div class="card-title"><i data-lucide="table-2"></i>손익계산서'
+    +' <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(조직별)</span></div>'
+    +'<div class="card-sub">굵은 행 클릭 → 세부 계정 · ▶/▸ 클릭 → 접기/펼치기</div>'
+    +'</div><div style="display:flex;align-items:center;gap:8px">'
+    +'<div class="pl-period-tabs">'
+    +'<button class="pl-pt'+(cplPd==='monthly'?' active':'')+'" data-cpl-period="monthly">월별</button>'
+    +'<button class="pl-pt'+(cplPd==='quarterly'?' active':'')+'" data-cpl-period="quarterly">분기별</button>'
+    +'<button class="pl-pt'+(cplPd==='halfyear'?' active':'')+'" data-cpl-period="halfyear">반기별</button>'
+    +'<button class="pl-pt'+(cplPd==='filter'?' active':'')+'" data-cpl-period="filter">필터</button>'
+    +'</div>'
+    +'<div class="waterfall-card-unit">단위: 백만원</div></div></div>'
+    +'<div class="card-body card-body-flush"><div class="pl-table-wrap">';
+
+  // 전체 합산 테이블 — all 브랜드 데이터 사용 (Others 포함)
+  const allDepts=Object.keys(byNode);
+  html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
+  html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
+
+  _BRAND_ORDER.forEach(function(brand){
+    const brandDivs=_BRAND_DIV[brand]||[];
+    const brandDepts=[];
+    brandDivs.forEach(function(div){(_DIV_DEPT_MAP[div]||[]).forEach(function(d){if(byNode[d])brandDepts.push(d);});});
+    if(!brandDepts.length)return;
+    const bExp=orgBrandExp.has(brand);
+    html+='<div class="pl-section-title" style="cursor:pointer;font-size:14px;display:flex;align-items:center" data-org-brand="'+brand+'">'
+      +'<span><i data-lucide="'+(bExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+_BRAND_LABEL[brand]+'</span>'
+      +(bExp?plDlBtn(brand,months.join(','),brandDepts.join(',')):'')+'</div>';
+    if(!bExp)return;
+    html+=renderTable(secMetrics(brandDepts,brand),brandDepts,brand);
+    brandDivs.forEach(function(div){
+      const divDepts=(_DIV_DEPT_MAP[div]||[]).filter(function(d){return !!byNode[d];});
+      if(!divDepts.length)return;
+      const dExp=orgDivExp.has(div);
+      html+='<div class="pl-section-title" style="cursor:pointer;margin-left:20px;display:flex;align-items:center" data-org-div="'+div+'">'
+        +'<span><i data-lucide="'+(dExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+div+'</span>'
+        +(dExp?plDlBtn(brand,months.join(','),divDepts.join(',')):'')+'</div>';
+      if(!dExp)return;
+      html+=renderTable(secMetrics(divDepts,brand),divDepts,brand);
+      divDepts.forEach(function(dept){
+        html+='<div class="pl-section-title" style="margin-left:40px;font-size:11px;opacity:.8;display:flex;align-items:center"><span>▸ '+dept+'</span>'+plDlBtn(brand,months.join(','),dept)+'</div>';
+        html+=renderTable(secMetrics([dept],brand),[dept],brand);
+      });
+    });
+  });
+
+  html+='</div></div></div>';
+  wrap.innerHTML=html;
+
+  wrap.querySelectorAll('[data-org-brand]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const b=el.dataset.orgBrand;
+      if(orgBrandExp.has(b))orgBrandExp.delete(b);else orgBrandExp.add(b);
+      renderOrgPl();
+    });
+  });
+  wrap.querySelectorAll('[data-org-div]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const d=el.dataset.orgDiv;
+      if(orgDivExp.has(d))orgDivExp.delete(d);else orgDivExp.add(d);
+      renderOrgPl();
+    });
+  });
+  wrap.querySelectorAll('[data-cpl-toggle]').forEach(function(tr){
+    tr.addEventListener('click',function(){
+      const k=tr.dataset.cplToggle;
+      if(plExpanded.has(k))plExpanded.delete(k);else plExpanded.add(k);
+      renderOrgPl();
+    });
+  });
+  wrap.querySelectorAll('[data-cpl-period]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const p=btn.dataset.cplPeriod;
+      if(!p||state.cplPeriod===p)return;
+      state.cplPeriod=p;renderOrgPl();
+    });
+  });
+  if(window.lucide)window.lucide.createIcons();
+}
+
 function renderCategoryPl(){
+  if(state.category==='org'){ renderOrgPl(); return; }
   const wrap = document.getElementById('categoryPlSection');
   if (!wrap) return;
   // 데이터가 없으면 loadCplData 트리거 (이미 로딩 중이면 스킵)
@@ -4766,11 +4987,6 @@ function renderCategoryPl(){
   const dims = cplDims();
   if (!dims.length) { wrap.innerHTML = ''; return; }
   const cat = CATEGORY_DEFS.find(function(c){ return c.id === state.category; });
-  const empty = '<span class="pl-empty">–</span>';
-  const fmtMm = function(v){
-    const m = Math.round(v / 1e6);
-    return (m < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(m).toLocaleString('ko-KR') + '</span>';
-  };
   const cplPd = state.cplPeriod || 'monthly';
   const subText = cplPd === 'monthly'
     ? '월(月) 헤더 클릭 → 차원별 펼침 · 차원 헤더 클릭 → 하위 드릴다운 · 굵은 행 클릭 → 세부 계정 · 값 아래 ▲▼는 전월 대비'
@@ -4794,34 +5010,43 @@ function renderCategoryPl(){
     const activeMthsSet = new Set(activeMths);
     const months = cplMonths.filter(function(m){ return activeMthsSet.has(m); });
     const periods = cplPd === 'filter' ? [] : cplAggPeriods(cplPd, months);
-    if (!cplMonthSeeded) {
-      if (periods.length > 0) cplMonthExp.add(state.category + ':' + periods[0].key);
-      cplMonthSeeded = true;
+    if (!_cplSeededCats.has(state.category)) {
+      if (state.category === 'sales') {
+        periods.forEach(function(prd){ cplMonthExp.add(state.category + ':' + prd.key); });
+      } else {
+        if (periods.length > 0) cplMonthExp.add(state.category + ':' + periods[0].key);
+      }
+      _cplSeededCats.add(state.category);
     }
     const isPeriodOpen = function(key){ return cplMonthExp.has(state.category + ':' + key); };
-    const momCell = function(cur, prev){
-      if (prev === undefined || !prev) return '<div class="pl-mom pl-mom-na">–</div>';
-      const d = (cur - prev) / Math.abs(prev) * 100;
-      const up = d > 0.05, down = d < -0.05;
-      return '<div class="pl-mom ' + (up ? 'pl-up' : down ? 'pl-down' : '') + '">' + (up ? '▲' : down ? '▼' : '–') + Math.abs(d).toFixed(1) + '%</div>';
-    };
     const cplIdxOf = function(ym){ return cplMonths.indexOf(ym); };
     const sliceToActive = function(arr){
       return months.map(function(ym){ const i = cplIdxOf(ym); return (i >= 0 && arr && arr[i] != null) ? arr[i] : 0; });
     };
     CPL_SEC_DEFS.forEach(function(sec){
       const secKey = state.category + ':' + sec.key;
+      // 이 섹션(SK/UM/전체)에서 실제 데이터가 있는 열만 표시
+      const secDims = dims.filter(function(d){
+        const m = cplMetrics(sec, d.name);
+        return ['sales','gross','op','sgaD','sgaO'].some(function(f){
+          return (m[f] || []).some(function(v){ return v !== 0; });
+        });
+      });
       const dcols = [];
-      dims.forEach(function(d){
+      secDims.forEach(function(d){
         const ck = state.category + ':' + d.name;
         dcols.push({ name:d.name, flag:d.flag, key:d.name, ck:ck });
       });
-      const topM = dims.map(function(d){ return cplMetrics(sec, d.name); });
+      const colsPerOpenPeriod = dcols.length + 1;
+      const topM = secDims.map(function(d){ return cplMetrics(sec, d.name); });
+      // 합계 컬럼은 표시된 top-N 아닌 전체 노드(매핑 없는 행 포함)의 실제 합계를 사용
+      const _allDimNames = Object.keys(state.cplData.byNode || {}).filter(function(n){ return n && n !== ''; });
+      const _allDimM = _allDimNames.map(function(name){ return cplMetrics(sec, name); });
       const totM = {};
       ['sales','cogs','gross','op','sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
        'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
        'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc','direct','contrib'].forEach(function(f){
-        const arrs = topM.map(function(M){ return M[f] || []; });
+        const arrs = _allDimM.map(function(M){ return M[f] || []; });
         totM[f] = cplMonths.map(function(_, ci){ return arrs.reduce(function(a, arr){ return a + (arr[ci] || 0); }, 0); });
       });
       const seriesForDimId = function(dimIdx, id){ return sliceToActive(cplRowValue(topM[dimIdx], id)); };
@@ -4836,8 +5061,8 @@ function renderCategoryPl(){
       };
       const totSalesSeries = seriesForTotId('sales');
       const totSalesV = totSalesSeries.reduce(function(a, v){ return a + v; }, 0);
-      html += '<div class="pl-section-title">▶ ' + sec.label + '</div>';
-      const totalLeafCols = periods.reduce(function(acc, prd){ return acc + (isPeriodOpen(prd.key) ? dcols.length+1 : 1); }, 0);
+      html += '<div class="pl-section-title" style="display:flex;align-items:center"><span>▶ ' + sec.label + '</span>' + plDlBtn(sec.key, months.join(','), '') + '</div>';
+      const totalLeafCols = periods.reduce(function(acc, prd){ return acc + (isPeriodOpen(prd.key) ? colsPerOpenPeriod : 1); }, 0);
       html += '<table class="pl-table pl-month-matrix">';
       html += '<colgroup><col style="width:170px"><col style="width:88px">';
       for (let c = 0; c < totalLeafCols; c++) html += '<col>';
@@ -4859,7 +5084,8 @@ function renderCategoryPl(){
         }
         html += '<th class="pl-col-total">계</th>';
       });
-      html += '</tr></thead><tbody>';
+      html += '</tr>';
+      html += '</thead><tbody>';
       CPL_ROW_DEFS.forEach(function(row){
         const memberKey = row.member ? secKey + ':' + row.member : null;
         if (memberKey && !plExpanded.has(memberKey)) return;
@@ -4869,35 +5095,36 @@ function renderCategoryPl(){
         const totSeries = seriesForTotId(row.id);
         const totV = totSeries.reduce(function(a, v){ return a + v; }, 0);
         html += '<tr class="' + cls + '"' + (toggleKey ? ' data-cpl-toggle="' + toggleKey + '"' : '') + '><td>' + chev + row.label + '</td>';
-        html += '<td>' + fmtMm(totV) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+        html += '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="__all__" data-pldimval="__all__" data-plmonths="'+months.join(',')+'" data-plsec="'+sec.key+'">' + fmtMm(totV) + '<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
         periods.forEach(function(prd, pi){
           const pTot = periodTotVal(row.id, prd);
           const prevPTot = pi > 0 ? periodTotVal(row.id, periods[pi-1]) : undefined;
+          const mStr = prd.monthIndices.map(function(i){ return months[i]; }).join(',');
           if (isPeriodOpen(prd.key)) {
-            dims.forEach(function(d, di){
+            secDims.forEach(function(d, di){
               const pDim = periodDimVal(di, row.id, prd);
               const prevPDim = pi > 0 ? periodDimVal(di, row.id, periods[pi-1]) : undefined;
-              html += '<td>' + fmtMm(pDim) + momCell(pDim, prevPDim) + '</td>';
+              html += '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="'+escPlAttr(_cplDimCol())+'" data-pldimval="'+escPlAttr(d.name)+'" data-plmonths="'+mStr+'" data-plsec="'+sec.key+'">' + fmtMm(pDim) + momCell(pDim, prevPDim) + '</td>';
             });
           }
-          html += '<td class="pl-col-total">' + fmtMm(pTot) + momCell(pTot, prevPTot) + '</td>';
+          html += '<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="__sub__" data-pldimval="__sub__" data-plmonths="'+mStr+'" data-plsec="'+sec.key+'">' + fmtMm(pTot) + momCell(pTot, prevPTot) + '</td>';
         });
         html += '</tr>';
         const showPct = row.pct && (!row.pctMember || plExpanded.has(secKey + ':' + row.pctMember));
         if (showPct) {
           html += '<tr class="pl-pct' + (row.sub?' pl-sub':'') + (row.hl?' pl-pct-hl-'+row.hl:'') + '"><td>%</td>';
-          html += '<td>' + (totSalesV ? (totV/totSalesV*100).toFixed(1) + '%' : empty) + '</td>';
+          html += '<td>' + (totSalesV ? (totV/totSalesV*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
           periods.forEach(function(prd, pi){
             const pTotSales = periodTotVal('sales', prd);
             const pTot = periodTotVal(row.id, prd);
             if (isPeriodOpen(prd.key)) {
-              dims.forEach(function(d, di){
+              secDims.forEach(function(d, di){
                 const pDim = periodDimVal(di, row.id, prd);
                 const pDimSales = periodDimVal(di, 'sales', prd);
-                html += '<td>' + (pDimSales ? (pDim/pDimSales*100).toFixed(1) + '%' : empty) + '</td>';
+                html += '<td>' + (pDimSales ? (pDim/pDimSales*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
               });
             }
-            html += '<td class="pl-col-total">' + (pTotSales ? (pTot/pTotSales*100).toFixed(1) + '%' : empty) + '</td>';
+            html += '<td class="pl-col-total">' + (pTotSales ? (pTot/pTotSales*100).toFixed(1) + '%' : PL_EMPTY) + '</td>';
           });
           html += '</tr>';
         }
@@ -4927,7 +5154,7 @@ function renderCategoryPl(){
     if (!period || state.cplPeriod === period) return;
     state.cplPeriod = period;
     cplMonthExp.clear();
-    cplMonthSeeded = false;
+    _cplSeededCats.delete(state.category);
     renderCategoryPl();
   }); });
   if (window.lucide) lucide.createIcons();
@@ -5008,17 +5235,10 @@ function buildOverviewCharts(){
         </div>
       </div>
       <div class="scope-item">
-        <div class="scope-item-ic"><i data-lucide="hash" class="ic"></i></div>
-        <div class="scope-item-body">
-          <div class="scope-item-label">단위</div>
-          <div class="scope-item-val">억원 (소수점 첫째 자리 반올림)</div>
-        </div>
-      </div>
-      <div class="scope-item">
         <div class="scope-item-ic"><i data-lucide="info" class="ic"></i></div>
         <div class="scope-item-body">
           <div class="scope-item-label">기타</div>
-          <div class="scope-item-val">본 대시보드는 공헌이익까지 집계가 가능합니다.</div>
+          <div class="scope-item-val">영업이익까지 집계됩니다.</div>
         </div>
       </div>
     `;
@@ -5099,6 +5319,13 @@ function renderRawDataView(){
   const fsmItemClassOpts = ['매출액','매출원가','매출총이익','직접이익','공헌이익','영업이익','판관비'].map(v=>`<option value="${v}"${state.rawFsmFilter.itemClass===v?' selected':''}>${v}</option>`).join('');
   const fsmDeptOpts = _depts.map(v=>`<option value="${v}"${state.rawFsmFilter.department===v?' selected':''}>${v}</option>`).join('');
   const fsmYmOpts = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawFsmFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const sgaDeptOpts  = _depts.map(v=>`<option value="${v}"${state.rawSgaFilter.department===v?' selected':''}>${v}</option>`).join('');
+  const sgaCtryOpts  = _ctrys.map(v=>`<option value="${v}"${state.rawSgaFilter.country===v?' selected':''}>${v}</option>`).join('');
+  const sgaBrandOpts = _brands.map(v=>`<option value="${v}"${state.rawSgaFilter.brand===v?' selected':''}>${v}</option>`).join('');
+  const sgaYmOpts    = ALL_MONTHS.map(v=>`<option value="${v}"${state.rawSgaFilter.yearMonth===v?' selected':''}>${v}</option>`).join('');
+  const sgaCostClassOpts = ['판매직접','판매간접','배부내역'].map(v=>`<option value="${v}"${state.rawSgaFilter.costClass===v?' selected':''}>${v}</option>`).join('');
+  const sgaIccOpts = ['직접','조직간접','SSG간접'].map(v=>`<option value="${v}"${state.rawSgaFilter.indirectCostClass===v?' selected':''}>${v}</option>`).join('');
+  const sgaMainCatOpts = ['광고선전비','물류비','수수료','인건비','기타'].map(v=>`<option value="${v}"${state.rawSgaFilter.mainCategory===v?' selected':''}>${v}</option>`).join('');
   const filterBarHtml = state.rawSource === 'sm'
     ? `<div class="raw-filter-bar">
         <select class="select-sm" id="rawSmYmSel"><option value="">전체 기간</option>${smYmOpts}</select>
@@ -5115,6 +5342,16 @@ function renderRawDataView(){
         <select class="select-sm" id="rawFsmIccSel"><option value="">전체 간접비분류</option>${fsmIccOpts}</select>
         <select class="select-sm" id="rawFsmMainCatSel"><option value="">전체 대분류</option>${fsmMainCatOpts}</select>
         <div class="input-sm-wrap" style="flex:1;min-width:140px"><i data-lucide="search" class="ic"></i><input class="input-sm" id="rawSearch" placeholder="검색…" value="${state.rawSearch||''}"></div>
+      </div>`
+    : state.rawSource === 'sga'
+    ? `<div class="raw-filter-bar">
+        <select class="select-sm" id="rawSgaYmSel"><option value="">전체 기간</option>${sgaYmOpts}</select>
+        <select class="select-sm" id="rawSgaDeptSel"><option value="">전체 부서</option>${sgaDeptOpts}</select>
+        <select class="select-sm" id="rawSgaCtySel"><option value="">전체 국가</option>${sgaCtryOpts}</select>
+        <select class="select-sm" id="rawSgaBrandSel"><option value="">전체 브랜드</option>${sgaBrandOpts}</select>
+        <select class="select-sm" id="rawSgaCostClassSel"><option value="">전체 비용분류</option>${sgaCostClassOpts}</select>
+        <select class="select-sm" id="rawSgaIccSel"><option value="">전체 간접비분류</option>${sgaIccOpts}</select>
+        <select class="select-sm" id="rawSgaMainCatSel"><option value="">전체 대분류</option>${sgaMainCatOpts}</select>
       </div>`
     : `<div class="raw-filter-bar">
         <select class="select-sm" id="rawYmSel"><option value="">전체 기간</option>${ymOpts}</select>
@@ -5135,6 +5372,7 @@ function renderRawDataView(){
       <button class="src-btn${state.rawSource==='fi'?' active':''}" id="rawSrcFi">FI_Final (거래)</button>
       <button class="src-btn${state.rawSource==='sm'?' active':''}" id="rawSrcSm">FI_SM (판관비)</button>
       <button class="src-btn${state.rawSource==='fsm'?' active':''}" id="rawSrcFsm">FI_Final_SM (통합)</button>
+      <button class="src-btn${state.rawSource==='sga'?' active':''}" id="rawSrcSga">FI_SGA_Agg (배부집계)</button>
     </div>
     ${filterBarHtml}
     <div class="raw-bar">
@@ -5153,41 +5391,36 @@ function renderRawDataView(){
       <tbody id="rawTb"></tbody>
     </table></div>
     <div class="pagi" id="rawPagi"></div>
+    ${state.rawSource === 'fi' ? `<div id="rawAdjWrap" style="display:none;margin-top:24px">
+      <div class="raw-info" style="margin-bottom:8px;font-weight:600;color:var(--text)">
+        조정 내역 <span style="font-weight:400;font-size:11px;color:var(--text-tertiary);margin-left:4px">부서·거래처 단위로 중복 제거한 값 — 위 거래 행과 별도 항목</span>
+      </div>
+      <div class="rtw" style="max-height:260px"><table>
+        <thead><tr>
+          <th>연월</th><th>그룹</th><th>부서</th><th>거래처</th>
+          <th class="num">매출조정</th><th class="num">원가조정</th>
+        </tr></thead>
+        <tbody id="rawAdjTb"><tr><td colspan="6" style="text-align:center;color:var(--text-tertiary)">로딩 중…</td></tr></tbody>
+      </table></div>
+    </div>` : ''}
   </div>`;
 }
 
 function initRawDataView(){
   // Source toggle buttons
-  const srcFi = $('#rawSrcFi');
-  const srcSm = $('#rawSrcSm');
-  if (srcFi) srcFi.onclick = () => {
-    if (state.rawSource === 'fi') return;
-    state.rawSource = 'fi';
+  const switchRawSource = (src) => {
+    if (state.rawSource === src) return;
+    state.rawSource = src;
     state.rawPage = 1; state.rawSearch = '';
     const rawSection = document.querySelector('.raw-view');
     if (rawSection) rawSection.outerHTML = renderRawDataView();
     initRawDataView();
     loadRawPage();
   };
-  if (srcSm) srcSm.onclick = () => {
-    if (state.rawSource === 'sm') return;
-    state.rawSource = 'sm';
-    state.rawPage = 1; state.rawSearch = '';
-    const rawSection = document.querySelector('.raw-view');
-    if (rawSection) rawSection.outerHTML = renderRawDataView();
-    initRawDataView();
-    loadRawPage();
-  };
-  const srcFsm = $('#rawSrcFsm');
-  if (srcFsm) srcFsm.onclick = () => {
-    if (state.rawSource === 'fsm') return;
-    state.rawSource = 'fsm';
-    state.rawPage = 1; state.rawSearch = '';
-    const rawSection = document.querySelector('.raw-view');
-    if (rawSection) rawSection.outerHTML = renderRawDataView();
-    initRawDataView();
-    loadRawPage();
-  };
+  [['fi','rawSrcFi'],['sm','rawSrcSm'],['fsm','rawSrcFsm'],['sga','rawSrcSga']].forEach(([src, id]) => {
+    const el = $('#' + id);
+    if (el) el.onclick = () => switchRawSource(src);
+  });
 
   const onFilterChange = () => {
     state.rawFilter.yearMonth  = ($('#rawYmSel')||{}).value     || '';
@@ -5233,6 +5466,22 @@ function initRawDataView(){
   ['rawFsmYmSel','rawFsmDeptSel','rawFsmItemSel','rawFsmIccSel','rawFsmMainCatSel'].forEach(id => {
     const el = $('#' + id);
     if (el) el.onchange = onFsmFilterChange;
+  });
+
+  const onSgaFilterChange = () => {
+    state.rawSgaFilter.yearMonth         = ($('#rawSgaYmSel')||{}).value         || '';
+    state.rawSgaFilter.department        = ($('#rawSgaDeptSel')||{}).value        || '';
+    state.rawSgaFilter.country           = ($('#rawSgaCtySel')||{}).value         || '';
+    state.rawSgaFilter.brand             = ($('#rawSgaBrandSel')||{}).value       || '';
+    state.rawSgaFilter.costClass         = ($('#rawSgaCostClassSel')||{}).value   || '';
+    state.rawSgaFilter.indirectCostClass = ($('#rawSgaIccSel')||{}).value         || '';
+    state.rawSgaFilter.mainCategory      = ($('#rawSgaMainCatSel')||{}).value     || '';
+    state.rawPage = 1;
+    loadRawPage();
+  };
+  ['rawSgaYmSel','rawSgaDeptSel','rawSgaCtySel','rawSgaBrandSel','rawSgaCostClassSel','rawSgaIccSel','rawSgaMainCatSel'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.onchange = onSgaFilterChange;
   });
 
   const srch = $('#rawSearch');
@@ -7871,6 +8120,18 @@ async function loadRawPage(){
       if(state.rawFsmFilter.mainCategory)      p.set('main_category',       state.rawFsmFilter.mainCategory);
       p.set('page', state.rawPage); p.set('per_page', state.rawPerPage);
       try{ _real.raw_final_sm = await fetch('/api/raw_final_sm?'+p).then(r=>r.json()); } catch(e){}
+    } else if(state.rawSource === 'sga'){
+      const p = new URLSearchParams();
+      const ymFilter = state.rawSgaFilter.yearMonth;
+      if(ymFilter){ p.append('months', ymFilter); } else { activeMonths().forEach(m => p.append('months', m)); }
+      if(state.rawSgaFilter.department)        p.set('department',          state.rawSgaFilter.department);
+      if(state.rawSgaFilter.country)           p.set('country',             state.rawSgaFilter.country);
+      if(state.rawSgaFilter.brand)             p.set('brand',               state.rawSgaFilter.brand);
+      if(state.rawSgaFilter.costClass)         p.set('cost_class',          state.rawSgaFilter.costClass);
+      if(state.rawSgaFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSgaFilter.indirectCostClass);
+      if(state.rawSgaFilter.mainCategory)      p.set('main_category',       state.rawSgaFilter.mainCategory);
+      p.set('page', state.rawPage); p.set('per_page', state.rawPerPage);
+      try{ _real.raw_sga_agg = await fetch('/api/raw_sga_agg?'+p).then(r=>r.json()); } catch(e){}
     } else {
       const p = new URLSearchParams();
       const ymFilter = state.rawFilter.yearMonth;
@@ -7891,7 +8152,33 @@ async function loadRawPage(){
       p.set('page',     state.rawPage);
       p.set('per_page', state.rawPerPage);
       if(state.rawSearch) p.set('search', state.rawSearch);
-      try{ _real.raw = await fetch('/api/raw?'+p).then(r=>r.json()); } catch(e){}
+
+      // 조정 내역은 /api/raw와 독립적이므로 동시에 요청
+      const ap = new URLSearchParams(p);
+      ap.delete('page'); ap.delete('per_page'); ap.delete('search');
+      const [rawResult, adjData] = await Promise.all([
+        fetch('/api/raw?'+p).then(r=>r.json()).catch(()=>null),
+        fetch('/api/raw_adj?'+ap).then(r=>r.json()).catch(()=>null),
+      ]);
+      if(rawResult) _real.raw = rawResult;
+
+      const wrap = $('#rawAdjWrap');
+      const tb   = $('#rawAdjTb');
+      if(wrap && tb){
+        if(adjData && adjData.length){
+          wrap.style.display = 'block';
+          tb.innerHTML = adjData.map(r => `<tr>
+            <td class="mono">${r.Year_Month||''}</td>
+            <td>${r.Group||''}</td>
+            <td>${r.Department||''}</td>
+            <td class="td-clip" title="${r.Customer||''}">${r.Customer||''}</td>
+            <td class="num">${r.Sales_Adj!=null ? fmtKRW(r.Sales_Adj) : '—'}</td>
+            <td class="num">${r.COGS_Adj!=null  ? fmtKRW(r.COGS_Adj)  : '—'}</td>
+          </tr>`).join('');
+        } else {
+          wrap.style.display = 'none';
+        }
+      }
     }
   }
   renderRaw();
@@ -7923,11 +8210,13 @@ function renderRaw(){
 
   const isSm  = state.rawSource === 'sm';
   const isFsm = state.rawSource === 'fsm';
+  const isSga = state.rawSource === 'sga';
   const res = USE_MOCK
     ? api.raw(state.rawPage, state.rawPerPage)
     : (isSm  ? (_real.raw_sm       || {total:0,page:1,per_page:100,rows:[],columns:[]})
     : (isFsm ? (_real.raw_final_sm || {total:0,page:1,per_page:100,rows:[],columns:[]})
-             : (_real.raw          || {total:0,page:1,per_page:100,rows:[],columns:[]})));
+    : (isSga ? (_real.raw_sga_agg  || {total:0,page:1,per_page:100,rows:[],columns:[]})
+             : (_real.raw          || {total:0,page:1,per_page:100,rows:[],columns:[]}))));
 
   if($('#rawTotal')) $('#rawTotal').textContent = fmtFull(res.total);
   const pages = Math.max(1, Math.ceil(res.total / state.rawPerPage));
@@ -7935,7 +8224,7 @@ function renderRaw(){
 
   // column name → Korean label mapping
   const COL_LABEL = {
-    Year_Month:'연월', Group:'그룹', Honbu:'그룹', Department:'부서', Team:'부서',
+    Year_Month:'연월', Group:'그룹', Division:'본부', Honbu:'본부', Department:'부서', Team:'부서',
     Sales_Type:'판매유형', Continent:'대륙', Continent1:'권역', Continent2:'대륙',
     Country:'국가', Country_Flag:'국기', Customer:'거래처', Brand:'브랜드',
     Line:'라인', Category:'카테고리', Product_Name:'품명', Product_Code:'품번',
@@ -7943,8 +8232,9 @@ function renderRaw(){
     Cost_of_Sales:'매출원가', Gross_Profit:'매출총이익',
     SG_and_A_Expenses:'판관비', Operating_Income:'영업이익',
     Gross_Margin:'매출총이익율', Operating_Margin:'영업이익율',
+    Sales_Adj:'매출조정', COGS_Adj:'원가조정',
   };
-  const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']);
+  const NUM_KRW  = new Set(['Sales_Amount','Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income','Sales_Adj','COGS_Adj']);
   const NUM_QTY  = new Set(['Sales_Quantity']);
   const SM_NUM_KRW = new Set(['Amount']);
 
@@ -7963,10 +8253,30 @@ function renderRaw(){
     'Sales_Amount', 'Cost_of_Sales', 'Gross_Profit', 'SG_and_A_Expenses', 'Operating_Income',
   ];
 
-  // Use SM/FSM columns/labels depending on source
-  const activeColLabel = (isSm || isFsm) ? SM_COL_LABEL : COL_LABEL;
-  const activeColOrder = isFsm ? FSM_COL_ORDER : (isSm ? SM_COL_ORDER : COL_ORDER);
-  const activeNumKrw   = (isSm || isFsm) ? SM_NUM_KRW  : NUM_KRW;
+  const SGA_COL_LABEL = {
+    Year_Month:'연월', Department:'부서',
+    Country:'국가', Continent1:'권역', Continent2:'대륙', Sales_Group:'그룹', Brand:'브랜드',
+    Line:'라인', Category:'카테고리', Sales_Type:'판매유형',
+    Cost_Class:'비용분류', Indirect_Cost_Class:'간접비분류', Cost_Center_Class:'코스트센터분류',
+    Sending_Cost_Center:'보내는센터', Division:'본부구분', Team:'팀구분',
+    Cost_Account:'원가계정', Account_Name:'계정명',
+    SM_Main_Category:'대분류', SM_Sub_Category:'중분류', SM_Detail_Category:'상세분류',
+    allocated_amount:'판관비배부액', sm_account_dept_total:'원가계정합계(부서)', dept_sga_total:'판관비합계(부서)',
+  };
+  const SGA_COL_ORDER = [
+    'Year_Month','Department',
+    'Cost_Class','Indirect_Cost_Class','Cost_Center_Class','Sending_Cost_Center',
+    'SM_Main_Category','SM_Sub_Category','SM_Detail_Category',
+    'Cost_Account','Account_Name','Division','Team',
+    'Country','Continent1','Continent2','Sales_Group','Brand','Line','Category','Sales_Type',
+    'allocated_amount','sm_account_dept_total','dept_sga_total',
+  ];
+  const SGA_NUM_KRW = new Set(['allocated_amount','sm_account_dept_total','dept_sga_total']);
+
+  // Use SM/FSM/SGA columns/labels depending on source
+  const activeColLabel = isSga ? SGA_COL_LABEL : ((isSm || isFsm) ? SM_COL_LABEL : COL_LABEL);
+  const activeColOrder = isSga ? SGA_COL_ORDER : (isFsm ? FSM_COL_ORDER : (isSm ? SM_COL_ORDER : COL_ORDER));
+  const activeNumKrw   = isSga ? SGA_NUM_KRW   : ((isSm || isFsm) ? SM_NUM_KRW  : NUM_KRW);
 
   // available keys from data (to skip columns that don't exist in this dataset)
   const available = (res.columns && res.columns.length)
@@ -8065,89 +8375,38 @@ function _hideCsvProgress(){ const m = $('#csvProgModal'); if(m) m.style.display
 async function downloadCSV(){
   if(USE_MOCK){ alert('\uBAA8\uC758 \uB370\uC774\uD130 \uBAA8\uB4DC\uC5D0\uC11C\uB294 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.'); return; }
 
-  // FI_Final_SM \uC18C\uC2A4: export=1 \uC9C1\uC811 \uD638\uCD9C (50000 rows max)
-  if(state.rawSource === 'fsm'){
+  // SM / FSM / SGA: \uC11C\uBC84 \uC2A4\uD2B8\uB9AC\uBC0D CSV \u2014 \uD589 \uC218 \uC81C\uD55C \uC5C6\uC74C
+  if(state.rawSource === 'sm' || state.rawSource === 'fsm' || state.rawSource === 'sga'){
     const p = new URLSearchParams();
-    const ymFsm = state.rawFsmFilter.yearMonth;
-    if(ymFsm){ p.append('months', ymFsm); } else { activeMonths().forEach(m => p.append('months', m)); }
-    if(state.rawFsmFilter.department)        p.set('department',          state.rawFsmFilter.department);
-    if(state.rawFsmFilter.itemClass)         p.set('item_class',          state.rawFsmFilter.itemClass);
-    if(state.rawFsmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawFsmFilter.indirectCostClass);
-    if(state.rawFsmFilter.mainCategory)      p.set('main_category',       state.rawFsmFilter.mainCategory);
-    p.set('export', '1');
-    _setCsvProgress(0, 'FI_Final_SM \uB370\uC774\uD130 \uC900\uBE44 \uC911\u2026');
-    try {
-      const res = await fetch('/api/raw_final_sm?' + p).then(r => r.json());
-      const rows = res.rows || [];
-      const cols = res.columns || (rows[0] ? Object.keys(rows[0]) : []);
-      const FSM_LABEL = {
-        Year_Month:'\uC5F0\uC6D4', Department:'\uBD80\uC11C', Item_Class:'\uD56D\uBAA9',
-        Cost_Center_Class:'\uCF54\uC2A4\uD2B8\uC13C\uD130\uBD84\uB958', Sending_Cost_Center:'\uBCF4\uB0B4\uB294\uC13C\uD130',
-        Cost_Account:'\uC6D0\uAC00\uACC4\uC815', Amount:'\uAE08\uC561', Account_Name:'\uACC4\uC815\uBA85',
-        Main_Category:'\uB300\uBD84\uB958', Sub_Category:'\uC911\uBD84\uB958', Detail_Category:'\uC0C1\uC138\uBD84\uB958',
-        Division:'\uBCF8\uBD80\uAD6C\uBD84', Team:'\uD300\uAD6C\uBD84', Indirect_Cost_Class:'\uAC04\uC811\uBE44\uBD84\uB958',
-      };
-      const header = cols.map(c => FSM_LABEL[c]||c).join(',');
-      const csvRows = rows.map(r => cols.map(c => {
-        const v = r[c] == null ? '' : String(r[c]);
-        return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
-      }).join(','));
-      const csv = '\uFEFF' + header + '\n' + csvRows.join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      const ts = new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','_');
-      a.download = `FI_Final_SM_Export_${ts}.csv`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-      _setCsvProgress(100, '\uB2E4\uC6B4\uB85C\uB4DC \uC644\uB8CC!');
-      setTimeout(_hideCsvProgress, 1800);
-    } catch(e){
-      _hideCsvProgress();
-      alert('\uB2E4\uC6B4\uB85C\uB4DC \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4:\n' + e.message);
-    }
-    return;
-  }
+    p.set('source', state.rawSource);
 
-  // FI_SM \uC18C\uC2A4: export=1 \uC9C1\uC811 \uD638\uCD9C (50000 rows max)
-  if(state.rawSource === 'sm'){
-    const p = new URLSearchParams();
-    activeMonths().forEach(m => p.append('months', m));
-    if(state.rawSmFilter.department)        p.set('department',          state.rawSmFilter.department);
-    if(state.rawSmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSmFilter.indirectCostClass);
-    if(state.rawSmFilter.mainCategory)      p.set('main_category',       state.rawSmFilter.mainCategory);
-    p.set('export', '1');
-    _setCsvProgress(0, 'FI_SM \uB370\uC774\uD130 \uC900\uBE44 \uC911\u2026');
-    try {
-      const res = await fetch('/api/raw_sm?' + p).then(r => r.json());
-      const rows = res.rows || [];
-      const cols = res.columns || (rows[0] ? Object.keys(rows[0]) : []);
-      const SM_COL_LABEL = {
-        Year_Month:'\uC5F0\uC6D4', Department:'\uBD80\uC11C', Cost_Center_Class:'\uCF54\uC2A4\uD2B8\uC13C\uD130\uBD84\uB958',
-        Sending_Cost_Center:'\uBCF4\uB0B4\uB294\uC13C\uD130', Cost_Account:'\uC6D0\uAC00\uACC4\uC815', Amount:'\uAE08\uC561',
-        Account_Name:'\uACC4\uC815\uBA85', Main_Category:'\uB300\uBD84\uB958', Sub_Category:'\uC911\uBD84\uB958',
-        Detail_Category:'\uC0C1\uC138\uBD84\uB958', Division:'\uBCF8\uBD80\uAD6C\uBD84', Team:'\uD300\uAD6C\uBD84',
-        Indirect_Cost_Class:'\uAC04\uC811\uBE44\uBD84\uB958',
-      };
-      const header = cols.map(c => SM_COL_LABEL[c]||c).join(',');
-      const csvRows = rows.map(r => cols.map(c => {
-        const v = r[c] == null ? '' : String(r[c]);
-        return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
-      }).join(','));
-      const csv = '\uFEFF' + header + '\n' + csvRows.join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      const ts2 = new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','_');
-      a.download = `FI_SM_Export_${ts2}.csv`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-      _setCsvProgress(100, '\uB2E4\uC6B4\uB85C\uB4DC \uC644\uB8CC!');
-      setTimeout(_hideCsvProgress, 1800);
-    } catch(e){
-      _hideCsvProgress();
-      alert('\uB2E4\uC6B4\uB85C\uB4DC \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4:\n' + e.message);
+    // \uC6D4 \uD544\uD130 (\uAC01 \uC18C\uC2A4\uBCC4 yearMonth \uC6B0\uC120, \uC5C6\uC73C\uBA74 \uC2AC\uB77C\uC774\uB354 \uBC94\uC704)
+    const ymMap = { sm: state.rawSmFilter.yearMonth, fsm: state.rawFsmFilter.yearMonth, sga: state.rawSgaFilter.yearMonth };
+    const ym = ymMap[state.rawSource];
+    if(ym){ p.append('months', ym); } else { activeMonths().forEach(m => p.append('months', m)); }
+
+    if(state.rawSource === 'sm'){
+      if(state.rawSmFilter.department)        p.set('department',          state.rawSmFilter.department);
+      if(state.rawSmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSmFilter.indirectCostClass);
+      if(state.rawSmFilter.mainCategory)      p.set('main_category',       state.rawSmFilter.mainCategory);
+    } else if(state.rawSource === 'fsm'){
+      if(state.rawFsmFilter.department)        p.set('department',          state.rawFsmFilter.department);
+      if(state.rawFsmFilter.itemClass)         p.set('item_class',          state.rawFsmFilter.itemClass);
+      if(state.rawFsmFilter.indirectCostClass) p.set('indirect_cost_class', state.rawFsmFilter.indirectCostClass);
+      if(state.rawFsmFilter.mainCategory)      p.set('main_category',       state.rawFsmFilter.mainCategory);
+    } else {
+      if(state.rawSgaFilter.department)        p.set('department',          state.rawSgaFilter.department);
+      if(state.rawSgaFilter.country)           p.set('country',             state.rawSgaFilter.country);
+      if(state.rawSgaFilter.brand)             p.set('brand',               state.rawSgaFilter.brand);
+      if(state.rawSgaFilter.costClass)         p.set('cost_class',          state.rawSgaFilter.costClass);
+      if(state.rawSgaFilter.indirectCostClass) p.set('indirect_cost_class', state.rawSgaFilter.indirectCostClass);
+      if(state.rawSgaFilter.mainCategory)      p.set('main_category',       state.rawSgaFilter.mainCategory);
     }
+
+    // \uBE0C\uB77C\uC6B0\uC800 \uB124\uC774\uD2F0\uBE0C \uC2A4\uD2B8\uB9AC\uBC0D \uB2E4\uC6B4\uB85C\uB4DC (\uD589 \uC218 \uC81C\uD55C \uC5C6\uC74C)
+    const a = document.createElement('a');
+    a.href = '/api/raw_export?' + p;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     return;
   }
 
@@ -8870,6 +9129,84 @@ async function init(){
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
 {% endraw %}
+</script>
+
+<!-- P&L 우클릭 원본 다운로드 컨텍스트 메뉴 -->
+<div id="plCtxMenu" style="display:none;position:fixed;z-index:9999;background:var(--surface-2,#1e1e2e);border:1px solid var(--border,#3a3a5c);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.4);padding:6px 0;min-width:210px;font-size:13px">
+  <div id="plCtxInfo" style="padding:6px 14px 5px;color:var(--text-tertiary,#888);font-size:11px;border-bottom:1px solid var(--border,#3a3a5c);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px"></div>
+  <button id="plCtxDlBtn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;cursor:pointer;color:var(--text-primary,#cdd6f4);text-align:left;font-size:13px" onmouseover="this.style.background='var(--surface-3,#313244)'" onmouseout="this.style.background='none'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    원본 데이터 다운로드 (CSV)
+  </button>
+</div>
+<script>
+(function(){
+  var _plCtxCell=null;
+  function closePlCtx(){
+    var m=document.getElementById('plCtxMenu');
+    if(m)m.style.display='none';
+    _plCtxCell=null;
+  }
+  document.addEventListener('contextmenu',function(e){
+    var td=e.target&&e.target.closest&&e.target.closest('.pl-table td[data-plitem]');
+    if(!td){closePlCtx();return;}
+    e.preventDefault();
+    _plCtxCell=td;
+    var item=td.dataset.plitem||'';
+    var dimval=td.dataset.pldimval||'';
+    var mons=(td.dataset.plmonths||'').split(',').filter(Boolean);
+    var rowDef=(typeof CPL_ROW_DEFS!=='undefined')?CPL_ROW_DEFS.find(function(r){return r.id===item;}):null;
+    var itemLabel=rowDef?rowDef.label:item;
+    var dimDisp=dimval.startsWith('__')?'전체':dimval;
+    var pLabel=mons.length===1?mons[0]:(mons[0]||'')+'~'+(mons[mons.length-1]||'');
+    document.getElementById('plCtxInfo').textContent=itemLabel+' · '+dimDisp+' · '+pLabel;
+    var menu=document.getElementById('plCtxMenu');
+    menu.style.display='block';
+    var x=e.clientX+4,y=e.clientY+4;
+    menu.style.left=x+'px';menu.style.top=y+'px';
+    var r=menu.getBoundingClientRect();
+    if(r.right>window.innerWidth-8)menu.style.left=(e.clientX-r.width-4)+'px';
+    if(r.bottom>window.innerHeight-8)menu.style.top=(e.clientY-r.height-4)+'px';
+  });
+  document.addEventListener('click',function(e){
+    // 테이블 원본 다운로드 버튼
+    var dlBtn=e.target&&e.target.closest&&e.target.closest('.pl-dl-tbl-btn');
+    if(dlBtn){
+      e.stopPropagation();
+      var p=new URLSearchParams();
+      p.set('item','__all__');
+      p.set('dim',dlBtn.dataset.pldim||'__all__');
+      p.set('dim_val',dlBtn.dataset.pldimval||'__all__');
+      p.set('sec',dlBtn.dataset.plsec||'all');
+      (dlBtn.dataset.plmonths||'').split(',').filter(Boolean).forEach(function(m){p.append('months',m);});
+      if(dlBtn.dataset.pldepts)p.set('depts',dlBtn.dataset.pldepts);
+      window.location.href='/api/pl-source-export?'+p.toString();
+      return;
+    }
+    if(e.target&&e.target.closest&&e.target.closest('#plCtxMenu'))return;
+    closePlCtx();
+  });
+  document.addEventListener('scroll',closePlCtx,true);
+  window.addEventListener('blur',closePlCtx);
+  // 이 스크립트는 body 끝에 위치하므로 DOMContentLoaded 불필요 — 직접 바인딩
+  var btn=document.getElementById('plCtxDlBtn');
+  if(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(!_plCtxCell)return;
+      var td=_plCtxCell;
+      var p=new URLSearchParams();
+      p.set('item',td.dataset.plitem||'');
+      p.set('dim',td.dataset.pldim||'');
+      p.set('dim_val',td.dataset.pldimval||'');
+      p.set('sec',td.dataset.plsec||'all');
+      (td.dataset.plmonths||'').split(',').filter(Boolean).forEach(function(m){p.append('months',m);});
+      if(td.dataset.pldepts)p.set('depts',td.dataset.pldepts);
+      window.location.href='/api/pl-source-export?'+p.toString();
+      closePlCtx();
+    });
+  }
+})();
 </script>
 </body>
 </html>
