@@ -38,11 +38,11 @@ run_limited() {  # run_limited <secs> -- <cmd...>
 
 # brief 절대경로화 + 검증 ('--'로 옵션 하이재킹 방어)
 case "$BRIEF" in *..*) die "brief 경로에 '..' 금지" 6;; esac
-[ -f "$BRIEF" ] || die "brief 파일 없음: $BRIEF" 6
+[ -f "$BRIEF" ] || die "brief 파일 없음: $BRIEF (경로 오탈자 확인, 또는 tasks/<task>/workers/<role>/brief.md 먼저 생성했는지 확인)" 6
 BRIEF="$(cd "$(dirname -- "$BRIEF")" && pwd)/$(basename -- "$BRIEF")"
 
 rec="$(jq -c --arg r "$ROLE" '.workers[$r] // empty' "$BACKENDS")"
-[ -n "$rec" ] || die "role 미정의: $ROLE" 2
+[ -n "$rec" ] || die "role 미정의: $ROLE (backends.json의 .workers 키 중 하나를 사용할 것: claude-main, codex-main, codex-critic, gemini)" 2
 
 # 폴백 가용성 사전 점검(경고만): primary가 죽고 나서야 폴백 불가를 아는 것을 방지
 while IFS= read -r _fe; do
@@ -76,7 +76,7 @@ run_backend() {
   if [ "$ctype" = "cli" ]; then
     local command_bin args_json a
     command_bin="$(jq -r '.cli.command' <<<"$spec")"
-    case "$command_bin" in agy|codex|claude) ;; *) die "command allowlist 위반: $command_bin" 7;; esac
+    case "$command_bin" in agy|codex|claude) ;; *) die "command allowlist 위반: $command_bin (backends.json의 cli.command는 agy|codex|claude 중 하나여야 함)" 7;; esac
     cmd+=("$command_bin")
     args_json="$(jq -r '.cli.args_template[]' <<<"$spec")"   # jq 실패 시 set -e 트리거
     while IFS= read -r a; do
@@ -104,7 +104,7 @@ run_backend() {
     ref="$(jq -r '.api.ref' <<<"$spec")"
     case "$ref" in adapters/*) ;; *) die "api.ref는 adapters/ 내부만" 7;; esac
     case "$ref" in *..*) die "api.ref에 '..' 금지" 7;; esac
-    [ -f "$ROOT/_shared/$ref" ] || die "api 스크립트 없음: $ref" 4
+    [ -f "$ROOT/_shared/$ref" ] || die "api 스크립트 없음: $ref (_shared/$ref 경로에 실제 파일이 있는지, backends.json의 api.ref 값이 정확한지 확인)" 4
     while IFS= read -r reqenv; do
       [ -n "$reqenv" ] || continue
       if [ -z "${!reqenv:-}" ]; then
