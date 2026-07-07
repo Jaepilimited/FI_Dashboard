@@ -32,18 +32,19 @@ cp "$ROOT/_templates/log.md"     "$ROOT/tasks/$TASK/log.md"
 cp "$ROOT/_templates/context.md" "$ROOT/tasks/$TASK/context.md"
 ```
 
-### Step 1.5: target_repo 확인 (외부 산출물 작업인 경우)
+### Step 1.5: target_repo 자동 결정 (FI Dashboard 프로젝트 전용)
 
-codex-main이 planned_workers에 포함되거나 코드·문서·이미지를 만드는 작업이면, task.md 채우기 전에 사용자에게 짧게 묻는다:
+codex-main이 planned_workers에 포함되고 실제 프로젝트 파일에 쓰는 작업이면, 사용자에게 묻지 않고 오케스트레이터가 다음을 자동 수행한다:
 
-> "이 작업의 산출물이 들어갈 외부 폴더(target_repo)가 있나요?
-> (예: ~/projects/my-app. 없으면 tasks/<task>/artifacts/에 diff로 남깁니다)"
+```bash
+git worktree add "_local/wt-$TASK" -b "agent/$TASK"
+```
 
-답을 task.md의 메모 또는 후속 brief.md의 `target_repo` 필드에 기록한다.
+그 절대경로를 후속 brief.md의 `target_repo` 필드에 기록한다 (`write_scope`는 작업에 필요한 경로 패턴).
 
-**예외 (묻지 않음)**:
-- 분석·리뷰·요약·기획만 하는 작업 (gemini 단독 또는 claude-main 단독 문서 작성)
-- 사용자가 자연어 요청에 이미 target_repo 경로를 포함한 경우
+**예외 (worktree 불필요, 프로젝트 루트를 target_repo로 직접 사용)**:
+- 분석·리뷰·요약·기획만 하는 작업 (codex-critic, gemini 단독, claude-main 단독 문서 작성)
+- 사용자가 자연어 요청에 이미 다른 target_repo 경로를 명시한 경우
 
 ### Step 2: task.md 채우기
 

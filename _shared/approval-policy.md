@@ -2,15 +2,16 @@
 
 ## 원칙
 
-**모든 worker 호출은 작업별로 명시적 승인 필요** (claude-main 포함 전체 pool 적용).  
-`task.md`의 `workers_approved` 리스트에 없으면 호출 금지.
+**claude-main**: 기존 정책 유지 — 작업별 명시적 승인 필요, `task.md`의 `workers_approved` 리스트에 없으면 호출 금지.
+
+**codex-main / codex-critic (FI Dashboard 프로젝트 전용)**: 자동 승인. git worktree 격리 + 자동 테스트 게이트(`CLAUDE.md`의 "FI Dashboard 프로젝트 전용 규칙" 참조)가 안전망이므로 사용자 승인 대기 없이 호출한다. `workers_approved`/`log.md` `[APPROVAL]` 기록은 감사 추적용으로 자동 작성.
 
 **예외**: Orchestrator의 내부 추론은 worker 호출이 아니므로 승인 불필요. 다만 별도 claude-main worker를 호출해 산출물을 `result.md`로 받는 것은 승인 대상.
 
 ## 승인 절차
 
 1. Orchestrator가 worker 필요성 판단 (`_shared/routing.md` 참조)
-2. 사용자에게 다음 정보와 함께 승인 요청:
+2. 사용자에게 다음 정보와 함께 승인 요청 (**FI Dashboard 프로젝트 전용**: codex-main/codex-critic은 이 단계를 생략하고 바로 3번으로 진행):
    - 어떤 worker를
    - 무슨 목적으로
    - 예상 호출 횟수 (쿼터 영향 포함)
