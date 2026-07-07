@@ -4941,6 +4941,30 @@ function renderOrgPl(){
     });
   });
 
+  // Others: SK/UM 어느 브랜드 본부에도 매핑되지 않은 부서 (전체 합계엔 이미 포함되어 있음)
+  {
+    const mappedDepts=new Set();
+    _BRAND_ORDER.forEach(function(brand){
+      (_BRAND_DIV[brand]||[]).forEach(function(div){
+        (_DIV_DEPT_MAP[div]||[]).forEach(function(d){mappedDepts.add(d);});
+      });
+    });
+    const othersDepts=allDepts.filter(function(d){return !mappedDepts.has(d);});
+    if(othersDepts.length){
+      const oExp=orgBrandExp.has('Others');
+      html+='<div class="pl-section-title" style="cursor:pointer;font-size:14px;display:flex;align-items:center" data-org-brand="Others">'
+        +'<span><i data-lucide="'+(oExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>Others</span>'
+        +(oExp?plDlBtn('all',months.join(','),othersDepts.join(',')):'')+'</div>';
+      if(oExp){
+        html+=renderTable(secMetrics(othersDepts,'all'),othersDepts,'all');
+        othersDepts.forEach(function(dept){
+          html+='<div class="pl-section-title" style="margin-left:20px;font-size:11px;opacity:.8;display:flex;align-items:center"><span>▸ '+dept+'</span>'+plDlBtn('all',months.join(','),dept)+'</div>';
+          html+=renderTable(secMetrics([dept],'all'),[dept],'all');
+        });
+      }
+    }
+  }
+
   html+='</div></div></div>';
   wrap.innerHTML=html;
 
