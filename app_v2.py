@@ -1024,21 +1024,31 @@ def api_export_csv():
     chunk_size = int(request.args.get('chunk_size', 0))
     chunk_num  = int(request.args.get('chunk_num',  1))
 
-    SELECT_COLS = ("Year_Month, `Group`, Department, Sales_Type, Line, Category, Country, Customer,"
-                   " Product_Name, Product_Code, Specification, Sales_Quantity, Sales_Amount,"
-                   " Cost_of_Sales, Gross_Profit, SG_and_A_Expenses, Operating_Income")
-    sql = f"SELECT {SELECT_COLS} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
+    # 선택 컬럼(테이블에 존재할 때만) — 브랜드·권역, build_bq_filters와 동일 관례
+    _cols = table_columns()
+    col_defs = [('Year_Month', '연월'), ('Group', '그룹'), ('Department', '부서')]
+    if 'Brand' in _cols:
+        col_defs.append(('Brand', '브랜드'))
+    col_defs.append(('Sales_Type', '판매유형'))
+    if 'Continent1' in _cols:
+        col_defs.append(('Continent1', '권역'))
+    col_defs += [
+        ('Continent2', '대륙'), ('Country', '국가'), ('Customer', '거래처'),
+        ('Line', '라인'), ('Category', '카테고리'), ('Product_Name', '품명'),
+        ('Product_Code', '품번'), ('Specification', '규격'),
+        ('Sales_Quantity', '수량'), ('Sales_Amount', '매출액'), ('Cost_of_Sales', '매출원가'),
+        ('Gross_Profit', '매출총이익'), ('SG_and_A_Expenses', '판관비'), ('Operating_Income', '영업이익'),
+    ]
+    col_names  = [c for c, _ in col_defs]
+    col_labels = [l for _, l in col_defs]
+
+    select_cols = ', '.join(f'`{c}`' if c == 'Group' else c for c in col_names)
+    sql = f"SELECT {select_cols} FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month, Sales_Amount DESC"
     if chunk_size > 0:
         offset = (chunk_num - 1) * chunk_size
         sql += f" LIMIT {chunk_size} OFFSET {offset}"
 
     rows = run_query_cached(sql, params)
-
-    col_names  = ['Year_Month','Group','Department','Sales_Type','Line','Category','Country','Customer',
-                  'Product_Name','Product_Code','Specification','Sales_Quantity','Sales_Amount',
-                  'Cost_of_Sales','Gross_Profit','SG_and_A_Expenses','Operating_Income']
-    col_labels = ['연월','그룹','부서','판매유형','라인','카테고리','국가','거래처','품명','품번','규격',
-                  '수량','매출액','매출원가','매출총이익','판관비','공헌이익']
 
     output = io.StringIO()
     writer = csv.writer(output)
