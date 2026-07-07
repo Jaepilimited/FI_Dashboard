@@ -176,7 +176,7 @@ wc -w tasks/<task>/context.md   # 영문 단어수
 4. `mcp__codex__codex` 호출 (cwd=worktree 경로, sandbox=`workspace-write`). MCP 실패 시 `bash _shared/adapters/call_worker.sh codex-main <brief-file>` (CLI 폴백, backends.json에 이미 정의됨)로 재시도
 5. codex 응답 완료 후 worktree 안에서 변경사항을 커밋: `git -C _local/wt-<task-id> add -A && git -C _local/wt-<task-id> commit -m "agent: <task-id>"` (커밋이 있어야 이후 병합할 내용이 생김)
 6. worktree 안에서 `python -m pytest tests/test_tableau_api.py -q` 실행 (이 프로젝트의 가장 빠르고 안정적인 회귀 테스트. 전체 `pytest`는 라이브 DB/Playwright 의존 테스트가 섞여 있어 게이트로 부적합 — `_shared/learnings.md` 참조)
-   - **통과** → 원래 브랜치로 `git merge --no-ff agent/<task-id>` 자동 병합, worktree 삭제(`git worktree remove`), 브랜치 삭제(`git branch -d`), diff 요약을 채팅에 통지
+   - **통과** → 원래 브랜치로 `git merge --no-ff agent/<task-id>` 자동 병합, worktree 삭제(`git worktree remove` — Windows에서 파일 락 에러 나면 `rm -rf <worktree-dir> && git worktree prune -v` 폴백), 브랜치 삭제(`git branch -d`), diff 요약을 채팅에 통지
    - **실패** → 병합 보류, worktree/브랜치 보존, 실패 사유 + 브랜치명을 채팅으로 즉시 통지 (자동 재시도 없음, 사용자가 직접 검토 후 처리)
 7. `mcp__codex__codex` 호출 자체가 실패(설치/인증 문제 등)한 경우도 worktree를 정리하고 즉시 에러 보고
 
