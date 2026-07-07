@@ -52,6 +52,7 @@ git worktree add "_local/wt-$TASK" -b "agent/$TASK"
 - `goal`, `constraints`, `acceptance criteria` 작성
 - `planned_workers`에 `_shared/routing.md` 참조하여 최소 set만 명시
 - `workers_approved`는 비워두고 승인 후 채움
+- **과도한 분해 금지**: 태스크를 지나치게 잘게 쪼개면(예: 파일 하나당 별도 태스크) handoff(brief 작성·읽기·result 기록) 오버헤드가 실제 작업량을 초과할 수 있다(출처: multi-agent-patterns 스킬) — 최소 단위로 나눌 것
 
 ### Step 3: context.md 작성
 
