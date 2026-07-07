@@ -171,13 +171,14 @@ wc -w tasks/<task>/context.md   # 영문 단어수
 ### codex-main이 실제 프로젝트 파일을 수정하는 경우
 
 1. 오케스트레이터가 `git worktree add _local/wt-<task-id> -b agent/<task-id>` 로 현재 브랜치에서 격리된 브랜치를 만든다(사용자에게 묻지 않음)
-2. brief.md의 `target_repo`에 그 worktree 절대경로, `write_scope`에 작업에 필요한 경로 패턴을 채운다
-3. `mcp__codex__codex` 호출 (cwd=worktree 경로, sandbox=`workspace-write`). MCP 실패 시 `bash _shared/adapters/call_worker.sh codex-main <brief-file>` (CLI 폴백, backends.json에 이미 정의됨)로 재시도
-4. codex 응답 완료 후 worktree 안에서 변경사항을 커밋: `git -C _local/wt-<task-id> add -A && git -C _local/wt-<task-id> commit -m "agent: <task-id>"` (커밋이 있어야 이후 병합할 내용이 생김)
-5. worktree 안에서 `python -m pytest tests/test_tableau_api.py -q` 실행 (이 프로젝트의 가장 빠르고 안정적인 회귀 테스트. 전체 `pytest`는 라이브 DB/Playwright 의존 테스트가 섞여 있어 게이트로 부적합 — `_shared/learnings.md` 참조)
+2. 생성 직후 `.gitignore`로 추적되지 않는 로컬 전용 필수 파일을 worktree에 복사한다: `cp config.py _local/wt-<task-id>/config.py` (실제 DB/AD/BigQuery 자격증명이 담긴 파일이라 git이 관리하지 않으므로, `git worktree add`가 만든 새 체크아웃에는 원래 존재하지 않는다 — 이 복사가 없으면 `tests/test_tableau_api.py` 등 `app_v2`/`config`를 import하는 게이트 테스트가 전부 `ModuleNotFoundError`로 즉시 실패한다. 로컬 파일 복사이므로 네트워크 전송 없음, worktree도 동일 `.gitignore`를 공유해 커밋되지 않음)
+3. brief.md의 `target_repo`에 그 worktree 절대경로, `write_scope`에 작업에 필요한 경로 패턴을 채운다
+4. `mcp__codex__codex` 호출 (cwd=worktree 경로, sandbox=`workspace-write`). MCP 실패 시 `bash _shared/adapters/call_worker.sh codex-main <brief-file>` (CLI 폴백, backends.json에 이미 정의됨)로 재시도
+5. codex 응답 완료 후 worktree 안에서 변경사항을 커밋: `git -C _local/wt-<task-id> add -A && git -C _local/wt-<task-id> commit -m "agent: <task-id>"` (커밋이 있어야 이후 병합할 내용이 생김)
+6. worktree 안에서 `python -m pytest tests/test_tableau_api.py -q` 실행 (이 프로젝트의 가장 빠르고 안정적인 회귀 테스트. 전체 `pytest`는 라이브 DB/Playwright 의존 테스트가 섞여 있어 게이트로 부적합 — `_shared/learnings.md` 참조)
    - **통과** → 원래 브랜치로 `git merge --no-ff agent/<task-id>` 자동 병합, worktree 삭제(`git worktree remove`), 브랜치 삭제(`git branch -d`), diff 요약을 채팅에 통지
    - **실패** → 병합 보류, worktree/브랜치 보존, 실패 사유 + 브랜치명을 채팅으로 즉시 통지 (자동 재시도 없음, 사용자가 직접 검토 후 처리)
-6. `mcp__codex__codex` 호출 자체가 실패(설치/인증 문제 등)한 경우도 worktree를 정리하고 즉시 에러 보고
+7. `mcp__codex__codex` 호출 자체가 실패(설치/인증 문제 등)한 경우도 worktree를 정리하고 즉시 에러 보고
 
 ### codex-critic (리뷰, read-only)
 
