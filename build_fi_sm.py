@@ -49,6 +49,18 @@ WITH unified AS (
     Year_Month
   FROM `{DATASET}.FI_Indirect_Cost`
 
+  UNION ALL
+
+  -- 전사공통비: 받는 코스트센터→Department, 배부받은금액→Amount (판매간접과 동일 패턴)
+  SELECT
+    '전사공통비' AS Cost_Center_Class,
+    Receiving_Cost_Center AS Department,
+    Sending_Cost_Center,
+    Cost_Account,
+    Allocated_Amount AS Amount,
+    Year_Month
+  FROM `{DATASET}.FI_Common_Cost`
+
 )
 SELECT
   t.Cost_Center_Class,
@@ -483,7 +495,12 @@ def load_common_cost(n):
     f = f'전사공통비 {n}월.xlsx'
     if not os.path.exists(f):
         log(f'[전사공통비 {n}월] 파일 없음, 스킵')
-        return pd.DataFrame(columns=_empty_cols)
+        df = pd.DataFrame(columns=_empty_cols)
+        for c in ['Sent_Amount', 'Allocated_Amount']:
+            df[c] = df[c].astype('int64')
+        for c in ['Sent_Ratio', 'Allocated_Ratio']:
+            df[c] = df[c].astype('float64')
+        return df
     df = pd.read_excel(f, sheet_name=0, header=2)
     df.columns = ['Cost_Account', 'Sending_Cost_Center', 'Sent_Amount', 'Sent_Ratio',
                   'Receiving_Cost_Center', 'Allocated_Amount', 'Allocated_Ratio']
@@ -553,8 +570,7 @@ def run(direct, indirect, common, m1, m2, dashboard):
     upload_table(bigquery, client, 'FI_Dashboard',    dashboard)
     upload_table(bigquery, client, 'FI_Direct_Cost',  direct)
     upload_table(bigquery, client, 'FI_Indirect_Cost', indirect)
-    if len(common) > 0:
-        upload_table(bigquery, client, 'FI_Common_Cost', common)
+    upload_table(bigquery, client, 'FI_Common_Cost', common)
     # FI_Matching1은 _load_codebook.py로 별도 관리 — 빌드 시 덮어쓰지 않음
     upload_table(bigquery, client, 'FI_Matching2', m2)
 
