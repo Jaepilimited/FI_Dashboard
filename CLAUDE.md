@@ -172,7 +172,7 @@ wc -w tasks/<task>/context.md   # 영문 단어수
 
 1. 오케스트레이터가 `git worktree add _local/wt-<task-id> -b agent/<task-id>` 로 현재 브랜치에서 격리된 브랜치를 만든다(사용자에게 묻지 않음)
 2. 생성 직후 `.gitignore`로 추적되지 않는 로컬 전용 필수 파일을 worktree에 복사한다: `cp config.py _local/wt-<task-id>/config.py` (실제 DB/AD/BigQuery 자격증명이 담긴 파일이라 git이 관리하지 않으므로, `git worktree add`가 만든 새 체크아웃에는 원래 존재하지 않는다 — 이 복사가 없으면 `tests/test_tableau_api.py` 등 `app_v2`/`config`를 import하는 게이트 테스트가 전부 `ModuleNotFoundError`로 즉시 실패한다. 로컬 파일 복사이므로 네트워크 전송 없음, worktree도 동일 `.gitignore`를 공유해 커밋되지 않음)
-3. brief.md의 `target_repo`에 그 worktree 절대경로, `write_scope`에 작업에 필요한 경로 패턴을 채운다
+3. brief.md의 `target_repo`에 그 worktree 절대경로, `write_scope`에 작업에 필요한 경로 패턴을 채운다 (worktree에 실제 자격증명이 담긴 `config.py`가 복사되어 있으므로, `write_scope`는 그 내용을 worker가 읽어 다른 쓰기 가능 파일로 그대로 옮겨 적을 수 있을 만큼 넓게 잡지 말 것)
 4. `mcp__codex__codex` 호출 (cwd=worktree 경로, sandbox=`workspace-write`). MCP 실패 시 `bash _shared/adapters/call_worker.sh codex-main <brief-file>` (CLI 폴백, backends.json에 이미 정의됨)로 재시도
 5. codex 응답 완료 후 worktree 안에서 변경사항을 커밋: `git -C _local/wt-<task-id> add -A && git -C _local/wt-<task-id> commit -m "agent: <task-id>"` (커밋이 있어야 이후 병합할 내용이 생김)
 6. worktree 안에서 `python -m pytest tests/test_tableau_api.py -q` 실행 (이 프로젝트의 가장 빠르고 안정적인 회귀 테스트. 전체 `pytest`는 라이브 DB/Playwright 의존 테스트가 섞여 있어 게이트로 부적합 — `_shared/learnings.md` 참조)

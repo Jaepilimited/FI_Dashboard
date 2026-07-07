@@ -106,7 +106,7 @@ wc -w "$ROOT/tasks/$TASK/workers/$ROLE/brief.md"   # 영문 단어수 ≤ 240
   - `sandbox`:
     - codex-main: `workspace-write` 고정 (cwd 내부만 쓰기 가능. 외부 repo 쓰기는 cwd를 `target_repo`로 변경한 경우에만 해당 패턴 내 쓰기)
     - codex-critic: `read-only` 고정
-  - `approval-policy`: `on-failure` 권장
+  - `approval-policy`: `never` (무인 자동승인 파이프라인이므로 프롬프트 금지 — FI Dashboard 프로젝트 전용 규칙 참조)
 - **codex-main 외부 repo 쓰기 조건**: `target_repo` + `write_scope` 명시 + `task.md`의 `workers_approved`에 외부 쓰기 승인 기록 + `log.md`에 `[APPROVAL]` 별도 기록 (4개 모두 충족 시에만 cwd를 `target_repo`로 변경)
 - 위 조건 미충족 시 cwd는 작업 폴더로 두고, codex-main이 `tasks/<task>/artifacts/`에 diff·patch 형태로 산출. 사용자가 직접 적용
 
