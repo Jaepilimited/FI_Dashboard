@@ -40,7 +40,15 @@
       "brief_mode": "content",
       "approval_class": "worker",
       "result_capture": "tool-return",
-      "timeout": 300
+      "timeout": 300,
+      "fallbacks": [
+        {
+          "model": "codex-default", "call_type": "cli", "brief_mode": "stdin", "timeout": 300,
+          "approval_class": "worker", "result_capture": "envelope",
+          "cli": { "command": "codex", "args_template": ["exec", "-"],
+                   "non_interactive": { "stdin": "brief", "no_tty": true, "on_permission_prompt": "fail" } }
+        }
+      ]
     },
     "gemini": {
       "model": "gemini-3.1-pro-high",
