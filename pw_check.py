@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 # Force UTF-8 output to avoid cp949 encoding errors
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-URL   = "http://127.0.0.1:5001"
+URL   = "http://127.0.0.1:5000"
 USER  = "jeffrey"
 PASSW = "skin1004!"
 

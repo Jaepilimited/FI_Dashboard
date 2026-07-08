@@ -47,7 +47,8 @@ SELECT
   s.Detail_Category,
   s.Division,
   s.Team,
-  s.Indirect_Cost_Class
+  s.Indirect_Cost_Class,
+  s.Cost_Class
 FROM `skin1004-319714.Sales_Integration.FI_SM` s
 
 UNION ALL
@@ -67,6 +68,7 @@ SELECT
   pl.Item AS Detail_Category,
   m1.Division,
   m1.Team,
-  CAST(NULL AS STRING) AS Indirect_Cost_Class
+  CAST(NULL AS STRING) AS Indirect_Cost_Class,
+  CAST(NULL AS STRING) AS Cost_Class
 FROM pnl_long pl
 LEFT JOIN `skin1004-319714.Sales_Integration.FI_Matching1` m1 ON pl.Department = m1.Cost_Center

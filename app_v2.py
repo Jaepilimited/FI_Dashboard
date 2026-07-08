@@ -15,6 +15,12 @@ import config
 OTHERS_GROUPS = ['ETC', 'FI', 'Sales Operation', '전사']
 _GN = "CASE WHEN `Group` IN ('ETC','FI','Sales Operation','전사') THEN 'Others' ELSE `Group` END"
 
+# Division 파생식: FI_SM JOIN 컨텍스트용 (fi=FI_Final alias, dm=div_map alias)
+_DIV_EXPR_FI = """COALESCE(dm.Division, CASE
+    WHEN fi.Department LIKE 'DD_Distribution%' THEN '유통2본부'
+    WHEN fi.Department = 'B2B1' THEN '영업본부'
+    ELSE fi.Department END)"""
+
 # ─── 쿼리 결과 캐시 (데이터가 월 1회 업데이트이므로 서버 재시작 전까지 유지) ──
 _query_cache: dict = {}
 _cache_lock = threading.Lock()
@@ -158,7 +164,7 @@ def _warm_cache():
         with ThreadPoolExecutor(max_workers=12) as ex:
             list(ex.map(warm_one, all_sqls))
 
-        print(f'[cache] 워밍업 완료 — {len(all_sqls)}개 쿼리 캐시 적재')
+        print(f'[cache] 워밍업 완료 ({len(all_sqls)}개 쿼리 캐시 적재)')
     except Exception as e:
         print(f'[cache] 워밍업 오류: {e}')
 
@@ -481,15 +487,34 @@ def report():
 
 
 # ─── BigQuery 필터 빌더 ────────────────────────────────────────────
+def _arr_filter(conditions, params, args, key, col, bq_name):
+    vals = [v.strip() for v in args.getlist(key) if v.strip()]
+    if vals:
+        conditions.append(f'{col} IN UNNEST(@{bq_name})')
+        params.append(bigquery.ArrayQueryParameter(bq_name, 'STRING', vals))
+
+
+def _serialize_rows(raw):
+    rows = []
+    for row in raw:
+        r = {}
+        for k, v in row.items():
+            r[k] = int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else (v or ''))
+        rows.append(r)
+    return rows
+
+
+def _related_table(suffix):
+    parts = config.BQ_TABLE.replace('`', '').split('.')
+    return '.'.join(parts[:-1]) + '.' + suffix
+
+
 def build_bq_filters(args):
     conditions = []
     params = []
 
     def _arr(key, col, bq_name):
-        vals = [v.strip() for v in args.getlist(key) if v.strip()]
-        if vals:
-            conditions.append(f'{col} IN UNNEST(@{bq_name})')
-            params.append(bigquery.ArrayQueryParameter(bq_name, 'STRING', vals))
+        _arr_filter(conditions, params, args, key, col, bq_name)
 
     months = args.getlist('months')
     if months:
@@ -504,6 +529,24 @@ def build_bq_filters(args):
     _arr('line',       'Line',       'line_vals')
     _arr('category',   'Category',   'category_vals')
     _arr('sales_type', 'Sales_Type', 'sales_type_vals')
+
+    # division 필터: FI_SM에서 Department로 역매핑 (FI_Final에 Division 컬럼 없음)
+    div_vals = [v.strip() for v in args.getlist('division') if v.strip()]
+    if div_vals:
+        _sm = _fi_sm_table()
+        _null_div = [
+            ('DD_Distribution 2_Part 1', '유통2본부'),
+            ('DD_Distribution 2_Part 2', '유통2본부'),
+            ('DD_Distribution 2_Part 3', '유통2본부'),
+            ('B2B1', '영업본부'),
+        ]
+        extra = [f"SELECT '{d}' AS Department" for d, dv in _null_div if dv in div_vals]
+        extra_sql = (' UNION DISTINCT ' + ' UNION DISTINCT '.join(extra)) if extra else ''
+        conditions.append(
+            f'Department IN (SELECT Department FROM `{_sm}` '
+            f'WHERE Division IN UNNEST(@div_vals){extra_sql})'
+        )
+        params.append(bigquery.ArrayQueryParameter('div_vals', 'STRING', div_vals))
 
     # 선택 컬럼(테이블에 존재할 때만) — 브랜드·권역
     _cols = table_columns()
@@ -1078,18 +1121,9 @@ def api_raw():
         where = (where + f' AND {search_cond}') if where else f'WHERE {search_cond}'
         params.append(bigquery.ScalarQueryParameter('search_q', 'STRING', f'%{search}%'))
 
-    def serialize(raw):
-        rows = []
-        for row in raw:
-            r = {}
-            for k, v in row.items():
-                r[k] = int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else (v or ''))
-            rows.append(r)
-        return rows
-
     if export:
         sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT 50000"
-        rows = serialize(run_query_cached(sql, params))
+        rows = _serialize_rows(run_query_cached(sql, params))
         cols = list(rows[0].keys()) if rows else []
         return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
 
@@ -1104,21 +1138,87 @@ def api_raw():
     total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
 
     sql = f"SELECT * FROM `{config.BQ_TABLE}` {where} ORDER BY Year_Month DESC, Sales_Amount DESC LIMIT {per_page} OFFSET {offset}"
-    rows = serialize(run_query_cached(sql, params))
+    rows = _serialize_rows(run_query_cached(sql, params))
     cols = list(rows[0].keys()) if rows else list(table_columns())
     return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
 
 
 def _fi_final_sm_table():
-    parts = config.BQ_TABLE.replace('`', '').split('.')
-    return '.'.join(parts[:-1]) + '.FI_Final_SM'
+    return _related_table('FI_Final_SM')
+
+
+def _fi_sga_agg_table():
+    return _related_table('FI_SGA_Agg')
+
+# 비율·비중 컬럼 — 일반 사용자에게 노출하지 않음
+_SGA_EXCLUDE = (
+    'country_ratio, continent1_ratio, continent2_ratio, '
+    'brand_ratio, line_ratio, category_ratio, sales_type_ratio, '
+    'alloc_pct_of_dept, alloc_pct_of_acct'
+)
+_SGA_SELECT = f'SELECT * EXCEPT({_SGA_EXCLUDE})'
+
+
+def _paginated_raw_response(table, conditions, params, order_by, select='SELECT *'):
+    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+    if request.args.get('export', '0') == '1':
+        sql = f"{select} FROM `{table}` {where} ORDER BY {order_by} LIMIT 50000"
+        rows = _serialize_rows(run_query_cached(sql, params))
+        cols = list(rows[0].keys()) if rows else []
+        return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
+
+    try:
+        page     = max(1, int(request.args.get('page', 1)))
+        per_page = min(200, max(10, int(request.args.get('per_page', 100))))
+    except ValueError:
+        page, per_page = 1, 100
+    offset = (page - 1) * per_page
+
+    count_sql = f"SELECT COUNT(*) AS cnt FROM `{table}` {where}"
+    total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
+
+    sql = f"{select} FROM `{table}` {where} ORDER BY {order_by} LIMIT {per_page} OFFSET {offset}"
+    rows = _serialize_rows(run_query_cached(sql, params))
+    cols = list(rows[0].keys()) if rows else []
+    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
+
+
+@app.route('/api/raw_adj')
+@login_required
+def api_raw_adj():
+    """FI_Final 조정 내역 — Product_Code IS NULL인 조정 행(조정)을 반환."""
+    where, params = build_bq_filters(request.args)
+    adj_cond = "Product_Code IS NULL AND Product_Name = '(조정)'"
+    full_where = f"WHERE {adj_cond}" if not where else f"{where} AND {adj_cond}"
+    sql = f"""
+        SELECT Year_Month, `Group`, Department,
+            NULL AS Customer,
+            Sales_Amount  AS Sales_Adj,
+            Cost_of_Sales AS COGS_Adj
+        FROM `{config.BQ_TABLE}`
+        {full_where}
+          AND (Sales_Amount != 0 OR Cost_of_Sales != 0)
+        ORDER BY Year_Month DESC, Department
+    """
+    rows = run_query_cached(sql, params)
+    result = []
+    for r in rows:
+        result.append({
+            'Year_Month': r['Year_Month'],
+            'Group':      r['Group'],
+            'Department': r['Department'],
+            'Customer':   None,
+            'Sales_Adj':  int(r['Sales_Adj']) if r['Sales_Adj'] is not None else None,
+            'COGS_Adj':   int(r['COGS_Adj'])  if r['COGS_Adj']  is not None else None,
+        })
+    return jsonify(result)
 
 
 @app.route('/api/raw_sm')
 @login_required
 def api_raw_sm():
     SM = _fi_sm_table()
-    export = request.args.get('export', '0') == '1'
     conditions = []
     params = []
 
@@ -1127,55 +1227,18 @@ def api_raw_sm():
         conditions.append('Year_Month IN UNNEST(@months)')
         params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
 
-    def _arr(key, col, bq_name):
-        vals = [v.strip() for v in request.args.getlist(key) if v.strip()]
-        if vals:
-            conditions.append(f'{col} IN UNNEST(@{bq_name})')
-            params.append(bigquery.ArrayQueryParameter(bq_name, 'STRING', vals))
+    _arr_filter(conditions, params, request.args, 'department',          'Department',          'dept_vals')
+    _arr_filter(conditions, params, request.args, 'cost_center_class',   'Cost_Center_Class',   'ccc_vals')
+    _arr_filter(conditions, params, request.args, 'indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+    _arr_filter(conditions, params, request.args, 'main_category',       'Main_Category',       'maincat_vals')
 
-    _arr('department',          'Department',         'dept_vals')
-    _arr('cost_center_class',   'Cost_Center_Class',  'ccc_vals')
-    _arr('indirect_cost_class', 'Indirect_Cost_Class','icc_vals')
-    _arr('main_category',       'Main_Category',      'maincat_vals')
-
-    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-    def serialize(raw):
-        rows = []
-        for row in raw:
-            r = {}
-            for k, v in row.items():
-                r[k] = int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else (v or ''))
-            rows.append(r)
-        return rows
-
-    if export:
-        sql = f"SELECT * FROM `{SM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT 50000"
-        rows = serialize(run_query_cached(sql, params))
-        cols = list(rows[0].keys()) if rows else []
-        return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
-
-    try:
-        page     = max(1, int(request.args.get('page', 1)))
-        per_page = min(200, max(10, int(request.args.get('per_page', 100))))
-    except ValueError:
-        page, per_page = 1, 100
-    offset = (page - 1) * per_page
-
-    count_sql = f"SELECT COUNT(*) AS cnt FROM `{SM}` {where}"
-    total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
-
-    sql = f"SELECT * FROM `{SM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT {per_page} OFFSET {offset}"
-    rows = serialize(run_query_cached(sql, params))
-    cols = list(rows[0].keys()) if rows else []
-    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
+    return _paginated_raw_response(SM, conditions, params, 'Year_Month DESC, Amount DESC')
 
 
 @app.route('/api/raw_final_sm')
 @login_required
 def api_raw_final_sm():
     FSM = _fi_final_sm_table()
-    export = request.args.get('export', '0') == '1'
     conditions = []
     params = []
 
@@ -1184,48 +1247,116 @@ def api_raw_final_sm():
         conditions.append('Year_Month IN UNNEST(@months)')
         params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
 
-    def _arr(key, col, bq_name):
-        vals = [v.strip() for v in request.args.getlist(key) if v.strip()]
-        if vals:
-            conditions.append(f'{col} IN UNNEST(@{bq_name})')
-            params.append(bigquery.ArrayQueryParameter(bq_name, 'STRING', vals))
+    _arr_filter(conditions, params, request.args, 'department',          'Department',          'dept_vals')
+    _arr_filter(conditions, params, request.args, 'item_class',          'Item_Class',          'item_class_vals')
+    _arr_filter(conditions, params, request.args, 'indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+    _arr_filter(conditions, params, request.args, 'main_category',       'Main_Category',       'maincat_vals')
 
-    _arr('department',          'Department',         'dept_vals')
-    _arr('item_class',          'Item_Class',         'item_class_vals')
-    _arr('indirect_cost_class', 'Indirect_Cost_Class','icc_vals')
-    _arr('main_category',       'Main_Category',      'maincat_vals')
+    return _paginated_raw_response(FSM, conditions, params, 'Year_Month DESC, Amount DESC')
+
+
+@app.route('/api/raw_export')
+@login_required
+def api_raw_export():
+    """SM / FSM / SGA 소스 행 제한 없는 CSV 스트리밍 다운로드."""
+    import csv, io
+    from flask import stream_with_context, Response as FlaskResponse
+
+    source = request.args.get('source', 'sm')
+    conditions, params = [], []
+
+    months = request.args.getlist('months')
+    if months:
+        conditions.append('Year_Month IN UNNEST(@months)')
+        params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
+
+    def _arr(key, col, bq_name):
+        _arr_filter(conditions, params, request.args, key, f'`{col}`', bq_name)
+
+    if source == 'sm':
+        table = _fi_sm_table()
+        order = 'Year_Month DESC, Amount DESC'
+        _arr('department',          'Department',          'dept_vals')
+        _arr('indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+        _arr('main_category',       'Main_Category',       'maincat_vals')
+        name = 'FI_SM'
+    elif source == 'fsm':
+        table = _fi_final_sm_table()
+        order = 'Year_Month DESC, Amount DESC'
+        _arr('department',          'Department',          'dept_vals')
+        _arr('item_class',          'Item_Class',          'item_class_vals')
+        _arr('indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+        _arr('main_category',       'Main_Category',       'maincat_vals')
+        name = 'FI_Final_SM'
+    elif source == 'sga':
+        table = _fi_sga_agg_table()
+        order = 'Year_Month DESC, allocated_amount DESC'
+        _arr('department',          'Department',          'dept_vals')
+        _arr('country',             'Country',             'country_vals')
+        _arr('brand',               'Brand',               'brand_vals')
+        _arr('cost_class',          'Cost_Class',          'cost_class_vals')
+        _arr('indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+        _arr('main_category',       'SM_Main_Category',    'maincat_vals')
+        name = 'FI_SGA_Agg'
+    else:
+        return jsonify({'error': 'invalid source'}), 400
 
     where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+    select = _SGA_SELECT if source == 'sga' else 'SELECT *'
+    sql = f"{select} FROM `{table}` {where} ORDER BY {order}"
 
-    def serialize(raw):
-        rows = []
-        for row in raw:
-            r = {}
-            for k, v in row.items():
-                r[k] = int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else (v or ''))
-            rows.append(r)
-        return rows
+    def generate():
+        client = get_bq_client()
+        job_config = bigquery.QueryJobConfig(query_parameters=params or [])
+        bq_rows = client.query(sql, job_config=job_config).result()
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        first = True
+        for row in bq_rows:
+            d = dict(row)
+            if first:
+                buf.write('﻿')  # BOM — Excel UTF-8 인식용
+                writer.writerow(list(d.keys()))
+                first = False
+            writer.writerow([
+                '' if v is None else (int(v) if isinstance(v, int) else (float(v) if isinstance(v, float) else v))
+                for v in d.values()
+            ])
+            chunk = buf.getvalue()
+            buf.seek(0); buf.truncate(0)
+            yield chunk.encode('utf-8')
 
-    if export:
-        sql = f"SELECT * FROM `{FSM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT 50000"
-        rows = serialize(run_query_cached(sql, params))
-        cols = list(rows[0].keys()) if rows else []
-        return jsonify({'total': len(rows), 'columns': cols, 'rows': rows})
+    filename = f'{name}_Export.csv'
+    return FlaskResponse(
+        stream_with_context(generate()),
+        mimetype='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': f"attachment; filename*=UTF-8''{filename}",
+            'X-Accel-Buffering': 'no',
+        }
+    )
 
-    try:
-        page     = max(1, int(request.args.get('page', 1)))
-        per_page = min(200, max(10, int(request.args.get('per_page', 100))))
-    except ValueError:
-        page, per_page = 1, 100
-    offset = (page - 1) * per_page
 
-    count_sql = f"SELECT COUNT(*) AS cnt FROM `{FSM}` {where}"
-    total = (run_query_cached(count_sql, params) or [{'cnt': 0}])[0]['cnt']
+@app.route('/api/raw_sga_agg')
+@login_required
+def api_raw_sga_agg():
+    AGG = _fi_sga_agg_table()
+    conditions = []
+    params = []
 
-    sql = f"SELECT * FROM `{FSM}` {where} ORDER BY Year_Month DESC, Amount DESC LIMIT {per_page} OFFSET {offset}"
-    rows = serialize(run_query_cached(sql, params))
-    cols = list(rows[0].keys()) if rows else []
-    return jsonify({'total': int(total), 'page': page, 'per_page': per_page, 'columns': cols, 'rows': rows})
+    months = request.args.getlist('months')
+    if months:
+        conditions.append('Year_Month IN UNNEST(@months)')
+        params.append(bigquery.ArrayQueryParameter('months', 'STRING', months))
+
+    _arr_filter(conditions, params, request.args, 'department',          'Department',          'dept_vals')
+    _arr_filter(conditions, params, request.args, 'country',             'Country',             'country_vals')
+    _arr_filter(conditions, params, request.args, 'brand',               'Brand',               'brand_vals')
+    _arr_filter(conditions, params, request.args, 'cost_class',          'Cost_Class',          'cost_class_vals')
+    _arr_filter(conditions, params, request.args, 'indirect_cost_class', 'Indirect_Cost_Class', 'icc_vals')
+    _arr_filter(conditions, params, request.args, 'main_category',       'SM_Main_Category',    'maincat_vals')
+
+    return _paginated_raw_response(AGG, conditions, params, 'Year_Month DESC, allocated_amount DESC', select=_SGA_SELECT)
 
 
 # ─── 어드민 ────────────────────────────────────────────────────────
@@ -1406,6 +1537,32 @@ def api_org_group():
     return jsonify(run_query_cached(sql, params))
 
 
+@app.route('/api/org-division')
+@login_required
+def api_org_division():
+    where, params = build_bq_filters(request.args)
+    T = config.BQ_TABLE
+    SM = _fi_sm_table()
+    sql = f"""
+        WITH div_map AS (
+            SELECT Department, ANY_VALUE(Division) AS Division
+            FROM `{SM}` WHERE Division IS NOT NULL GROUP BY Department
+        ),
+        fi AS (SELECT * FROM `{T}` {where})
+        SELECT {_DIV_EXPR_FI} AS Division,
+            SUM(fi.Sales_Amount)      AS sales_amount,
+            SUM(fi.Cost_of_Sales)     AS cost_of_sales,
+            SUM(fi.Gross_Profit)      AS gross_profit,
+            SUM(fi.Operating_Income)  AS operating_income,
+            SUM(fi.SG_and_A_Expenses) AS sga_expenses,
+            SAFE_DIVIDE(SUM(fi.Gross_Profit), SUM(fi.Sales_Amount)) * 100 AS gross_margin,
+            SAFE_DIVIDE(SUM(fi.Operating_Income), SUM(fi.Sales_Amount)) * 100 AS operating_margin
+        FROM fi LEFT JOIN div_map dm ON fi.Department = dm.Department
+        GROUP BY Division ORDER BY sales_amount DESC
+    """
+    return jsonify(run_query_cached(sql, params))
+
+
 @app.route('/api/continent1')
 @login_required
 def api_continent1():
@@ -1507,7 +1664,7 @@ def api_prefetch():
 
     # dim → monthly-by-dim
     _dim_map = {
-        ('org', 0): 'Brand', ('org', 1): 'Group', ('org', 2): 'Department',
+        ('org', 0): 'Brand', ('org', 1): None, ('org', 2): 'Department',
         ('region', 0): 'Continent1', ('region', 1): 'Continent2', ('region', 2): 'Country', ('region', 3): 'Customer',
         ('product', 0): 'Line', ('product', 1): 'Category', ('product', 2): 'Product_Name',
         ('sales', 0): 'Sales_Type',
@@ -1532,7 +1689,18 @@ def api_prefetch():
 
     _bkd_sql = {
         ('org', 0):     lambda w: f"SELECT Brand, {_m} FROM `{T}` {w} GROUP BY Brand ORDER BY sales_amount DESC",
-        ('org', 1):     lambda w: f"SELECT `Group`, {_m} FROM `{T}` {w} GROUP BY `Group` ORDER BY sales_amount DESC",
+        ('org', 1):     lambda w: f"""
+            WITH div_map AS (SELECT Department, ANY_VALUE(Division) AS Division FROM `{SM}` WHERE Division IS NOT NULL GROUP BY Department),
+            fi AS (SELECT * FROM `{T}` {w})
+            SELECT {_DIV_EXPR_FI} AS Division,
+                SUM(fi.Sales_Amount) AS sales_amount, SUM(fi.Cost_of_Sales) AS cost_of_sales,
+                SUM(fi.Gross_Profit) AS gross_profit, SUM(fi.Operating_Income) AS operating_income,
+                SUM(fi.SG_and_A_Expenses) AS sga_expenses,
+                SAFE_DIVIDE(SUM(fi.Gross_Profit),SUM(fi.Sales_Amount))*100 AS gross_margin,
+                SAFE_DIVIDE(SUM(fi.Operating_Income),SUM(fi.Sales_Amount))*100 AS operating_margin
+            FROM fi LEFT JOIN div_map dm ON fi.Department = dm.Department
+            GROUP BY Division ORDER BY sales_amount DESC
+        """,
         ('org', 2):     lambda w: f"SELECT Department, {_m} FROM `{T}` {nf('Department', w)} GROUP BY Department ORDER BY sales_amount DESC",
         ('region', 0):  lambda w: f"SELECT Continent1, {_m} FROM `{T}` {nf('Continent1', w)} GROUP BY Continent1 ORDER BY sales_amount DESC",
         ('region', 1):  lambda w: f"SELECT Continent2, {_m} FROM `{T}` {nf('Continent2', w)} GROUP BY Continent2 ORDER BY sales_amount DESC",
@@ -1644,19 +1812,18 @@ def api_cache_clear():
     return jsonify({'ok': True, 'message': '캐시 초기화 및 재워밍 시작'})
 
 
+
 # ─── 손익계산서 (P&L) API ──────────────────────────────────────────
 # 차원별 매출~영업이익 + SG&A를 직접/조직간접/SSG간접 × 5세분류로 월별 반환
 _PL_ALLOWED_DIM = {
-    'Brand', 'Group', 'Department', 'Continent1', 'Continent2',
+    'Brand', 'Group', 'Division', 'Department', 'Continent1', 'Continent2',
     'Country', 'Customer', 'Line', 'Category', 'Product_Name', 'Sales_Type',
 }
 _PL_BQ_RESERVED = {'Group'}  # 백틱 필요 컬럼
 
 # FI_SM 테이블 경로 (config.BQ_TABLE에서 project.dataset 추출)
 def _fi_sm_table():
-    parts = config.BQ_TABLE.replace('`', '').split('.')
-    # project.dataset.table → project.dataset.FI_SM
-    return '.'.join(parts[:-1]) + '.FI_SM'
+    return _related_table('FI_SM')
 
 
 @app.route('/api/pl')
@@ -1666,59 +1833,114 @@ def api_pl():
     if dim not in _PL_ALLOWED_DIM:
         return jsonify({'error': f'invalid dim. allowed: {sorted(_PL_ALLOWED_DIM)}'}), 400
 
-    # 백틱 처리: Group은 BQ 예약어
-    dimcol = f'`{dim}`' if dim in _PL_BQ_RESERVED else dim
-
     where, params = build_bq_filters(request.args)
     T = config.BQ_TABLE
     SM = _fi_sm_table()
 
-    # 파트 A: 노드×월 직접 측정값 (sales / cogs / gross / op)
-    sql_a = f"""
-        SELECT {dimcol} AS node, Year_Month,
-            SUM(Sales_Amount)      AS sales,
-            SUM(Cost_of_Sales)     AS cogs,
-            SUM(Gross_Profit)      AS gross,
-            SUM(Operating_Income)  AS op
-        FROM `{T}` {where}
-        GROUP BY node, Year_Month
-    """
+    if dim == 'Division':
+        # Division은 FI_Final에 없으므로 FI_SM JOIN으로 파생
+        sql_a = f"""
+            WITH div_map AS (
+                SELECT Department, ANY_VALUE(Division) AS Division
+                FROM `{SM}` WHERE Division IS NOT NULL GROUP BY Department
+            ),
+            fi AS (SELECT * FROM `{T}` {where})
+            SELECT {_DIV_EXPR_FI} AS node, fi.Year_Month,
+                SUM(fi.Sales_Amount) AS sales,
+                SUM(fi.Cost_of_Sales) AS cogs,
+                SUM(fi.Gross_Profit) AS gross,
+                SUM(fi.Operating_Income) AS op
+            FROM fi LEFT JOIN div_map dm ON fi.Department = dm.Department
+            GROUP BY node, fi.Year_Month
+        """
+        sql_b = f"""
+            WITH div_map AS (
+                SELECT Department, ANY_VALUE(Division) AS Division
+                FROM `{SM}` WHERE Division IS NOT NULL GROUP BY Department
+            ),
+            fi AS (SELECT * FROM `{T}` {where}),
+            ff AS (
+                SELECT {_DIV_EXPR_FI} AS node, fi.Department, fi.Year_Month,
+                    SUM(fi.SG_and_A_Expenses) AS sga
+                FROM fi LEFT JOIN div_map dm ON fi.Department = dm.Department
+                GROUP BY node, fi.Department, fi.Year_Month
+            ),
+            sm AS (
+                SELECT Department, Year_Month,
+                    Indirect_Cost_Class AS cls,
+                    CASE Main_Category
+                        WHEN '광고선전비' THEN 'adv'
+                        WHEN '물류비'     THEN 'log'
+                        WHEN '수수료'     THEN 'fee'
+                        WHEN '인건비'     THEN 'hr'
+                        ELSE 'etc'
+                    END AS cat,
+                    SUM(Amount) AS amt
+                FROM `{SM}`
+                GROUP BY Department, Year_Month, Indirect_Cost_Class, Main_Category
+            ),
+            sm_tot AS (
+                SELECT Department, Year_Month, SUM(Amount) AS tot
+                FROM `{SM}`
+                GROUP BY Department, Year_Month
+            )
+            SELECT ff.node, ff.Year_Month, sm.cls, sm.cat,
+                SUM(CAST(ff.sga AS FLOAT64) * sm.amt / NULLIF(sm_tot.tot, 0)) AS val
+            FROM ff
+            JOIN sm     ON ff.Department = sm.Department     AND ff.Year_Month = sm.Year_Month
+            JOIN sm_tot ON ff.Department = sm_tot.Department AND ff.Year_Month = sm_tot.Year_Month
+            GROUP BY ff.node, ff.Year_Month, sm.cls, sm.cat
+        """
+    else:
+        # 백틱 처리: Group은 BQ 예약어
+        dimcol = f'`{dim}`' if dim in _PL_BQ_RESERVED else dim
 
-    # 파트 B: SGA 배분 (노드×월×cls×cat)
-    # ff: 노드+부서+월 단위 SGA, sm: FI_SM 비율 원천, sm_tot: 부서×월 합계
-    sql_b = f"""
-        WITH ff AS (
-            SELECT {dimcol} AS node, Department, Year_Month,
-                SUM(SG_and_A_Expenses) AS sga
+        # 파트 A: 노드×월 직접 측정값 (sales / cogs / gross / op)
+        sql_a = f"""
+            SELECT {dimcol} AS node, Year_Month,
+                SUM(Sales_Amount)      AS sales,
+                SUM(Cost_of_Sales)     AS cogs,
+                SUM(Gross_Profit)      AS gross,
+                SUM(Operating_Income)  AS op
             FROM `{T}` {where}
-            GROUP BY node, Department, Year_Month
-        ),
-        sm AS (
-            SELECT Department, Year_Month,
-                Indirect_Cost_Class AS cls,
-                CASE Main_Category
-                    WHEN '광고선전비' THEN 'adv'
-                    WHEN '물류비'     THEN 'log'
-                    WHEN '수수료'     THEN 'fee'
-                    WHEN '인건비'     THEN 'hr'
-                    ELSE 'etc'
-                END AS cat,
-                SUM(Amount) AS amt
-            FROM `{SM}`
-            GROUP BY Department, Year_Month, Indirect_Cost_Class, Main_Category
-        ),
-        sm_tot AS (
-            SELECT Department, Year_Month, SUM(Amount) AS tot
-            FROM `{SM}`
-            GROUP BY Department, Year_Month
-        )
-        SELECT ff.node, ff.Year_Month, sm.cls, sm.cat,
-            SUM(CAST(ff.sga AS FLOAT64) * sm.amt / NULLIF(sm_tot.tot, 0)) AS val
-        FROM ff
-        JOIN sm     ON ff.Department = sm.Department     AND ff.Year_Month = sm.Year_Month
-        JOIN sm_tot ON ff.Department = sm_tot.Department AND ff.Year_Month = sm_tot.Year_Month
-        GROUP BY ff.node, ff.Year_Month, sm.cls, sm.cat
-    """
+            GROUP BY node, Year_Month
+        """
+
+        # 파트 B: SGA 배분 (노드×월×cls×cat)
+        # ff: 노드+부서+월 단위 SGA, sm: FI_SM 비율 원천, sm_tot: 부서×월 합계
+        sql_b = f"""
+            WITH ff AS (
+                SELECT {dimcol} AS node, Department, Year_Month,
+                    SUM(SG_and_A_Expenses) AS sga
+                FROM `{T}` {where}
+                GROUP BY node, Department, Year_Month
+            ),
+            sm AS (
+                SELECT Department, Year_Month,
+                    Indirect_Cost_Class AS cls,
+                    CASE Main_Category
+                        WHEN '광고선전비' THEN 'adv'
+                        WHEN '물류비'     THEN 'log'
+                        WHEN '수수료'     THEN 'fee'
+                        WHEN '인건비'     THEN 'hr'
+                        ELSE 'etc'
+                    END AS cat,
+                    SUM(Amount) AS amt
+                FROM `{SM}`
+                GROUP BY Department, Year_Month, Indirect_Cost_Class, Main_Category
+            ),
+            sm_tot AS (
+                SELECT Department, Year_Month, SUM(Amount) AS tot
+                FROM `{SM}`
+                GROUP BY Department, Year_Month
+            )
+            SELECT ff.node, ff.Year_Month, sm.cls, sm.cat,
+                SUM(CAST(ff.sga AS FLOAT64) * sm.amt / NULLIF(sm_tot.tot, 0)) AS val
+            FROM ff
+            JOIN sm     ON ff.Department = sm.Department     AND ff.Year_Month = sm.Year_Month
+            JOIN sm_tot ON ff.Department = sm_tot.Department AND ff.Year_Month = sm_tot.Year_Month
+            GROUP BY ff.node, ff.Year_Month, sm.cls, sm.cat
+        """
 
     # 두 쿼리를 병렬 실행
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -1821,6 +2043,124 @@ def api_pl():
     return jsonify({'months': months, 'nodes': result_nodes})
 
 
+@app.route('/api/pl-source-export')
+@login_required
+def api_pl_source_export():
+    import csv, io as _io
+    item      = request.args.get('item', '').strip()
+    dim       = request.args.get('dim', '').strip()
+    dim_val   = request.args.get('dim_val', '').strip()
+    months    = [m for m in request.args.getlist('months') if m]
+    sec       = request.args.get('sec', 'all').strip()
+    depts_raw = request.args.get('depts', '').strip()
+
+    if not months or not item:
+        return jsonify({'error': 'months and item are required'}), 400
+
+    T  = config.BQ_TABLE
+    SM = _fi_sm_table()
+
+    # Month placeholders
+    m_params = [bigquery.ScalarQueryParameter(f'm{i}', 'STRING', m) for i, m in enumerate(months)]
+    m_list   = ', '.join(f'@m{i}' for i in range(len(months)))
+
+    # Brand filter
+    sec_lower = sec.lower()
+    if sec_lower == 'sk' or sec == 'SK':
+        brand_cond = "AND Brand = 'SK'"
+    elif sec_lower in ('dist', 'um') or sec == 'UM':
+        brand_cond = "AND Brand = 'UM'"
+    else:
+        brand_cond = ''
+
+    # Dim value filter (parameterized)
+    dim_cond  = ''
+    dim_param = []
+    if dim_val and not dim_val.startswith('__') and dim in _PL_ALLOWED_DIM:
+        safe_col = f'`{dim}`' if dim in _PL_BQ_RESERVED else dim
+        dim_cond  = f'AND {safe_col} = @dim_val'
+        dim_param = [bigquery.ScalarQueryParameter('dim_val', 'STRING', dim_val)]
+
+    # Depts filter (org mode: list of departments)
+    depts_cond   = ''
+    depts_params = []
+    if depts_raw and not dim_cond:
+        depts = [d.strip() for d in depts_raw.split(',') if d.strip()]
+        if depts:
+            ph = ', '.join(f'@dp{i}' for i in range(len(depts)))
+            depts_cond   = f'AND Department IN ({ph})'
+            depts_params = [bigquery.ScalarQueryParameter(f'dp{i}', 'STRING', d) for i, d in enumerate(depts)]
+
+    is_sga = item.startswith('sga')
+
+    if is_sga:
+        parts  = item.split('.')
+        prefix = parts[0]
+        sub    = parts[1] if len(parts) > 1 else None
+
+        cls_map = {'sgaD': '직접', 'sgaO': '조직간접', 'sgaC': 'SSG간접'}
+        cat_map = {'adv': '광고선전비', 'log': '물류비', 'fee': '수수료', 'hr': '인건비'}
+
+        cls_extra, cls_cond = [], ''
+        if prefix in cls_map:
+            cls_extra = [bigquery.ScalarQueryParameter('cls_val', 'STRING', cls_map[prefix])]
+            cls_cond  = 'AND Indirect_Cost_Class = @cls_val'
+
+        cat_extra, cat_cond = [], ''
+        if sub and sub != 'etc' and sub in cat_map:
+            cat_extra = [bigquery.ScalarQueryParameter('cat_val', 'STRING', cat_map[sub])]
+            cat_cond  = 'AND Main_Category = @cat_val'
+        elif sub == 'etc':
+            excl_vals = list(cat_map.values())
+            ph_ex     = ', '.join(f'@ex{i}' for i in range(len(excl_vals)))
+            cat_extra = [bigquery.ScalarQueryParameter(f'ex{i}', 'STRING', v) for i, v in enumerate(excl_vals)]
+            cat_cond  = f'AND Main_Category NOT IN ({ph_ex})'
+
+        # FI_SM: only Department dim is meaningful
+        if dim == 'Department' and dim_cond:
+            sm_dim_cond, sm_dim_params = dim_cond, dim_param
+        elif depts_cond:
+            sm_dim_cond, sm_dim_params = depts_cond, depts_params
+        else:
+            sm_dim_cond, sm_dim_params = '', []
+
+        sql    = f"SELECT * FROM `{SM}` WHERE Year_Month IN ({m_list}) {cls_cond} {cat_cond} {sm_dim_cond} ORDER BY Year_Month, Department, Cost_Account"
+        params = m_params + cls_extra + cat_extra + sm_dim_params
+        table_name = 'FI_SM'
+    else:
+        sql    = f"SELECT * FROM `{T}` WHERE Year_Month IN ({m_list}) {brand_cond} {dim_cond} {depts_cond} ORDER BY Year_Month, Department, Customer, Product_Code"
+        params = m_params + dim_param + depts_params
+        table_name = 'FI_Final'
+
+    try:
+        rows = run_query(sql, params)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    if not rows:
+        resp = make_response('﻿Year_Month,결과\n,데이터없음\n')
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
+        resp.headers['Content-Disposition'] = 'attachment; filename="no_data.csv"'
+        return resp
+
+    output = _io.StringIO()
+    cols   = list(rows[0].keys())
+    writer = csv.DictWriter(output, fieldnames=cols)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({k: ('' if v is None else v) for k, v in row.items()})
+
+    safe_item = 'raw' if item in ('__all__', '') else item.replace('.', '_')
+    safe_dim  = dim_val if (dim_val and not dim_val.startswith('__')) else (depts_raw.split(',')[0].strip() if depts_raw else 'all')
+    m_label   = months[0] if len(months) == 1 else f"{months[0]}_{months[-1]}"
+    filename  = f'{table_name}_{safe_item}_{safe_dim}_{m_label}.csv'
+
+    resp = make_response('﻿' + output.getvalue())
+    resp.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
+    resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return resp
+
+
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5000)
