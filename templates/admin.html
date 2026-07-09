@@ -165,6 +165,7 @@
                 </button>
                 <button class="btn-sm" onclick="toggleUser({{ u.id }})">{{ '비활성화' if u.is_active else '활성화' }}</button>
               {% endif %}
+              <button class="btn-sm" onclick="resetPassword({{ u.id }}, '{{ u.username }}')">비밀번호 초기화</button>
               <button class="btn-sm danger" onclick="deleteUser({{ u.id }}, '{{ u.username }}')">삭제</button>
             </div>
           </td>
@@ -248,6 +249,14 @@ function changeRole(id, newRole){
 function toggleUser(id){
   fetch('/admin/users/'+id+'/toggle',{method:'POST'}).then(function(r){ return r.json(); }).then(function(d){
     if(d.ok){ showMsg('상태가 변경되었습니다','success'); setTimeout(function(){ location.reload(); },800); }
+    else showMsg(d.error||'오류 발생','error');
+  });
+}
+
+function resetPassword(id, username){
+  if(!confirm(username+'의 비밀번호를 초기화하시겠습니까? 다음 로그인 시 회원가입 페이지에서 새 비밀번호를 설정해야 합니다.')) return;
+  fetch('/admin/users/'+id+'/reset-password',{method:'POST'}).then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){ showMsg('비밀번호가 초기화되었습니다','success'); }
     else showMsg(d.error||'오류 발생','error');
   });
 }
