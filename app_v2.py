@@ -1442,6 +1442,21 @@ def admin_toggle_user(uid):
         db.close()
 
 
+@app.route('/admin/users/<int:uid>/reset-password', methods=['POST'])
+@admin_required
+def admin_reset_user_password(uid):
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "UPDATE dashboard_users SET password_hash=NULL WHERE id=%s", (uid,)
+            )
+        db.commit()
+        return jsonify({'ok': True})
+    finally:
+        db.close()
+
+
 _ALLOWED_DIM = {'Sales_Type','Department','Line','Category','Continent2','Customer','Country','Group'}
 _BQ_RESERVED = {'Group'}
 
