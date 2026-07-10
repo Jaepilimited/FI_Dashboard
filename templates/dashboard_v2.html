@@ -1538,6 +1538,12 @@ table.pl-table{margin-bottom:4px}
 .pl-edit-token-chip:hover{border-color:var(--accent);color:var(--accent)}
 .pl-edit-custom-error{font-size:10.5px;color:var(--negative);min-height:14px}
 .pl-edit-custom-form>button{font-size:11px;padding:5px;border:1px solid var(--accent);border-radius:5px;background:var(--accent-soft);color:var(--accent);cursor:pointer}
+.pl-edit-dim-fields{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.pl-edit-dim-chip{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text-tertiary);cursor:grab}
+.pl-edit-dim-chip:hover{border-color:var(--accent);color:var(--accent)}
+.pl-edit-dim-dropzone{font-size:12px;padding:6px 8px;border:1px dashed var(--border-strong);border-radius:6px;text-align:center;color:var(--text-secondary);margin-bottom:6px;transition:border-color .12s,background .12s}
+.pl-edit-dim-dropzone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.pl-edit-dim-note{font-size:11px;color:var(--text-tertiary);padding:4px 0}
 
 /* ═══ Data scope footer ═══════════════════════════════════════════════ */
 .scope-note{
@@ -4944,6 +4950,20 @@ function plEffectiveRowDefs(screenId){
   return result;
 }
 
+const PL_ORG_DIM_FIELDS = [
+  { col:'Department',  label:'부서' },
+  { col:'Line',         label:'라인' },
+  { col:'Category',     label:'카테고리' },
+  { col:'Country',      label:'국가' },
+  { col:'Continent2',   label:'대륙' },
+  { col:'Customer',     label:'거래처' },
+  { col:'Sales_Type',   label:'판매유형' },
+  { col:'Group',        label:'그룹' },
+];
+function plDimFieldLabel(col){
+  const f = PL_ORG_DIM_FIELDS.filter(function(x){ return x.col === col; })[0];
+  return f ? f.label : col;
+}
 const PL_ORG_SECTION_IDS = ['all','SK','UM'];
 let PL_ORG_SECTION_LABEL = null; // 최초 사용 시 지연 초기화 (_BRAND_LABEL 정의 이후 실행되도록)
 function plOrgSectionLabel(id){
@@ -5202,12 +5222,25 @@ function wirePlCustomRowHandlers(screenId, panelEl){
 }
 
 function renderPlSectionEditor(screenId){
+  const dim = plEffectiveSectionDim(screenId);
+  let h = '<div class="pl-edit-section-title">구분 기준</div>';
+  h += '<div class="pl-edit-dim-dropzone" data-pl-dim-dropzone="' + screenId + '">' + escPlAttr(plDimFieldLabel(dim)) + '로 표시</div>';
+  h += '<div class="pl-edit-dim-fields">' + PL_ORG_DIM_FIELDS.map(function(f){
+    return '<span class="pl-edit-dim-chip" draggable="true" data-pl-dim-chip="' + f.col + '">' + f.label + '</span>';
+  }).join('') + '</div>';
+
+  h += '<div class="pl-edit-section-title">섹션(구분)</div>';
+  if (dim !== 'Department') {
+    h += '<div class="pl-edit-dim-note">매출 기준 상위 10개 + 기타 자동 표시</div>';
+    return h;
+  }
+
   const cfg = state.plViewConfig[screenId];
   const hidden = new Set((cfg && cfg.sections && cfg.sections.hidden) || []);
   const rawOrder = (cfg && cfg.sections && cfg.sections.order && cfg.sections.order.length) ? cfg.sections.order : PL_ORG_SECTION_IDS.slice();
   const orderedValid = rawOrder.filter(function(id){ return PL_ORG_SECTION_IDS.indexOf(id) >= 0; });
   const order = orderedValid.concat(PL_ORG_SECTION_IDS.filter(function(id){ return orderedValid.indexOf(id) < 0; }));
-  let h = '<div class="pl-edit-section-title">섹션(구분)</div><ul class="pl-edit-section-list" data-pl-section-list="' + screenId + '">';
+  h += '<ul class="pl-edit-section-list" data-pl-section-list="' + screenId + '">';
   order.forEach(function(id){
     h += '<li class="pl-edit-section-row" draggable="true" data-pl-section-row="' + id + '">'
        + '<span class="pl-edit-drag-handle">⣿</span>'
@@ -5245,6 +5278,24 @@ function wirePlSectionDragHandlers(screenId){
         cfg.sections.hidden = Array.from(set);
       });
     });
+  });
+}
+
+function wirePlDimDropzone(screenId){
+  const zone = document.querySelector('[data-pl-dim-dropzone="' + screenId + '"]');
+  if (!zone) return;
+  document.querySelectorAll('[data-pl-dim-chip]').forEach(function(chip){
+    chip.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', chip.dataset.plDimChip); });
+  });
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const col = e.dataTransfer.getData('text/plain');
+    if (!col) return;
+    state.cplData = null;
+    plUpdateConfig(screenId, function(cfg){ cfg.sections.dim = col; });
   });
 }
 
@@ -5314,6 +5365,7 @@ function wirePlEditPanel(screenId){
   wirePlRowDragHandlers(screenId);
   wirePlCustomRowHandlers(screenId, panel);
   wirePlSectionDragHandlers(screenId);
+  wirePlDimDropzone(screenId);
 }
 
 function renderOrgPl(){
