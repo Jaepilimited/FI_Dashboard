@@ -1851,6 +1851,7 @@ def api_pl():
     where, params = build_bq_filters(request.args)
     T = config.BQ_TABLE
     SM = _fi_sm_table()
+    _null_label = '조정' if dim in ('Line', 'Category', 'Product_Name') else '(없음)'
 
     if dim == 'Division':
         # Division은 FI_Final에 없으므로 FI_SM JOIN으로 파생
@@ -1999,7 +2000,7 @@ def api_pl():
 
     # 파트 A 병합
     for r in rows_a:
-        nm = str(r['node']) if r['node'] is not None else '(없음)'
+        nm = str(r['node']) if r['node'] is not None else _null_label
         ym = str(r['Year_Month']) if r['Year_Month'] else None
         if ym not in month_idx:
             continue
@@ -2012,7 +2013,7 @@ def api_pl():
 
     # 파트 B 병합
     for r in rows_b:
-        nm = str(r['node']) if r['node'] is not None else '(없음)'
+        nm = str(r['node']) if r['node'] is not None else _null_label
         ym = str(r['Year_Month']) if r['Year_Month'] else None
         if ym not in month_idx:
             continue

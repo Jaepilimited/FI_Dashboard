@@ -4941,30 +4941,6 @@ function renderOrgPl(){
     });
   });
 
-  // Others: SK/UM 어느 브랜드 본부에도 매핑되지 않은 부서 (전체 합계엔 이미 포함되어 있음)
-  {
-    const mappedDepts=new Set();
-    _BRAND_ORDER.forEach(function(brand){
-      (_BRAND_DIV[brand]||[]).forEach(function(div){
-        (_DIV_DEPT_MAP[div]||[]).forEach(function(d){mappedDepts.add(d);});
-      });
-    });
-    const othersDepts=allDepts.filter(function(d){return !mappedDepts.has(d);});
-    if(othersDepts.length){
-      const oExp=orgBrandExp.has('Others');
-      html+='<div class="pl-section-title" style="cursor:pointer;font-size:14px;display:flex;align-items:center" data-org-brand="Others">'
-        +'<span><i data-lucide="'+(oExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>Others</span>'
-        +(oExp?plDlBtn('all',months.join(','),othersDepts.join(',')):'')+'</div>';
-      if(oExp){
-        html+=renderTable(secMetrics(othersDepts,'all'),othersDepts,'all');
-        othersDepts.forEach(function(dept){
-          html+='<div class="pl-section-title" style="margin-left:20px;font-size:11px;opacity:.8;display:flex;align-items:center"><span>▸ '+dept+'</span>'+plDlBtn('all',months.join(','),dept)+'</div>';
-          html+=renderTable(secMetrics([dept],'all'),[dept],'all');
-        });
-      }
-    }
-  }
-
   html+='</div></div></div>';
   wrap.innerHTML=html;
 
@@ -5017,7 +4993,7 @@ function renderCategoryPl(){
     : '기간 헤더 클릭 → 차원별 펼침 · 굵은 행 클릭 → 세부 계정 · 값 아래 ▲▼는 전 기간 대비';
   let html = '<div class="card row-grid-full" style="margin-bottom:14px">'
     + '<div class="card-hd"><div>'
-    + '<div class="card-title"><i data-lucide="table-2"></i>손익계산서 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(전체 / SK / 유통)</span></div>'
+    + '<div class="card-title"><i data-lucide="table-2"></i>손익계산서 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">' + (state.category === 'product' ? '(전체 / SK)' : '(전체 / SK / 유통)') + '</span></div>'
     + '<div class="card-sub">' + subText + '</div>'
     + '</div><div style="display:flex;align-items:center;gap:8px">'
     + '<div class="pl-period-tabs">'
@@ -5047,7 +5023,8 @@ function renderCategoryPl(){
     const sliceToActive = function(arr){
       return months.map(function(ym){ const i = cplIdxOf(ym); return (i >= 0 && arr && arr[i] != null) ? arr[i] : 0; });
     };
-    CPL_SEC_DEFS.forEach(function(sec){
+    const secDefs = state.category === 'product' ? CPL_SEC_DEFS.filter(function(s){ return s.key !== 'dist'; }) : CPL_SEC_DEFS;
+    secDefs.forEach(function(sec){
       const secKey = state.category + ':' + sec.key;
       // 합계는 top-N 캡 없이 전체 노드(매핑 없는 행 포함) 기준
       const _allDimNames = Object.keys(state.cplData.byNode || {}).filter(function(n){ return n && n !== ''; });
