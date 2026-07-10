@@ -5414,40 +5414,66 @@ function renderOrgPl(){
     +'<div class="card-body card-body-flush"><div class="pl-body-split"><div class="pl-table-wrap">';
 
   const allDepts=Object.keys(byNode);
-  const activeSections = plEffectiveSections('org');
+  const sectionDim = plEffectiveSectionDim('org');
 
-  activeSections.forEach(function(sec){
-    if (sec === 'all') {
-      html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
-      html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
-      return;
+  if (sectionDim !== 'Department') {
+    // 구분 기준이 Department가 아닐 때: 매출 상위 10개 + 기타 (브랜드 교차 없음)
+    const salesOf = function(name){
+      const src = (byNode[name] && byNode[name].all && byNode[name].all.sales) || [];
+      return src.reduce(function(a,v){ return a+(v||0); }, 0);
+    };
+    const sortedNames = allDepts.slice().sort(function(a,b){ return salesOf(b) - salesOf(a); });
+    const topNames = sortedNames.slice(0, 10);
+    const restNames = sortedNames.slice(10);
+
+    html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
+    html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
+
+    topNames.forEach(function(name){
+      html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>'+name+'</span>'+plDlBtn('all',months.join(','),name)+'</div>';
+      html+=renderTable(secMetrics([name],'all'),[name],'all');
+    });
+
+    if (restNames.length){
+      html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>기타</span>'+plDlBtn('all',months.join(','),restNames.join(','))+'</div>';
+      html+=renderTable(secMetrics(restNames,'all'),restNames,'all');
     }
-    const brand = sec;
-    const brandDivs=_BRAND_DIV[brand]||[];
-    const brandDepts=[];
-    brandDivs.forEach(function(div){(_DIV_DEPT_MAP[div]||[]).forEach(function(d){if(byNode[d])brandDepts.push(d);});});
-    if(!brandDepts.length)return;
-    const bExp=orgBrandExp.has(brand);
-    html+='<div class="pl-section-title" style="cursor:pointer;font-size:14px;display:flex;align-items:center" data-org-brand="'+brand+'">'
-      +'<span><i data-lucide="'+(bExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+_BRAND_LABEL[brand]+'</span>'
-      +(bExp?plDlBtn(brand,months.join(','),brandDepts.join(',')):'')+'</div>';
-    if(!bExp)return;
-    html+=renderTable(secMetrics(brandDepts,brand),brandDepts,brand);
-    brandDivs.forEach(function(div){
-      const divDepts=(_DIV_DEPT_MAP[div]||[]).filter(function(d){return !!byNode[d];});
-      if(!divDepts.length)return;
-      const dExp=orgDivExp.has(div);
-      html+='<div class="pl-section-title" style="cursor:pointer;margin-left:20px;display:flex;align-items:center" data-org-div="'+div+'">'
-        +'<span><i data-lucide="'+(dExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+div+'</span>'
-        +(dExp?plDlBtn(brand,months.join(','),divDepts.join(',')):'')+'</div>';
-      if(!dExp)return;
-      html+=renderTable(secMetrics(divDepts,brand),divDepts,brand);
-      divDepts.forEach(function(dept){
-        html+='<div class="pl-section-title" style="margin-left:40px;font-size:11px;opacity:.8;display:flex;align-items:center"><span>▸ '+dept+'</span>'+plDlBtn(brand,months.join(','),dept)+'</div>';
-        html+=renderTable(secMetrics([dept],brand),[dept],brand);
+  } else {
+    const activeSections = plEffectiveSections('org');
+
+    activeSections.forEach(function(sec){
+      if (sec === 'all') {
+        html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
+        html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
+        return;
+      }
+      const brand = sec;
+      const brandDivs=_BRAND_DIV[brand]||[];
+      const brandDepts=[];
+      brandDivs.forEach(function(div){(_DIV_DEPT_MAP[div]||[]).forEach(function(d){if(byNode[d])brandDepts.push(d);});});
+      if(!brandDepts.length)return;
+      const bExp=orgBrandExp.has(brand);
+      html+='<div class="pl-section-title" style="cursor:pointer;font-size:14px;display:flex;align-items:center" data-org-brand="'+brand+'">'
+        +'<span><i data-lucide="'+(bExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+_BRAND_LABEL[brand]+'</span>'
+        +(bExp?plDlBtn(brand,months.join(','),brandDepts.join(',')):'')+'</div>';
+      if(!bExp)return;
+      html+=renderTable(secMetrics(brandDepts,brand),brandDepts,brand);
+      brandDivs.forEach(function(div){
+        const divDepts=(_DIV_DEPT_MAP[div]||[]).filter(function(d){return !!byNode[d];});
+        if(!divDepts.length)return;
+        const dExp=orgDivExp.has(div);
+        html+='<div class="pl-section-title" style="cursor:pointer;margin-left:20px;display:flex;align-items:center" data-org-div="'+div+'">'
+          +'<span><i data-lucide="'+(dExp?'chevron-down':'chevron-right')+'" class="pl-chev"></i>'+div+'</span>'
+          +(dExp?plDlBtn(brand,months.join(','),divDepts.join(',')):'')+'</div>';
+        if(!dExp)return;
+        html+=renderTable(secMetrics(divDepts,brand),divDepts,brand);
+        divDepts.forEach(function(dept){
+          html+='<div class="pl-section-title" style="margin-left:40px;font-size:11px;opacity:.8;display:flex;align-items:center"><span>▸ '+dept+'</span>'+plDlBtn(brand,months.join(','),dept)+'</div>';
+          html+=renderTable(secMetrics([dept],brand),[dept],brand);
+        });
       });
     });
-  });
+  }
 
   html += '</div>'; // .pl-table-wrap 닫기
   if (state.plEdit.org) html += renderPlEditPanel('org');
