@@ -4935,7 +4935,7 @@ function plEffectiveRowDefs(screenId){
 }
 
 // 우클릭 다운로드 data 속성 이스케이프 헬퍼
-function escPlAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function escPlAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
 
 // P&L 테이블 공용 셀 포맷터 (renderOrgPl/renderCategoryPl 공용)
 const PL_EMPTY = '<span class="pl-empty">–</span>';
@@ -5119,7 +5119,7 @@ function renderPlCustomRowEditor(screenId){
   let h = '<div class="pl-edit-section-title">계산식 행</div><ul class="pl-edit-custom-list">';
   custom.forEach(function(c){
     h += '<li class="pl-edit-custom-row"><span>' + escPlAttr(c.label) + '</span><code>' + escPlAttr(c.formula) + '</code>'
-       + '<button data-pl-custom-delete="' + c.id + '" data-pl-screen="' + screenId + '">×</button></li>';
+       + '<button data-pl-custom-delete="' + escPlAttr(c.id) + '" data-pl-screen="' + screenId + '">×</button></li>';
   });
   h += '</ul>'
      + '<div class="pl-edit-custom-form">'
@@ -5291,7 +5291,7 @@ function renderOrgPl(){
       const chev=tk?'<i data-lucide="'+(plExpanded.has(tk)?'chevron-down':'chevron-right')+'" class="pl-chev"></i>':'';
       const totV=tv(row);
       t+='<tr class="'+cls+'"'+(tk?' data-cpl-toggle="'+tk+'"':'')+'>'+
-        '<td>'+chev+row.label+'</td>'+
+        '<td>'+chev+escPlAttr(row.label)+'</td>'+
         '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+fmtMm(totV)+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
       periods.forEach(function(prd,pi){
         const pV=pv(row,prd),prV=pi>0?pv(row,periods[pi-1]):undefined;
