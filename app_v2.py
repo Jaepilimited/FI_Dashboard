@@ -592,6 +592,58 @@ def api_tableau_fields():
     return jsonify({'dimensions': dims, 'measures': meas, 'date_dims': date_dims})
 
 
+_PL_BLOCK_ANCHORS = {'sales', 'gross', 'sgaD', 'direct', 'sgaO', 'contrib', 'sgaC', 'op'}
+_PL_SUB_KEYS = {'adv', 'log', 'fee', 'hr', 'etc'}
+_PL_SECTION_IDS = {'all', 'SK', 'UM'}
+
+
+def _validate_pl_config(cfg):
+    """kind='pl' config 구조 검증. 문제 없으면 None, 있으면 에러 메시지 문자열 반환."""
+    if not isinstance(cfg, dict):
+        return 'config must be an object'
+    rows = cfg.get('rows', {})
+    if not isinstance(rows, dict):
+        return 'rows must be an object'
+    block_order = rows.get('blockOrder', [])
+    if not isinstance(block_order, list) or not all(isinstance(x, str) and x in _PL_BLOCK_ANCHORS for x in block_order):
+        return 'rows.blockOrder must be a list of valid block anchors'
+    sub_order = rows.get('subOrder', {})
+    if not isinstance(sub_order, dict):
+        return 'rows.subOrder must be an object'
+    for anchor, keys in sub_order.items():
+        if anchor not in ('sgaD', 'sgaO', 'sgaC'):
+            return f'invalid subOrder anchor: {anchor}'
+        if not isinstance(keys, list) or not all(isinstance(k, str) and k in _PL_SUB_KEYS for k in keys):
+            return f'subOrder[{anchor}] must be a list of valid sub-keys'
+    hidden = rows.get('hidden', [])
+    valid_hidden_ids = {f'{a}.{k}' for a in ('sgaD', 'sgaO', 'sgaC') for k in _PL_SUB_KEYS}
+    if not isinstance(hidden, list) or not all(isinstance(x, str) and x in valid_hidden_ids for x in hidden):
+        return 'rows.hidden must be a list of valid sub-account row ids'
+    custom = rows.get('custom', [])
+    if not isinstance(custom, list):
+        return 'rows.custom must be a list'
+    for c in custom:
+        if not isinstance(c, dict):
+            return 'each rows.custom entry must be an object'
+        if not isinstance(c.get('id'), str) or not isinstance(c.get('label'), str) or not isinstance(c.get('formula'), str):
+            return 'rows.custom entries need string id/label/formula'
+        if c.get('afterId') not in _PL_BLOCK_ANCHORS:
+            return 'rows.custom.afterId must be a valid block anchor'
+        if 'valueFormat' in c and c['valueFormat'] not in ('money', 'percent'):
+            return 'rows.custom.valueFormat must be money or percent'
+    sections = cfg.get('sections', {})
+    if not isinstance(sections, dict):
+        return 'sections must be an object'
+    for key in ('order', 'hidden'):
+        vals = sections.get(key, [])
+        if not isinstance(vals, list) or not all(isinstance(x, str) and x in _PL_SECTION_IDS for x in vals):
+            return f'sections.{key} must be a list of valid section ids'
+    dept_overrides = sections.get('deptOverrides', {})
+    if not isinstance(dept_overrides, dict) or not all(v in ('SK', 'UM', 'exclude') for v in dept_overrides.values()):
+        return 'sections.deptOverrides must map department names to SK/UM/exclude'
+    return None
+
+
 @app.route('/api/views')
 @login_required
 def api_views_list():
@@ -640,6 +692,10 @@ def api_views_create():
         'color': None, 'size': None, 'filters': {},
         'sort': 'desc', 'limit': 500
     })
+    if kind == 'pl':
+        err = _validate_pl_config(cfg)
+        if err:
+            return jsonify({'error': err}), 400
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -669,11 +725,16 @@ def api_views_update(view_id):
     try:
         with db.cursor() as cur:
             cur.execute(
-                "SELECT id FROM user_views WHERE id=%s AND username=%s",
+                "SELECT id, kind FROM user_views WHERE id=%s AND username=%s",
                 (view_id, username)
             )
-            if not cur.fetchone():
+            row = cur.fetchone()
+            if not row:
                 return jsonify({'error': '권한 없음'}), 403
+            if 'config' in data and row['kind'] == 'pl':
+                err = _validate_pl_config(data['config'])
+                if err:
+                    return jsonify({'error': err}), 400
             parts, vals = [], []
             if 'name' in data:
                 parts.append('name=%s'); vals.append(data['name'])

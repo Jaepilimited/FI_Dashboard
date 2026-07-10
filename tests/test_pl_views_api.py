@@ -80,3 +80,41 @@ def test_pl_views_scoped_by_screen(client):
     client.post('/api/views', json={'kind': 'pl', 'screen': 'org', 'name': 'Org 뷰', 'config': {}})
     product_views = client.get('/api/views?kind=pl&screen=product').get_json()['views']
     assert product_views == []
+
+
+def test_pl_views_create_rejects_invalid_sub_order_key(client):
+    authed(client)
+    resp = client.post('/api/views', json={
+        'kind': 'pl', 'screen': 'org', 'name': '잘못된 뷰',
+        'config': {'rows': {'subOrder': {'sgaD': ['nonexistent_key']}}}
+    })
+    assert resp.status_code == 400
+
+
+def test_pl_views_create_accepts_valid_config(client):
+    authed(client)
+    resp = client.post('/api/views', json={
+        'kind': 'pl', 'screen': 'org', 'name': '정상 뷰',
+        'config': {
+            'rows': {
+                'blockOrder': ['sales', 'gross'],
+                'subOrder': {'sgaD': ['adv', 'fee']},
+                'hidden': ['sgaO.etc'],
+                'custom': [{'id': 'c1', 'label': '커스텀', 'formula': 'sales-gross', 'afterId': 'gross', 'valueFormat': 'money'}]
+            },
+            'sections': {'order': ['SK', 'UM'], 'hidden': [], 'deptOverrides': {'PartA': 'SK'}}
+        }
+    })
+    assert resp.status_code == 200
+
+
+def test_pl_views_update_rejects_invalid_config(client):
+    authed(client)
+    create = client.post('/api/views', json={
+        'kind': 'pl', 'screen': 'org', 'name': '수정 대상', 'config': {}
+    })
+    view_id = create.get_json()['id']
+    resp = client.put(f'/api/views/{view_id}', json={
+        'config': {'rows': {'hidden': ['not_a_real_row']}}
+    })
+    assert resp.status_code == 400
