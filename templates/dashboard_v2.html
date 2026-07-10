@@ -5305,7 +5305,6 @@ function renderOrgPl(){
   const wrap=document.getElementById('categoryPlSection');
   if(!wrap)return;
   if(!state.cplData){if(!_cplDataLoading)loadCplData();return;}
-  if(!state.plViewsLoaded.org){state.plViewsLoaded.org=true;loadPlViews('org').then(renderOrgPl);return;}
 
   const cplPd  =state.cplPeriod||'monthly';
   const cplMths=(state.cplData&&state.cplData.months)?state.cplData.months:[];
