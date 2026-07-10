@@ -4934,6 +4934,23 @@ function plEffectiveRowDefs(screenId){
   return result;
 }
 
+const PL_ORG_SECTION_IDS = ['all','SK','UM'];
+let PL_ORG_SECTION_LABEL = null; // 최초 사용 시 지연 초기화 (_BRAND_LABEL 정의 이후 실행되도록)
+function plOrgSectionLabel(id){
+  if (!PL_ORG_SECTION_LABEL) PL_ORG_SECTION_LABEL = { all:'전체', SK:_BRAND_LABEL.SK, UM:_BRAND_LABEL.UM };
+  return PL_ORG_SECTION_LABEL[id];
+}
+
+function plEffectiveSections(screenId){
+  const cfg = state.plViewConfig[screenId];
+  if (!cfg) return PL_ORG_SECTION_IDS.slice();
+  const hidden = new Set((cfg.sections && cfg.sections.hidden) || []);
+  const order = (cfg.sections && cfg.sections.order && cfg.sections.order.length) ? cfg.sections.order : PL_ORG_SECTION_IDS;
+  const ordered = order.filter(function(id){ return PL_ORG_SECTION_IDS.indexOf(id) >= 0; });
+  const remaining = PL_ORG_SECTION_IDS.filter(function(id){ return ordered.indexOf(id) < 0; });
+  return ordered.concat(remaining).filter(function(id){ return !hidden.has(id); });
+}
+
 // 우클릭 다운로드 data 속성 이스케이프 헬퍼
 function escPlAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
 
@@ -5073,6 +5090,7 @@ function renderPlEditPanel(screenId){
      + (activeId != null ? '<button data-pl-view-rename="' + screenId + '">이름변경</button><button data-pl-view-delete="' + screenId + '">삭제</button>' : '')
      + '</div>';
   h += '<div class="pl-edit-panel-body" data-pl-edit-body="' + screenId + '">'
+     + renderPlSectionEditor(screenId)
      + renderPlRowEditor(screenId)
      + renderPlCustomRowEditor(screenId)
      + '</div>';
@@ -5162,6 +5180,53 @@ function wirePlCustomRowHandlers(screenId, panelEl){
   });
 }
 
+function renderPlSectionEditor(screenId){
+  const cfg = state.plViewConfig[screenId];
+  const hidden = new Set((cfg && cfg.sections && cfg.sections.hidden) || []);
+  const rawOrder = (cfg && cfg.sections && cfg.sections.order && cfg.sections.order.length) ? cfg.sections.order : PL_ORG_SECTION_IDS.slice();
+  const orderedValid = rawOrder.filter(function(id){ return PL_ORG_SECTION_IDS.indexOf(id) >= 0; });
+  const order = orderedValid.concat(PL_ORG_SECTION_IDS.filter(function(id){ return orderedValid.indexOf(id) < 0; }));
+  let h = '<div class="pl-edit-section-title">섹션(구분)</div><ul class="pl-edit-section-list" data-pl-section-list="' + screenId + '">';
+  order.forEach(function(id){
+    h += '<li class="pl-edit-section-row" draggable="true" data-pl-section-row="' + id + '">'
+       + '<span class="pl-edit-drag-handle">⣿</span>'
+       + '<label><input type="checkbox" data-pl-section-hide="' + id + '"' + (hidden.has(id) ? '' : ' checked') + '>' + plOrgSectionLabel(id) + '</label></li>';
+  });
+  h += '</ul>';
+  return h;
+}
+
+function wirePlSectionDragHandlers(screenId){
+  const list = document.querySelector('[data-pl-section-list="' + screenId + '"]');
+  if (!list) return;
+  let dragId = null;
+  list.querySelectorAll('[data-pl-section-row]').forEach(function(li){
+    li.addEventListener('dragstart', function(){ dragId = li.dataset.plSectionRow; });
+    li.addEventListener('dragover', function(e){
+      e.preventDefault();
+      const target = e.target.closest('[data-pl-section-row]');
+      if (!target || target.dataset.plSectionRow === dragId) return;
+      const rect = target.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      list.insertBefore(document.querySelector('[data-pl-section-row="' + dragId + '"]'), before ? target : target.nextSibling);
+    });
+    li.addEventListener('dragend', function(){
+      const newOrder = Array.prototype.map.call(list.querySelectorAll('[data-pl-section-row]'), function(el){ return el.dataset.plSectionRow; });
+      plUpdateConfig(screenId, function(cfg){ cfg.sections.order = newOrder; });
+    });
+  });
+  list.querySelectorAll('[data-pl-section-hide]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      const id = cb.dataset.plSectionHide;
+      plUpdateConfig(screenId, function(cfg){
+        const set = new Set(cfg.sections.hidden);
+        if (cb.checked) set.delete(id); else set.add(id);
+        cfg.sections.hidden = Array.from(set);
+      });
+    });
+  });
+}
+
 function wirePlRowDragHandlers(screenId){
   const list = document.querySelector('[data-pl-row-list="' + screenId + '"]');
   if (!list) return;
@@ -5227,6 +5292,7 @@ function wirePlEditPanel(screenId){
   if (deleteBtn) deleteBtn.addEventListener('click', function(){ plDeleteView(screenId); });
   wirePlRowDragHandlers(screenId);
   wirePlCustomRowHandlers(screenId, panel);
+  wirePlSectionDragHandlers(screenId);
 }
 
 function renderOrgPl(){
@@ -5327,12 +5393,16 @@ function renderOrgPl(){
     +'</div></div>'
     +'<div class="card-body card-body-flush"><div class="pl-body-split"><div class="pl-table-wrap">';
 
-  // 전체 합산 테이블 — all 브랜드 데이터 사용 (Others 포함)
   const allDepts=Object.keys(byNode);
-  html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
-  html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
+  const activeSections = plEffectiveSections('org');
 
-  _BRAND_ORDER.forEach(function(brand){
+  activeSections.forEach(function(sec){
+    if (sec === 'all') {
+      html+='<div class="pl-section-title" style="display:flex;align-items:center"><span>전체</span>'+plDlBtn('all',months.join(','),allDepts.join(','))+'</div>';
+      html+=renderTable(secMetrics(allDepts,'all'),allDepts,'all');
+      return;
+    }
+    const brand = sec;
     const brandDivs=_BRAND_DIV[brand]||[];
     const brandDepts=[];
     brandDivs.forEach(function(div){(_DIV_DEPT_MAP[div]||[]).forEach(function(d){if(byNode[d])brandDepts.push(d);});});
