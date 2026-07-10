@@ -54,7 +54,7 @@ ALTER TABLE user_views ADD COLUMN IF NOT EXISTS screen_id VARCHAR(20) DEFAULT NU
     "subOrder": { "sgaD": ["adv", "log", "fee", "hr", "etc"], "sgaO": ["adv", "log", "fee", "hr", "etc"], "sgaC": ["adv", "log", "fee", "hr", "etc"] },
     "hidden": ["sgaD.fee"],
     "custom": [
-      { "id": "custom_1", "label": "매출총이익률", "formula": "gross / sales * 100", "afterId": "gross" }
+      { "id": "custom_1", "label": "매출총이익률", "formula": "gross / sales * 100", "afterId": "gross", "valueFormat": "percent" }
     ]
   },
   "sections": {
@@ -81,7 +81,7 @@ ALTER TABLE user_views ADD COLUMN IF NOT EXISTS screen_id VARCHAR(20) DEFAULT NU
 - `rows.blockOrder`: 8개 앵커 id의 순열. 생략되면 원래 순서.
 - `rows.subOrder`: `sgaD`/`sgaO`/`sgaC` 블록 안 세부계정 5개(`adv`/`log`/`fee`/`hr`/`etc`)의 순서만 재배치. `cogs`는 `subOrder` 대상이 아님(고정).
 - `rows.hidden`: 숨길 행 id 목록. **블록 앵커 8개(`sales`,`gross`,`sgaD`,`direct`,`sgaO`,`contrib`,`sgaC`,`op`)와 `cogs`는 숨김 불가** — UI에서 체크박스 비활성화. 이유: 앵커는 `toggle`로 세부계정 펼침을 제어하는 구조적 필수 행이고, `cogs`는 그 자체가 유일한 고정 멤버라 그룹 구조상 항상 렌더링되어야 함. 세부계정 15개(`sgaD.adv` 등)만 자유롭게 숨김 가능.
-- `rows.custom`: 계산식 행. `formula`는 §4 파서로 검증. `afterId`는 8개 블록 앵커 id 중 하나 — 해당 블록 맨 끝에 삽입.
+- `rows.custom`: 계산식 행. `formula`는 §4 파서로 검증. `afterId`는 8개 블록 앵커 id 중 하나 — 해당 블록 맨 끝에 삽입. `valueFormat`: `'money'`(기본값, 생략 시)|`'percent'`. **구현 중 발견(2026-07-10, Task 6 통합검증)**: 커스텀 행 값도 기본적으로 다른 행과 동일하게 원 단위 금액(백만원)으로 표시되므로, `gross/sales*100` 같은 비율 수식은 `valueFormat:'percent'`를 명시하지 않으면 100만으로 나뉘어 화면에 `0`으로 표시된다(에러 없이 조용히 틀린 값). 비율/퍼센트 결과를 내는 수식은 UI의 "값 형식" 선택에서 반드시 "비율(%)"을 골라야 한다. `percent` 지정 시 합계(총계) 열은 기간별 비율의 단순 합산이 무의미하므로 빈 값("–")으로 표시된다.
 - `sections.order`/`hidden`: `'all'|'SK'|'UM'` 값의 표시 순서·숨김만 제어 (§2 결정에 따라 파일럿은 차원 자체는 고정)
 - `sections.deptOverrides`: 파일럿 확장 옵션 — 특정 부서를 SK↔UM 사이 재배정하거나 제외. `{ "부서명": "SK"|"UM"|"exclude" }`. **1차 구현에서는 빈 객체 허용만 하고 UI는 생략 가능** (Nice-to-have, 아래 §8 우선순위 참조)
 
