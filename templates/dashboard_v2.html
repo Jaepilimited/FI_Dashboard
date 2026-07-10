@@ -1532,7 +1532,7 @@ table.pl-table{margin-bottom:4px}
 .pl-edit-custom-row code{flex:1;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--text-tertiary);font-size:10.5px}
 .pl-edit-custom-row button{border:none;background:none;color:var(--negative);cursor:pointer;font-size:13px}
 .pl-edit-custom-form{margin-top:6px;display:flex;flex-direction:column;gap:5px}
-.pl-edit-custom-form input{font-size:11.5px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)}
+.pl-edit-custom-form input,.pl-edit-custom-form select{font-size:11.5px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)}
 .pl-edit-token-hints{display:flex;flex-wrap:wrap;gap:3px}
 .pl-edit-token-chip{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text-tertiary);cursor:pointer}
 .pl-edit-token-chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -4928,7 +4928,7 @@ function plEffectiveRowDefs(screenId){
       });
     }
     custom.filter(function(c){ return c.afterId === anchor; }).forEach(function(c){
-      result.push({ id:c.id, label:c.label, custom:true, formula:c.formula, sub:false, pct:false });
+      result.push({ id:c.id, label:c.label, custom:true, formula:c.formula, sub:false, pct:false, valueFormat:c.valueFormat || 'money' });
     });
   });
   return result;
@@ -4959,6 +4959,9 @@ const PL_EMPTY = '<span class="pl-empty">–</span>';
 function fmtMm(v){
   const mm = Math.round(v / 1e6);
   return (mm < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(mm).toLocaleString('ko-KR') + '</span>';
+}
+function fmtRatioPct(v){
+  return (v < 0 ? '<span class="pl-neg">-' : '<span>') + Math.abs(v).toFixed(1) + '%</span>';
 }
 function momCell(cur, prev){
   if (prev === undefined || !prev) return '<div class="pl-mom pl-mom-na">–</div>';
@@ -5143,6 +5146,7 @@ function renderPlCustomRowEditor(screenId){
      + '<div class="pl-edit-custom-form">'
      + '<input type="text" placeholder="행 이름 (예: 매출총이익률)" data-pl-custom-name-input>'
      + '<input type="text" placeholder="수식 (예: gross / sales * 100)" data-pl-custom-formula-input>'
+     + '<select data-pl-custom-format-input><option value="money" selected>값 형식: 금액(백만원)</option><option value="percent">값 형식: 비율(%)</option></select>'
      + '<div class="pl-edit-token-hints">' + PL_FORMULA_TOKENS.map(function(t){ return '<span class="pl-edit-token-chip" data-pl-token-insert="' + t + '">' + t + '</span>'; }).join('') + '</div>'
      + '<div class="pl-edit-custom-error" data-pl-custom-error></div>'
      + '<button data-pl-custom-add="' + screenId + '">+ 계산식 행 추가 (영업이익 뒤에 삽입)</button>'
@@ -5163,13 +5167,15 @@ function wirePlCustomRowHandlers(screenId, panelEl){
   if (addBtn) addBtn.addEventListener('click', function(){
     const nameInput = panelEl.querySelector('[data-pl-custom-name-input]');
     const formulaInput = panelEl.querySelector('[data-pl-custom-formula-input]');
+    const formatInput = panelEl.querySelector('[data-pl-custom-format-input]');
     const errBox = panelEl.querySelector('[data-pl-custom-error]');
     const name = nameInput.value.trim(), formula = formulaInput.value.trim();
+    const valueFormat = formatInput && formatInput.value === 'percent' ? 'percent' : 'money';
     errBox.textContent = '';
     if (!name) { errBox.textContent = '행 이름을 입력하세요'; return; }
     try { plValidateFormula(formula); } catch(e){ errBox.textContent = e.message; return; }
     plUpdateConfig(screenId, function(cfg){
-      cfg.rows.custom.push({ id:'custom_' + Date.now(), label:name, formula:formula, afterId:'op' });
+      cfg.rows.custom.push({ id:'custom_' + Date.now(), label:name, formula:formula, afterId:'op', valueFormat:valueFormat });
     });
   });
   panelEl.querySelectorAll('[data-pl-custom-delete]').forEach(function(btn){
@@ -5358,11 +5364,11 @@ function renderOrgPl(){
       const totV=tv(row);
       t+='<tr class="'+cls+'"'+(tk?' data-cpl-toggle="'+tk+'"':'')+'>'+
         '<td>'+chev+escPlAttr(row.label)+'</td>'+
-        '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+fmtMm(totV)+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+        '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+((row.custom&&row.valueFormat==='percent')?fmtRatioPct(totV):fmtMm(totV))+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
       periods.forEach(function(prd,pi){
         const pV=pv(row,prd),prV=pi>0?pv(row,periods[pi-1]):undefined;
         const mStr=prd.monthIndices.map(function(i){return months[i];}).join(',');
-        t+='<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+mStr+'" data-plsec="'+brandKey+'">'+fmtMm(pV)+momCell(pV,prV)+'</td>';
+        t+='<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+mStr+'" data-plsec="'+brandKey+'">'+((row.custom&&row.valueFormat==='percent')?fmtRatioPct(pV):fmtMm(pV))+momCell(pV,prV)+'</td>';
       });
       t+='</tr>';
       if(row.pct&&(!row.pctMember||plExpanded.has(PFX+':'+row.pctMember))){
