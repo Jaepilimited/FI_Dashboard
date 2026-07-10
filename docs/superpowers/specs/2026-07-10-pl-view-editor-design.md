@@ -50,7 +50,8 @@ ALTER TABLE user_views ADD COLUMN IF NOT EXISTS screen_id VARCHAR(20) DEFAULT NU
 ```json
 {
   "rows": {
-    "order": ["sales", "cogs", "gross", "sgaD", "sgaD.adv", "..."],
+    "blockOrder": ["sales", "gross", "sgaD", "direct", "sgaO", "contrib", "sgaC", "op"],
+    "subOrder": { "sgaD": ["adv", "log", "fee", "hr", "etc"], "sgaO": ["adv", "log", "fee", "hr", "etc"], "sgaC": ["adv", "log", "fee", "hr", "etc"] },
     "hidden": ["sgaD.fee"],
     "custom": [
       { "id": "custom_1", "label": "매출총이익률", "formula": "gross / sales * 100", "afterId": "gross" }
@@ -64,9 +65,23 @@ ALTER TABLE user_views ADD COLUMN IF NOT EXISTS screen_id VARCHAR(20) DEFAULT NU
 }
 ```
 
-- `rows.order`: 최상위 행 id만 순서 보유(서브 행은 항상 부모 뒤에 원래 상대 순서 유지). 생략된 id는 `CPL_ROW_DEFS` 원래 순서 뒤에 자동 append.
-- `rows.hidden`: 숨길 행 id 목록. **`bold:true` 행(`sales`,`gross`,`sgaD`,`direct`,`sgaO`,`contrib`,`sgaC`,`op`, 총 8개)은 숨김 불가** — UI에서 체크박스 비활성화. 이유: `sgaD`/`sgaO`/`sgaC`는 자기 자신의 `toggle` id가 하위 세부계정(`member`)의 펼침 상태를 제어하는 앵커라서, 숨기면 세부계정을 펼칠 방법이 사라짐. 세부계정 5종(`sgaD.adv` 등)만 자유롭게 숨김 가능.
-- `rows.custom`: 계산식 행. `formula`는 §4 파서로 검증.
+**행 순서 모델 (블록 단위) — 셀프리뷰로 정밀화:** `CPL_ROW_DEFS`를 그대로 훑으면 `cogs`(매출원가, `member:'gross'`)가 자신의 그룹 앵커인 `gross`(매출총이익, `toggle:'gross'`)보다 배열상 **앞**에 위치한다 — `sgaD`류(앵커가 세부계정보다 먼저 나옴)와 반대 패턴이라, "서브 행은 항상 부모 뒤"라는 단순 규칙이 깨진다. 따라서 최상위 재배치 단위를 8개 **고정 블록**으로 명시한다:
+
+| 블록 앵커 | 포함 행 (원래 순서 고정) | 재배치 가능 범위 |
+|-----------|--------------------------|-------------------|
+| `sales`   | `sales` | 블록 전체가 다른 블록과 자유 순서 교환 |
+| `gross`   | `cogs`, `gross` (이 순서 고정) | 블록 전체 이동만 가능. `cogs`/`gross` 내부 순서·숨김 불가 |
+| `sgaD`    | `sgaD`, `sgaD.adv/.log/.fee/.hr/.etc` | 블록 이동 가능 + 세부계정 5개는 서로 순서 변경·숨김 가능 |
+| `direct`  | `direct` | 블록 전체 이동만 |
+| `sgaO`    | `sgaO` + 세부계정 5개 | `sgaD`와 동일 |
+| `contrib` | `contrib` | 블록 전체 이동만 |
+| `sgaC`    | `sgaC` + 세부계정 5개 | `sgaD`와 동일 |
+| `op`      | `op` | 블록 전체 이동만 |
+
+- `rows.blockOrder`: 8개 앵커 id의 순열. 생략되면 원래 순서.
+- `rows.subOrder`: `sgaD`/`sgaO`/`sgaC` 블록 안 세부계정 5개(`adv`/`log`/`fee`/`hr`/`etc`)의 순서만 재배치. `cogs`는 `subOrder` 대상이 아님(고정).
+- `rows.hidden`: 숨길 행 id 목록. **블록 앵커 8개(`sales`,`gross`,`sgaD`,`direct`,`sgaO`,`contrib`,`sgaC`,`op`)와 `cogs`는 숨김 불가** — UI에서 체크박스 비활성화. 이유: 앵커는 `toggle`로 세부계정 펼침을 제어하는 구조적 필수 행이고, `cogs`는 그 자체가 유일한 고정 멤버라 그룹 구조상 항상 렌더링되어야 함. 세부계정 15개(`sgaD.adv` 등)만 자유롭게 숨김 가능.
+- `rows.custom`: 계산식 행. `formula`는 §4 파서로 검증. `afterId`는 8개 블록 앵커 id 중 하나 — 해당 블록 맨 끝에 삽입.
 - `sections.order`/`hidden`: `'all'|'SK'|'UM'` 값의 표시 순서·숨김만 제어 (§2 결정에 따라 파일럿은 차원 자체는 고정)
 - `sections.deptOverrides`: 파일럿 확장 옵션 — 특정 부서를 SK↔UM 사이 재배정하거나 제외. `{ "부서명": "SK"|"UM"|"exclude" }`. **1차 구현에서는 빈 객체 허용만 하고 UI는 생략 가능** (Nice-to-have, 아래 §8 우선순위 참조)
 
