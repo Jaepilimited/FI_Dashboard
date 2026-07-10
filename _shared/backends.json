@@ -11,11 +11,11 @@
       "result_capture": "orchestrator"
     },
     "codex-main": {
-      "model": "codex-default",
+      "model": "gpt-5.6-sol",
       "call_type": "mcp",
       "mcp": {
         "tool": "mcp__codex__codex",
-        "args_template": { "prompt": "@brief_content", "sandbox": "read-only", "approval-policy": "never" }
+        "args_template": { "prompt": "@brief_content", "model": "gpt-5.6-sol", "sandbox": "read-only", "approval-policy": "never" }
       },
       "brief_mode": "content",
       "approval_class": "worker",
@@ -23,19 +23,19 @@
       "timeout": 300,
       "fallbacks": [
         {
-          "model": "codex-default", "call_type": "cli", "brief_mode": "stdin", "timeout": 300,
+          "model": "gpt-5.6-sol", "call_type": "cli", "brief_mode": "stdin", "timeout": 300,
           "approval_class": "worker", "result_capture": "envelope",
-          "cli": { "command": "codex", "args_template": ["exec", "-"],
+          "cli": { "command": "codex", "args_template": ["exec", "-m", "gpt-5.6-sol", "-"],
                    "non_interactive": { "stdin": "brief", "no_tty": true, "on_permission_prompt": "fail" } }
         }
       ]
     },
     "codex-critic": {
-      "model": "codex-default",
+      "model": "gpt-5.6-sol",
       "call_type": "mcp",
       "mcp": {
         "tool": "mcp__codex__codex",
-        "args_template": { "prompt": "@brief_content", "sandbox": "read-only", "approval-policy": "never" }
+        "args_template": { "prompt": "@brief_content", "model": "gpt-5.6-sol", "sandbox": "read-only", "approval-policy": "never" }
       },
       "brief_mode": "content",
       "approval_class": "worker",
@@ -43,9 +43,9 @@
       "timeout": 300,
       "fallbacks": [
         {
-          "model": "codex-default", "call_type": "cli", "brief_mode": "stdin", "timeout": 300,
+          "model": "gpt-5.6-sol", "call_type": "cli", "brief_mode": "stdin", "timeout": 300,
           "approval_class": "worker", "result_capture": "envelope",
-          "cli": { "command": "codex", "args_template": ["exec", "-"],
+          "cli": { "command": "codex", "args_template": ["exec", "-m", "gpt-5.6-sol", "-"],
                    "non_interactive": { "stdin": "brief", "no_tty": true, "on_permission_prompt": "fail" } }
         }
       ]
