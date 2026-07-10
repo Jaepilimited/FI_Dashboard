@@ -4815,8 +4815,88 @@ const PL_ROW_BLOCKS = [
 ];
 const PL_SUB_GROUP_KEYS = ['adv','log','fee','hr','etc'];
 
-// Task 4에서 실제 수식 파서로 교체됨. 그때까지 custom 행은 항상 빈 배열이라 호출되지 않는다.
-function plEvalFormula(formula, M, months){ return months.map(function(){ return 0; }); }
+const PL_FORMULA_TOKENS = [
+  'sales','cogs','gross','op','direct','contrib',
+  'sgaD','sgaD.adv','sgaD.log','sgaD.fee','sgaD.hr','sgaD.etc',
+  'sgaO','sgaO.adv','sgaO.log','sgaO.fee','sgaO.hr','sgaO.etc',
+  'sgaC','sgaC.adv','sgaC.log','sgaC.fee','sgaC.hr','sgaC.etc',
+];
+const PL_FORMULA_TOKEN_SET = new Set(PL_FORMULA_TOKENS);
+const PL_FORMULA_RE = /\s*(sgaD\.adv|sgaD\.log|sgaD\.fee|sgaD\.hr|sgaD\.etc|sgaO\.adv|sgaO\.log|sgaO\.fee|sgaO\.hr|sgaO\.etc|sgaC\.adv|sgaC\.log|sgaC\.fee|sgaC\.hr|sgaC\.etc|sales|cogs|gross|op|direct|contrib|sgaD|sgaO|sgaC|\d+\.\d+|\d+|\+|-|\*|\/|\(|\))\s*/y;
+
+function plTokenizeFormula(src){
+  const tokens = [];
+  let i = 0;
+  while (i < src.length) {
+    PL_FORMULA_RE.lastIndex = i;
+    const m = PL_FORMULA_RE.exec(src);
+    if (!m || m.index !== i) throw new Error('알 수 없는 문자: "' + src.slice(i, i + 1) + '"');
+    tokens.push(m[1]);
+    i = PL_FORMULA_RE.lastIndex;
+  }
+  return tokens;
+}
+
+function plParseFormula(src){
+  const tokens = plTokenizeFormula(src);
+  let pos = 0;
+  function peek(){ return tokens[pos]; }
+  function next(){ return tokens[pos++]; }
+  function parseAtom(){
+    const t = next();
+    if (t === undefined) throw new Error('수식이 완성되지 않았습니다');
+    if (t === '(') {
+      const node = parseExpr();
+      if (next() !== ')') throw new Error('닫는 괄호 ")"가 필요합니다');
+      return node;
+    }
+    if (PL_FORMULA_TOKEN_SET.has(t)) return { type:'metric', id:t };
+    if (/^\d+(\.\d+)?$/.test(t)) return { type:'const', value:parseFloat(t) };
+    throw new Error('허용되지 않은 토큰: "' + t + '" (허용: ' + PL_FORMULA_TOKENS.join(', ') + ', 숫자, + - * / ( ))');
+  }
+  function parseTerm(){
+    let node = parseAtom();
+    while (peek() === '*' || peek() === '/') {
+      const op = next();
+      node = { type:'bin', op:op, left:node, right:parseAtom() };
+    }
+    return node;
+  }
+  function parseExpr(){
+    let node = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      const op = next();
+      node = { type:'bin', op:op, left:node, right:parseTerm() };
+    }
+    return node;
+  }
+  const ast = parseExpr();
+  if (pos !== tokens.length) throw new Error('수식 끝에 예상치 못한 문자가 있습니다: "' + tokens[pos] + '"');
+  return ast;
+}
+
+function plEvalAst(ast, valueAt){
+  if (ast.type === 'const') return ast.value;
+  if (ast.type === 'metric') return valueAt(ast.id);
+  const l = plEvalAst(ast.left, valueAt), r = plEvalAst(ast.right, valueAt);
+  if (ast.op === '+') return l + r;
+  if (ast.op === '-') return l - r;
+  if (ast.op === '*') return l * r;
+  if (ast.op === '/') return r === 0 ? 0 : l / r;
+  throw new Error('알 수 없는 연산자: ' + ast.op);
+}
+
+function plValidateFormula(formula){
+  plParseFormula(formula); // 문법 에러면 여기서 throw
+}
+
+function plEvalFormula(formula, M, months){
+  let ast;
+  try { ast = plParseFormula(formula); } catch(e){ return months.map(function(){ return 0; }); }
+  return months.map(function(_, i){
+    return plEvalAst(ast, function(id){ return (cplRowValue(M, id) || [])[i] || 0; });
+  });
+}
 
 function plEffectiveRowDefs(screenId){
   const cfg = state.plViewConfig[screenId];
@@ -4994,6 +5074,7 @@ function renderPlEditPanel(screenId){
      + '</div>';
   h += '<div class="pl-edit-panel-body" data-pl-edit-body="' + screenId + '">'
      + renderPlRowEditor(screenId)
+     + renderPlCustomRowEditor(screenId)
      + '</div>';
   h += '</div>';
   return h;
@@ -5030,6 +5111,55 @@ function renderPlRowEditor(screenId){
   });
   h += '</ul>';
   return h;
+}
+
+function renderPlCustomRowEditor(screenId){
+  const cfg = state.plViewConfig[screenId];
+  const custom = (cfg && cfg.rows && cfg.rows.custom) || [];
+  let h = '<div class="pl-edit-section-title">계산식 행</div><ul class="pl-edit-custom-list">';
+  custom.forEach(function(c){
+    h += '<li class="pl-edit-custom-row"><span>' + escPlAttr(c.label) + '</span><code>' + escPlAttr(c.formula) + '</code>'
+       + '<button data-pl-custom-delete="' + c.id + '" data-pl-screen="' + screenId + '">×</button></li>';
+  });
+  h += '</ul>'
+     + '<div class="pl-edit-custom-form">'
+     + '<input type="text" placeholder="행 이름 (예: 매출총이익률)" data-pl-custom-name-input>'
+     + '<input type="text" placeholder="수식 (예: gross / sales * 100)" data-pl-custom-formula-input>'
+     + '<div class="pl-edit-token-hints">' + PL_FORMULA_TOKENS.map(function(t){ return '<span class="pl-edit-token-chip" data-pl-token-insert="' + t + '">' + t + '</span>'; }).join('') + '</div>'
+     + '<div class="pl-edit-custom-error" data-pl-custom-error></div>'
+     + '<button data-pl-custom-add="' + screenId + '">+ 계산식 행 추가 (영업이익 뒤에 삽입)</button>'
+     + '</div>';
+  return h;
+}
+
+function wirePlCustomRowHandlers(screenId, panelEl){
+  if (!panelEl) return;
+  panelEl.querySelectorAll('[data-pl-token-insert]').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      const input = panelEl.querySelector('[data-pl-custom-formula-input]');
+      input.value += (input.value && !/[\s+\-*/(]$/.test(input.value) ? ' ' : '') + chip.dataset.plTokenInsert;
+      input.focus();
+    });
+  });
+  const addBtn = panelEl.querySelector('[data-pl-custom-add="' + screenId + '"]');
+  if (addBtn) addBtn.addEventListener('click', function(){
+    const nameInput = panelEl.querySelector('[data-pl-custom-name-input]');
+    const formulaInput = panelEl.querySelector('[data-pl-custom-formula-input]');
+    const errBox = panelEl.querySelector('[data-pl-custom-error]');
+    const name = nameInput.value.trim(), formula = formulaInput.value.trim();
+    errBox.textContent = '';
+    if (!name) { errBox.textContent = '행 이름을 입력하세요'; return; }
+    try { plValidateFormula(formula); } catch(e){ errBox.textContent = e.message; return; }
+    plUpdateConfig(screenId, function(cfg){
+      cfg.rows.custom.push({ id:'custom_' + Date.now(), label:name, formula:formula, afterId:'op' });
+    });
+  });
+  panelEl.querySelectorAll('[data-pl-custom-delete]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const id = btn.dataset.plCustomDelete, screen = btn.dataset.plScreen;
+      plUpdateConfig(screen, function(cfg){ cfg.rows.custom = cfg.rows.custom.filter(function(c){ return c.id !== id; }); });
+    });
+  });
 }
 
 function wirePlRowDragHandlers(screenId){
@@ -5096,6 +5226,7 @@ function wirePlEditPanel(screenId){
   const deleteBtn = panel.querySelector('[data-pl-view-delete="' + screenId + '"]');
   if (deleteBtn) deleteBtn.addEventListener('click', function(){ plDeleteView(screenId); });
   wirePlRowDragHandlers(screenId);
+  wirePlCustomRowHandlers(screenId, panel);
 }
 
 function renderOrgPl(){
