@@ -224,6 +224,8 @@ def init_db():
                     INDEX idx_uv_username (username)
                 )
             """)
+            cur.execute("ALTER TABLE user_views ADD COLUMN IF NOT EXISTS kind VARCHAR(20) NOT NULL DEFAULT 'tableau'")
+            cur.execute("ALTER TABLE user_views ADD COLUMN IF NOT EXISTS screen_id VARCHAR(20) DEFAULT NULL")
         db.commit()
     finally:
         db.close()
@@ -594,14 +596,25 @@ def api_tableau_fields():
 @login_required
 def api_views_list():
     username = session['user']['username']
+    kind = request.args.get('kind', 'tableau').strip()
+    screen = request.args.get('screen', '').strip()
+    if kind == 'pl' and not screen:
+        return jsonify({'error': 'screen required for kind=pl'}), 400
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute(
-                "SELECT id, name, config, sort_order FROM user_views "
-                "WHERE username=%s ORDER BY sort_order ASC, id ASC",
-                (username,)
-            )
+            if kind == 'pl':
+                cur.execute(
+                    "SELECT id, name, config, sort_order FROM user_views "
+                    "WHERE username=%s AND kind=%s AND screen_id=%s ORDER BY sort_order ASC, id ASC",
+                    (username, kind, screen)
+                )
+            else:
+                cur.execute(
+                    "SELECT id, name, config, sort_order FROM user_views "
+                    "WHERE username=%s AND kind=%s ORDER BY sort_order ASC, id ASC",
+                    (username, kind)
+                )
             rows = cur.fetchall()
         for r in rows:
             if isinstance(r['config'], str):
@@ -616,6 +629,10 @@ def api_views_list():
 def api_views_create():
     username = session['user']['username']
     data = request.get_json() or {}
+    kind = (data.get('kind') or 'tableau').strip()
+    screen = (data.get('screen') or '').strip()
+    if kind == 'pl' and not screen:
+        return jsonify({'error': 'screen required for kind=pl'}), 400
     name = data.get('name', '시트 1')
     cfg = data.get('config', {
         'chartType': 'bar', 'mode': 'chart',
@@ -632,9 +649,9 @@ def api_views_create():
             )
             next_ord = (cur.fetchone() or {}).get('next_ord', 0)
             cur.execute(
-                "INSERT INTO user_views (username, name, config, sort_order) "
-                "VALUES (%s,%s,%s,%s)",
-                (username, name, json.dumps(cfg), next_ord)
+                "INSERT INTO user_views (username, name, config, sort_order, kind, screen_id) "
+                "VALUES (%s,%s,%s,%s,%s,%s)",
+                (username, name, json.dumps(cfg), next_ord, kind, screen or None)
             )
             new_id = cur.lastrowid
         db.commit()
