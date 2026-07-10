@@ -1,7 +1,7 @@
 # 손익계산서 편집 기능 (PL View Editor) — Design Spec
 
 **Date:** 2026-07-10
-**Status:** Approved (pilot scope)
+**Status:** Implemented (pilot — org screen)
 
 ---
 
