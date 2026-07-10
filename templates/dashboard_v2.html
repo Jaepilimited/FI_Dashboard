@@ -1508,6 +1508,36 @@ table.pl-table{width:100%; border-collapse:collapse; font-size:11.5px; min-width
 .pl-table th.pl-col-child{font-weight:600;color:var(--text-tertiary)}
 .pl-month-matrix thead tr th.pl-div-group{background:#374151 !important;color:#e5e7eb !important;border-left:2px solid #6B7280}
 table.pl-table{margin-bottom:4px}
+.pl-body-split{display:flex;align-items:flex-start}
+.pl-body-split>.pl-table-wrap{flex:1;min-width:0}
+.pl-edit-toggle-btn{background:none;border:1px solid var(--border,#3a3a5c);border-radius:6px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-tertiary);margin-left:6px}
+.pl-edit-toggle-btn:hover{border-color:var(--border-strong);color:var(--text)}
+.pl-edit-toggle-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.pl-edit-panel{width:280px;flex-shrink:0;border-left:1px solid var(--border);padding:14px;background:var(--surface-2);font-size:12px}
+.pl-edit-panel-hd{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.pl-edit-view-label{font-size:10px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase}
+.pl-edit-view-select{flex:1;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)}
+.pl-edit-panel-actions{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.pl-edit-panel-actions button{font-size:10.5px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text-secondary);cursor:pointer}
+.pl-edit-panel-actions button:hover{border-color:var(--accent);color:var(--accent)}
+.pl-edit-section-title{font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;margin:12px 0 6px}
+.pl-edit-row-list,.pl-edit-sub-list,.pl-edit-section-list,.pl-edit-custom-list{list-style:none;margin:0;padding:0}
+.pl-edit-row-block,.pl-edit-section-row{display:flex;align-items:center;gap:6px;padding:5px 4px;border-radius:5px;cursor:grab;background:var(--surface)}
+.pl-edit-row-block+.pl-edit-row-block,.pl-edit-section-row+.pl-edit-section-row{margin-top:3px}
+.pl-edit-sub-list{margin-left:18px;margin-top:2px}
+.pl-edit-sub-row{display:flex;align-items:center;gap:6px;padding:3px 4px;border-radius:5px;cursor:grab;font-size:11px;color:var(--text-secondary)}
+.pl-edit-drag-handle{color:var(--text-tertiary);font-size:11px;cursor:grab;flex-shrink:0}
+.pl-edit-row-locked-label{font-weight:700}
+.pl-edit-custom-row{display:flex;align-items:center;gap:6px;padding:4px;font-size:11px}
+.pl-edit-custom-row code{flex:1;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--text-tertiary);font-size:10.5px}
+.pl-edit-custom-row button{border:none;background:none;color:var(--negative);cursor:pointer;font-size:13px}
+.pl-edit-custom-form{margin-top:6px;display:flex;flex-direction:column;gap:5px}
+.pl-edit-custom-form input{font-size:11.5px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)}
+.pl-edit-token-hints{display:flex;flex-wrap:wrap;gap:3px}
+.pl-edit-token-chip{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text-tertiary);cursor:pointer}
+.pl-edit-token-chip:hover{border-color:var(--accent);color:var(--accent)}
+.pl-edit-custom-error{font-size:10.5px;color:var(--negative);min-height:14px}
+.pl-edit-custom-form>button{font-size:11px;padding:5px;border:1px solid var(--accent);border-radius:5px;background:var(--accent-soft);color:var(--accent);cursor:pointer}
 
 /* ═══ Data scope footer ═══════════════════════════════════════════════ */
 .scope-note{
@@ -2817,6 +2847,11 @@ const state = {
   plPeriod: 'monthly',
   cplPeriod: 'monthly',
   cplData: null,   // /api/pl 실데이터 캐시: { months:[...], byNode:{name:{SK:{...},UM:{...}}} }
+  plEdit: { org: false },
+  plViews: { org: [] },
+  plViewsLoaded: { org: false },
+  plActiveView: { org: null },
+  plViewConfig: { org: null },
   drill: { overview:[], org:[], region:[], product:[], sales:[], rawdata:[], tableau:[] },
   filterSel: {
     org:     {0: new Set(), 1: new Set(), 2: new Set()},
@@ -4819,10 +4854,117 @@ function cplAggPeriods(period, months){
   return result;
 }
 // ─── 조직별 P&L: SK/유통 > 본부 > 부서 계층형 (접기/펼치기) ─────────────
+function plBlankConfig(){
+  return { rows:{blockOrder:[],subOrder:{},hidden:[],custom:[]}, sections:{order:[],hidden:[],deptOverrides:{}} };
+}
+
+function plUpdateConfig(screenId, mutator){
+  if (!state.plViewConfig[screenId]) state.plViewConfig[screenId] = plBlankConfig();
+  mutator(state.plViewConfig[screenId]);
+  renderOrgPl();
+}
+
+async function loadPlViews(screenId){
+  try {
+    const r = await fetch('/api/views?kind=pl&screen=' + screenId, {credentials:'same-origin'}).then(function(res){return res.json();});
+    state.plViews[screenId] = r.views || [];
+  } catch(e){ console.error('[plViews] load error', e); state.plViews[screenId] = []; }
+}
+
+async function togglePlEdit(screenId){
+  state.plEdit[screenId] = !state.plEdit[screenId];
+  if (state.plEdit[screenId] && !state.plViewsLoaded[screenId]) {
+    state.plViewsLoaded[screenId] = true;
+    await loadPlViews(screenId);
+  }
+  renderOrgPl();
+}
+
+function plSwitchView(screenId, viewId){
+  state.plActiveView[screenId] = viewId;
+  const v = viewId == null ? null : (state.plViews[screenId] || []).filter(function(x){ return x.id === viewId; })[0];
+  state.plViewConfig[screenId] = v ? v.config : null;
+  renderOrgPl();
+}
+
+async function plSaveAsNewView(screenId){
+  const name = prompt('새 뷰 이름을 입력하세요');
+  if (!name) return;
+  const cfg = state.plViewConfig[screenId] || plBlankConfig();
+  const created = await fetch('/api/views', {
+    method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+    body: JSON.stringify({kind:'pl', screen:screenId, name:name, config:cfg})
+  }).then(function(r){ return r.json(); });
+  state.plViews[screenId].push(created);
+  state.plActiveView[screenId] = created.id;
+  state.plViewConfig[screenId] = created.config;
+  renderOrgPl();
+}
+
+async function plRenameView(screenId){
+  const id = state.plActiveView[screenId];
+  if (id == null) return;
+  const view = (state.plViews[screenId] || []).filter(function(v){ return v.id === id; })[0];
+  const name = prompt('새 이름', view ? view.name : '');
+  if (!name) return;
+  await fetch('/api/views/' + id, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+    body: JSON.stringify({name:name})
+  });
+  if (view) view.name = name;
+  renderOrgPl();
+}
+
+async function plDeleteView(screenId){
+  const id = state.plActiveView[screenId];
+  if (id == null) return;
+  if (!confirm('이 뷰를 삭제할까요?')) return;
+  await fetch('/api/views/' + id, {method:'DELETE', credentials:'same-origin'});
+  state.plViews[screenId] = (state.plViews[screenId] || []).filter(function(v){ return v.id !== id; });
+  state.plActiveView[screenId] = null;
+  state.plViewConfig[screenId] = null;
+  renderOrgPl();
+}
+
+function renderPlEditPanel(screenId){
+  const views = state.plViews[screenId] || [];
+  const activeId = state.plActiveView[screenId];
+  let h = '<div class="pl-edit-panel">';
+  h += '<div class="pl-edit-panel-hd">'
+     + '<span class="pl-edit-view-label">뷰</span>'
+     + '<select class="pl-edit-view-select" data-pl-view-select="' + screenId + '">'
+     + '<option value=""' + (activeId == null ? ' selected' : '') + '>기본</option>'
+     + views.map(function(v){ return '<option value="' + v.id + '"' + (activeId === v.id ? ' selected' : '') + '>' + escPlAttr(v.name) + '</option>'; }).join('')
+     + '</select>'
+     + '</div>';
+  h += '<div class="pl-edit-panel-actions">'
+     + '<button data-pl-view-save-as="' + screenId + '">+ 새 뷰로 저장</button>'
+     + (activeId != null ? '<button data-pl-view-rename="' + screenId + '">이름변경</button><button data-pl-view-delete="' + screenId + '">삭제</button>' : '')
+     + '</div>';
+  h += '<div class="pl-edit-panel-body" data-pl-edit-body="' + screenId + '"></div>';
+  h += '</div>';
+  return h;
+}
+
+function wirePlEditPanel(screenId){
+  const panel = document.querySelector('.pl-edit-panel');
+  if (!panel) return;
+  const sel = panel.querySelector('[data-pl-view-select="' + screenId + '"]');
+  if (sel) sel.addEventListener('change', function(){ plSwitchView(screenId, sel.value ? parseInt(sel.value, 10) : null); });
+  const saveAsBtn = panel.querySelector('[data-pl-view-save-as="' + screenId + '"]');
+  if (saveAsBtn) saveAsBtn.addEventListener('click', function(){ plSaveAsNewView(screenId); });
+  const renameBtn = panel.querySelector('[data-pl-view-rename="' + screenId + '"]');
+  if (renameBtn) renameBtn.addEventListener('click', function(){ plRenameView(screenId); });
+  const deleteBtn = panel.querySelector('[data-pl-view-delete="' + screenId + '"]');
+  if (deleteBtn) deleteBtn.addEventListener('click', function(){ plDeleteView(screenId); });
+  // Task 3/4/5가 여기에 각자의 wire*Handlers(screenId) 호출을 추가한다
+}
+
 function renderOrgPl(){
   const wrap=document.getElementById('categoryPlSection');
   if(!wrap)return;
   if(!state.cplData){if(!_cplDataLoading)loadCplData();return;}
+  if(!state.plViewsLoaded.org){state.plViewsLoaded.org=true;loadPlViews('org').then(renderOrgPl);return;}
 
   const cplPd  =state.cplPeriod||'monthly';
   const cplMths=(state.cplData&&state.cplData.months)?state.cplData.months:[];
@@ -4906,8 +5048,10 @@ function renderOrgPl(){
     +'<button class="pl-pt'+(cplPd==='halfyear'?' active':'')+'" data-cpl-period="halfyear">반기별</button>'
     +'<button class="pl-pt'+(cplPd==='filter'?' active':'')+'" data-cpl-period="filter">필터</button>'
     +'</div>'
-    +'<div class="waterfall-card-unit">단위: 백만원</div></div></div>'
-    +'<div class="card-body card-body-flush"><div class="pl-table-wrap">';
+    +'<div class="waterfall-card-unit">단위: 백만원</div>'
+    +'<button class="pl-edit-toggle-btn'+(state.plEdit.org?' active':'')+'" data-pl-edit-toggle="org" title="편집"><i data-lucide="sliders-horizontal"></i></button>'
+    +'</div></div>'
+    +'<div class="card-body card-body-flush"><div class="pl-body-split"><div class="pl-table-wrap">';
 
   // 전체 합산 테이블 — all 브랜드 데이터 사용 (Others 포함)
   const allDepts=Object.keys(byNode);
@@ -4941,7 +5085,9 @@ function renderOrgPl(){
     });
   });
 
-  html+='</div></div></div>';
+  html += '</div>'; // .pl-table-wrap 닫기
+  if (state.plEdit.org) html += renderPlEditPanel('org');
+  html += '</div></div></div>'; // .pl-body-split, .card-body, .card 닫기
   wrap.innerHTML=html;
 
   wrap.querySelectorAll('[data-org-brand]').forEach(function(el){
@@ -4972,6 +5118,10 @@ function renderOrgPl(){
       state.cplPeriod=p;renderOrgPl();
     });
   });
+  wrap.querySelectorAll('[data-pl-edit-toggle]').forEach(function(btn){
+    btn.addEventListener('click', function(){ togglePlEdit(btn.dataset.plEditToggle); });
+  });
+  if (state.plEdit.org) wirePlEditPanel('org');
   if(window.lucide)window.lucide.createIcons();
 }
 
