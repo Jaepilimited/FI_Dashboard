@@ -5364,7 +5364,7 @@ function renderOrgPl(){
       const totV=tv(row);
       t+='<tr class="'+cls+'"'+(tk?' data-cpl-toggle="'+tk+'"':'')+'>'+
         '<td>'+chev+escPlAttr(row.label)+'</td>'+
-        '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+((row.custom&&row.valueFormat==='percent')?fmtRatioPct(totV):fmtMm(totV))+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
+        '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+((row.custom&&row.valueFormat==='percent')?PL_EMPTY:fmtMm(totV))+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
       periods.forEach(function(prd,pi){
         const pV=pv(row,prd),prV=pi>0?pv(row,periods[pi-1]):undefined;
         const mStr=prd.monthIndices.map(function(i){return months[i];}).join(',');
