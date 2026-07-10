@@ -4595,7 +4595,7 @@ let _cplDataLoading = false;
 function _cplDimCol(){
   const cat = state.category;
   const vl = (state.viewLevel && state.viewLevel[cat] != null) ? state.viewLevel[cat] : 0;
-  if (cat === 'org')     return 'Department';
+  if (cat === 'org')     return plEffectiveSectionDim('org');
   if (cat === 'region')  return vl === 0 ? 'Continent1' : vl === 1 ? 'Continent2' : vl === 2 ? 'Country' : 'Customer';
   if (cat === 'product') return vl === 0 ? 'Line' : vl === 1 ? 'Category' : 'Product_Name';
   if (cat === 'sales')   return 'Sales_Type';
@@ -4635,40 +4635,17 @@ async function loadCplData(){
   if (wrap) wrap.innerHTML = '<div style="padding:20px;color:var(--text-tertiary)">불러오는 중…</div>';
   try {
     const dimCol = _cplDimCol();
-    const pSK = new URLSearchParams();
-    pSK.append('dim', dimCol);
-    pSK.append('brand', 'SK');
-    _cplAppendDrillFilters(pSK);
-    const pUM = new URLSearchParams();
-    pUM.append('dim', dimCol);
-    pUM.append('brand', 'UM');
-    _cplAppendDrillFilters(pUM);
-    // 전체용: 브랜드 필터 없이 모든 데이터
-    const pAll = new URLSearchParams();
-    pAll.append('dim', dimCol);
-    _cplAppendDrillFilters(pAll);
-    const [dSK, dUM, dAll] = await Promise.all([
-      fetch('/api/pl?' + pSK.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
-      fetch('/api/pl?' + pUM.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
-      fetch('/api/pl?' + pAll.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
-    ]);
-    // months: SK/UM/All 합집합 정렬
-    const monthsSet = new Set();
-    (dSK.months || []).forEach(function(m){ monthsSet.add(m); });
-    (dUM.months || []).forEach(function(m){ monthsSet.add(m); });
-    (dAll.months || []).forEach(function(m){ monthsSet.add(m); });
-    const months = Array.from(monthsSet).sort();
-    const n = months.length;
-    const zeros = function(){ return months.map(function(){ return 0; }); };
     const PL_FIELDS = ['sales','cogs','gross','op',
       'sgaD','sgaD_adv','sgaD_log','sgaD_fee','sgaD_hr','sgaD_etc',
       'sgaO','sgaO_adv','sgaO_log','sgaO_fee','sgaO_hr','sgaO_etc',
       'sgaC','sgaC_adv','sgaC_log','sgaC_fee','sgaC_hr','sgaC_etc'];
     const byNode = {};
+    let months;
     function mergeNode(brand, apiData){
       const apiMonths = apiData.months || [];
       const idxMap = {};
       apiMonths.forEach(function(m, i){ idxMap[m] = i; });
+      const zeros = function(){ return months.map(function(){ return 0; }); };
       (apiData.nodes || []).forEach(function(nd){
         const name = nd.name;
         if (!byNode[name]) byNode[name] = {};
@@ -4686,9 +4663,42 @@ async function loadCplData(){
         target.contrib = target.direct.map(function(v, i){ return v - target.sgaO[i]; });
       });
     }
-    mergeNode('SK', dSK);
-    mergeNode('UM', dUM);
-    mergeNode('all', dAll);
+    const orgByOtherDim = (state.category === 'org') && (dimCol !== 'Department');
+    if (orgByOtherDim) {
+      // 조직별 화면에서 구분 기준이 Department가 아닐 때: 브랜드 필터 없이 1개 쿼리만
+      const pAll = new URLSearchParams();
+      pAll.append('dim', dimCol);
+      _cplAppendDrillFilters(pAll);
+      const dAll = await fetch('/api/pl?' + pAll.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); });
+      months = (dAll.months || []).slice().sort();
+      mergeNode('all', dAll);
+    } else {
+      // 기존 동작: SK/UM/전체 3개 쿼리 (org+Department, region, product, sales 전부 이 경로)
+      const pSK = new URLSearchParams();
+      pSK.append('dim', dimCol);
+      pSK.append('brand', 'SK');
+      _cplAppendDrillFilters(pSK);
+      const pUM = new URLSearchParams();
+      pUM.append('dim', dimCol);
+      pUM.append('brand', 'UM');
+      _cplAppendDrillFilters(pUM);
+      const pAll = new URLSearchParams();
+      pAll.append('dim', dimCol);
+      _cplAppendDrillFilters(pAll);
+      const [dSK, dUM, dAll] = await Promise.all([
+        fetch('/api/pl?' + pSK.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
+        fetch('/api/pl?' + pUM.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
+        fetch('/api/pl?' + pAll.toString(), { credentials: 'same-origin' }).then(function(r){ return r.json(); }),
+      ]);
+      const monthsSet = new Set();
+      (dSK.months || []).forEach(function(m){ monthsSet.add(m); });
+      (dUM.months || []).forEach(function(m){ monthsSet.add(m); });
+      (dAll.months || []).forEach(function(m){ monthsSet.add(m); });
+      months = Array.from(monthsSet).sort();
+      mergeNode('SK', dSK);
+      mergeNode('UM', dUM);
+      mergeNode('all', dAll);
+    }
     state.cplData = { months: months, byNode: byNode };
   } catch(e){
     console.error('[CPL] loadCplData error', e);
@@ -4939,6 +4949,11 @@ let PL_ORG_SECTION_LABEL = null; // 최초 사용 시 지연 초기화 (_BRAND_L
 function plOrgSectionLabel(id){
   if (!PL_ORG_SECTION_LABEL) PL_ORG_SECTION_LABEL = { all:'전체', SK:_BRAND_LABEL.SK, UM:_BRAND_LABEL.UM };
   return PL_ORG_SECTION_LABEL[id];
+}
+
+function plEffectiveSectionDim(screenId){
+  const cfg = state.plViewConfig[screenId];
+  return (cfg && cfg.sections && cfg.sections.dim) || 'Department';
 }
 
 function plEffectiveSections(screenId){
