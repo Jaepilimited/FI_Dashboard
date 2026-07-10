@@ -5052,8 +5052,8 @@ function wirePlRowDragHandlers(screenId){
       plUpdateConfig(screenId, function(cfg){ cfg.rows.blockOrder = newOrder; });
     });
   });
+  let dragSub = null;
   list.querySelectorAll('[data-pl-sub-row]').forEach(function(li){
-    let dragSub = null;
     li.addEventListener('dragstart', function(e){ dragSub = li.dataset.plSubRow; e.stopPropagation(); });
     li.addEventListener('dragover', function(e){
       e.preventDefault(); e.stopPropagation();
