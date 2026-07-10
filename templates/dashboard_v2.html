@@ -5067,9 +5067,11 @@ async function togglePlEdit(screenId){
 }
 
 function plSwitchView(screenId, viewId){
+  const prevDim = plEffectiveSectionDim(screenId);
   state.plActiveView[screenId] = viewId;
   const v = viewId == null ? null : (state.plViews[screenId] || []).filter(function(x){ return x.id === viewId; })[0];
   state.plViewConfig[screenId] = v ? v.config : null;
+  if (plEffectiveSectionDim(screenId) !== prevDim) state.cplData = null;
   renderOrgPl();
 }
 
@@ -5105,10 +5107,12 @@ async function plDeleteView(screenId){
   const id = state.plActiveView[screenId];
   if (id == null) return;
   if (!confirm('이 뷰를 삭제할까요?')) return;
+  const prevDim = plEffectiveSectionDim(screenId);
   await fetch('/api/views/' + id, {method:'DELETE', credentials:'same-origin'});
   state.plViews[screenId] = (state.plViews[screenId] || []).filter(function(v){ return v.id !== id; });
   state.plActiveView[screenId] = null;
   state.plViewConfig[screenId] = null;
+  if (plEffectiveSectionDim(screenId) !== prevDim) state.cplData = null;
   renderOrgPl();
 }
 
