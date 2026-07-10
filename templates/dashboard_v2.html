@@ -4803,6 +4803,57 @@ const CPL_ROW_DEFS = [
   { id:'op',     label:'영업이익',          bold:true, pct:true, hl:'op' },
 ];
 
+const PL_ROW_BLOCKS = [
+  { anchor:'sales',   ids:['sales'] },
+  { anchor:'gross',   ids:['cogs','gross'] },
+  { anchor:'sgaD',    ids:['sgaD','sgaD.adv','sgaD.log','sgaD.fee','sgaD.hr','sgaD.etc'] },
+  { anchor:'direct',  ids:['direct'] },
+  { anchor:'sgaO',    ids:['sgaO','sgaO.adv','sgaO.log','sgaO.fee','sgaO.hr','sgaO.etc'] },
+  { anchor:'contrib', ids:['contrib'] },
+  { anchor:'sgaC',    ids:['sgaC','sgaC.adv','sgaC.log','sgaC.fee','sgaC.hr','sgaC.etc'] },
+  { anchor:'op',      ids:['op'] },
+];
+const PL_SUB_GROUP_KEYS = ['adv','log','fee','hr','etc'];
+
+// Task 4에서 실제 수식 파서로 교체됨. 그때까지 custom 행은 항상 빈 배열이라 호출되지 않는다.
+function plEvalFormula(formula, M, months){ return months.map(function(){ return 0; }); }
+
+function plEffectiveRowDefs(screenId){
+  const cfg = state.plViewConfig[screenId];
+  if (!cfg) return CPL_ROW_DEFS;
+  const rowById = {}; CPL_ROW_DEFS.forEach(function(r){ rowById[r.id] = r; });
+  const hidden = new Set((cfg.rows && cfg.rows.hidden) || []);
+  const blockOrder = (cfg.rows && cfg.rows.blockOrder) || [];
+  const subOrder = (cfg.rows && cfg.rows.subOrder) || {};
+  const custom = (cfg.rows && cfg.rows.custom) || [];
+
+  const orderedAnchors = blockOrder.filter(function(a){ return PL_ROW_BLOCKS.some(function(b){ return b.anchor === a; }); });
+  const remainingAnchors = PL_ROW_BLOCKS.map(function(b){ return b.anchor; }).filter(function(a){ return orderedAnchors.indexOf(a) < 0; });
+  const finalAnchors = orderedAnchors.concat(remainingAnchors);
+
+  let result = [];
+  finalAnchors.forEach(function(anchor){
+    const block = PL_ROW_BLOCKS.filter(function(b){ return b.anchor === anchor; })[0];
+    if (anchor === 'gross') {
+      result.push(rowById.cogs);
+      result.push(rowById.gross);
+    } else if (block.ids.length === 1) {
+      result.push(rowById[anchor]);
+    } else {
+      result.push(rowById[anchor]);
+      const order = (subOrder[anchor] && subOrder[anchor].length === 5) ? subOrder[anchor] : PL_SUB_GROUP_KEYS;
+      order.forEach(function(key){
+        const subId = anchor + '.' + key;
+        if (!hidden.has(subId)) result.push(rowById[subId]);
+      });
+    }
+    custom.filter(function(c){ return c.afterId === anchor; }).forEach(function(c){
+      result.push({ id:c.id, label:c.label, custom:true, formula:c.formula, sub:false, pct:false });
+    });
+  });
+  return result;
+}
+
 // 우클릭 다운로드 data 속성 이스케이프 헬퍼
 function escPlAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
 
@@ -4941,9 +4992,96 @@ function renderPlEditPanel(screenId){
      + '<button data-pl-view-save-as="' + screenId + '">+ 새 뷰로 저장</button>'
      + (activeId != null ? '<button data-pl-view-rename="' + screenId + '">이름변경</button><button data-pl-view-delete="' + screenId + '">삭제</button>' : '')
      + '</div>';
-  h += '<div class="pl-edit-panel-body" data-pl-edit-body="' + screenId + '"></div>';
+  h += '<div class="pl-edit-panel-body" data-pl-edit-body="' + screenId + '">'
+     + renderPlRowEditor(screenId)
+     + '</div>';
   h += '</div>';
   return h;
+}
+
+function renderPlRowEditor(screenId){
+  const cfg = state.plViewConfig[screenId];
+  const hidden = new Set((cfg && cfg.rows && cfg.rows.hidden) || []);
+  const blockOrder = (cfg && cfg.rows && cfg.rows.blockOrder && cfg.rows.blockOrder.length) ? cfg.rows.blockOrder : PL_ROW_BLOCKS.map(function(b){ return b.anchor; });
+  let h = '<div class="pl-edit-section-title">행(계정 항목)</div><ul class="pl-edit-row-list" data-pl-row-list="' + screenId + '">';
+  blockOrder.forEach(function(anchor){
+    const block = PL_ROW_BLOCKS.filter(function(b){ return b.anchor === anchor; })[0];
+    if (!block) return;
+    const anchorRow = CPL_ROW_DEFS.filter(function(r){ return r.id === anchor; })[0];
+    h += '<li class="pl-edit-row-block" draggable="true" data-pl-row-block="' + anchor + '">'
+       + '<span class="pl-edit-drag-handle">⣿</span>'
+       + '<span class="pl-edit-row-locked-label">' + anchorRow.label + '</span>';
+    if (anchor === 'gross') {
+      const cogsRow = CPL_ROW_DEFS.filter(function(r){ return r.id === 'cogs'; })[0];
+      h += '<span class="pl-edit-row-locked-label" style="margin-left:6px;color:var(--text-tertiary)">(' + cogsRow.label + ' 포함)</span>';
+    } else if (block.ids.length > 1) {
+      const subOrder = (cfg && cfg.rows.subOrder && cfg.rows.subOrder[anchor] && cfg.rows.subOrder[anchor].length === 5) ? cfg.rows.subOrder[anchor] : PL_SUB_GROUP_KEYS;
+      h += '<ul class="pl-edit-sub-list" data-pl-sub-list="' + anchor + '">';
+      subOrder.forEach(function(key){
+        const subId = anchor + '.' + key;
+        const subRow = CPL_ROW_DEFS.filter(function(r){ return r.id === subId; })[0];
+        h += '<li class="pl-edit-sub-row" draggable="true" data-pl-sub-row="' + subId + '" data-pl-sub-parent="' + anchor + '">'
+           + '<span class="pl-edit-drag-handle">⣿</span>'
+           + '<label><input type="checkbox" data-pl-row-hide="' + subId + '"' + (hidden.has(subId) ? '' : ' checked') + '>' + subRow.label + '</label></li>';
+      });
+      h += '</ul>';
+    }
+    h += '</li>';
+  });
+  h += '</ul>';
+  return h;
+}
+
+function wirePlRowDragHandlers(screenId){
+  const list = document.querySelector('[data-pl-row-list="' + screenId + '"]');
+  if (!list) return;
+  let dragBlock = null;
+  list.querySelectorAll('[data-pl-row-block]').forEach(function(li){
+    li.addEventListener('dragstart', function(e){ dragBlock = li.dataset.plRowBlock; e.dataTransfer.effectAllowed = 'move'; });
+    li.addEventListener('dragover', function(e){
+      e.preventDefault();
+      if (e.target.closest('[data-pl-sub-row]')) return;
+      const target = e.target.closest('[data-pl-row-block]');
+      if (!target || target.dataset.plRowBlock === dragBlock) return;
+      const rect = target.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      list.insertBefore(document.querySelector('[data-pl-row-block="' + dragBlock + '"]'), before ? target : target.nextSibling);
+    });
+    li.addEventListener('dragend', function(){
+      const newOrder = Array.prototype.map.call(list.querySelectorAll('[data-pl-row-block]'), function(el){ return el.dataset.plRowBlock; });
+      plUpdateConfig(screenId, function(cfg){ cfg.rows.blockOrder = newOrder; });
+    });
+  });
+  list.querySelectorAll('[data-pl-sub-row]').forEach(function(li){
+    let dragSub = null;
+    li.addEventListener('dragstart', function(e){ dragSub = li.dataset.plSubRow; e.stopPropagation(); });
+    li.addEventListener('dragover', function(e){
+      e.preventDefault(); e.stopPropagation();
+      const target = e.target.closest('[data-pl-sub-row]');
+      if (!target || target.dataset.plSubParent !== li.dataset.plSubParent || target.dataset.plSubRow === dragSub) return;
+      const subList = target.closest('[data-pl-sub-list]');
+      const rect = target.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      subList.insertBefore(document.querySelector('[data-pl-sub-row="' + dragSub + '"]'), before ? target : target.nextSibling);
+    });
+    li.addEventListener('dragend', function(e){
+      e.stopPropagation();
+      const parent = li.dataset.plSubParent;
+      const subList = document.querySelector('[data-pl-sub-list="' + parent + '"]');
+      const newOrder = Array.prototype.map.call(subList.querySelectorAll('[data-pl-sub-row]'), function(el){ return el.dataset.plSubRow.split('.')[1]; });
+      plUpdateConfig(screenId, function(cfg){ cfg.rows.subOrder[parent] = newOrder; });
+    });
+  });
+  list.querySelectorAll('[data-pl-row-hide]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      const id = cb.dataset.plRowHide;
+      plUpdateConfig(screenId, function(cfg){
+        const set = new Set(cfg.rows.hidden);
+        if (cb.checked) set.delete(id); else set.add(id);
+        cfg.rows.hidden = Array.from(set);
+      });
+    });
+  });
 }
 
 function wirePlEditPanel(screenId){
@@ -4957,7 +5095,7 @@ function wirePlEditPanel(screenId){
   if (renameBtn) renameBtn.addEventListener('click', function(){ plRenameView(screenId); });
   const deleteBtn = panel.querySelector('[data-pl-view-delete="' + screenId + '"]');
   if (deleteBtn) deleteBtn.addEventListener('click', function(){ plDeleteView(screenId); });
-  // Task 3/4/5가 여기에 각자의 wire*Handlers(screenId) 호출을 추가한다
+  wirePlRowDragHandlers(screenId);
 }
 
 function renderOrgPl(){
@@ -5002,25 +5140,30 @@ function renderOrgPl(){
     const deptsAttr=escPlAttr((depts||[]).join(','));
     const brandKey=brand||'all';
     const allMStr=months.join(',');
-    const pv=function(id,prd){return prd.monthIndices.reduce(function(a,i){return a+((cplRowValue(M,id)||[])[i]||0);},0);};
-    const tv=function(id){return(cplRowValue(M,id)||[]).reduce(function(a,v){return a+v;},0);};
+    const rowSeries=function(x){
+      const row = (typeof x==='string') ? {id:x} : x;
+      if (row.custom) return plEvalFormula(row.formula, M, months);
+      return cplRowValue(M, row.id) || [];
+    };
+    const pv=function(x,prd){const s=rowSeries(x);return prd.monthIndices.reduce(function(a,i){return a+(s[i]||0);},0);};
+    const tv=function(x){return rowSeries(x).reduce(function(a,v){return a+v;},0);};
     let t='<table class="pl-table pl-month-matrix"><colgroup><col style="width:170px"><col style="width:88px">';
     for(let c=0;c<periods.length;c++)t+='<col>';
     t+='</colgroup><thead><tr><th>구분</th><th>합계</th>';
     periods.forEach(function(prd){t+='<th class="pl-col-total">'+prd.label+'</th>';});
     t+='</tr></thead><tbody>';
-    CPL_ROW_DEFS.forEach(function(row){
+    plEffectiveRowDefs('org').forEach(function(row){
       const mk=row.member?PFX+':'+row.member:null;
       if(mk&&!plExpanded.has(mk))return;
       const tk=row.toggle?PFX+':'+row.toggle:null;
       const cls=['pl-row',row.bold?'pl-bold':'',row.sub?'pl-sub':'',row.hl?'pl-hl-'+row.hl:'',row.toggle?'pl-group':''].filter(Boolean).join(' ');
       const chev=tk?'<i data-lucide="'+(plExpanded.has(tk)?'chevron-down':'chevron-right')+'" class="pl-chev"></i>':'';
-      const totV=tv(row.id);
+      const totV=tv(row);
       t+='<tr class="'+cls+'"'+(tk?' data-cpl-toggle="'+tk+'"':'')+'>'+
         '<td>'+chev+row.label+'</td>'+
         '<td data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+allMStr+'" data-plsec="'+brandKey+'">'+fmtMm(totV)+'<div class="pl-mom pl-mom-na">&nbsp;</div></td>';
       periods.forEach(function(prd,pi){
-        const pV=pv(row.id,prd),prV=pi>0?pv(row.id,periods[pi-1]):undefined;
+        const pV=pv(row,prd),prV=pi>0?pv(row,periods[pi-1]):undefined;
         const mStr=prd.monthIndices.map(function(i){return months[i];}).join(',');
         t+='<td class="pl-col-total" data-plitem="'+escPlAttr(row.id)+'" data-pldim="Department" data-pldimval="__depts__" data-pldepts="'+deptsAttr+'" data-plmonths="'+mStr+'" data-plsec="'+brandKey+'">'+fmtMm(pV)+momCell(pV,prV)+'</td>';
       });
@@ -5029,7 +5172,7 @@ function renderOrgPl(){
         const tS=tv('sales');
         t+='<tr class="pl-pct'+(row.sub?' pl-sub':'')+(row.hl?' pl-pct-hl-'+row.hl:'')+'"><td>%</td>'+
           '<td>'+fmtPct(totV,tS)+'</td>';
-        periods.forEach(function(prd){t+='<td class="pl-col-total">'+fmtPct(pv(row.id,prd),pv('sales',prd))+'</td>';});
+        periods.forEach(function(prd){t+='<td class="pl-col-total">'+fmtPct(pv(row,prd),pv('sales',prd))+'</td>';});
         t+='</tr>';
       }
     });
