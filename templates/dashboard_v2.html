@@ -10218,6 +10218,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
       body.insertAdjacentHTML('beforebegin',shelf);
       const tw=card.querySelector('.pl-table-wrap');
       if(tw) tw.innerHTML=table;
+      syncPeriodTabs(wrap,cfgOf(wrap).grain);
     }
   }
   async function refresh(wrap){
@@ -10335,21 +10336,26 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     document.addEventListener('mousedown',_pvOutside,true);
   }
 
-  /* 기존 월별/분기별/반기별 탭 ↔ 피벗 grain 동기화 (요약 카드 전용) */
+  /* 기존 월별/분기별/반기별 탭 ↔ 피벗 grain 동기화 (요약 + 카테고리 카드) */
   function syncPeriodTabs(wrap,g){
-    if(wrap.id!=='plSummaryWrap')return;
     if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
-    if(typeof state!=='undefined')state.plPeriod=g;
-    document.querySelectorAll('#plPeriodTabs .pl-pt').forEach(function(b){b.classList.toggle('active',b.dataset.period===g);});
+    if(wrap.id==='plSummaryWrap'){
+      if(typeof state!=='undefined')state.plPeriod=g;
+      document.querySelectorAll('#plPeriodTabs .pl-pt').forEach(function(b){b.classList.toggle('active',b.dataset.period===g);});
+    } else {
+      if(typeof state!=='undefined')state.cplPeriod=g;
+      wrap.querySelectorAll('[data-cpl-period]').forEach(function(b){b.classList.toggle('active',b.dataset.cplPeriod===g);});
+    }
   }
   document.addEventListener('click',function(e){
-    const btn=e.target.closest('#plPeriodTabs .pl-pt');
+    const btn=e.target.closest('#plPeriodTabs .pl-pt,[data-cpl-period]');
     if(!btn)return;
-    const wrap=document.getElementById('plSummaryWrap');
+    const isCpl=btn.hasAttribute('data-cpl-period');
+    const wrap=document.getElementById(isCpl?'categoryPlSection':'plSummaryWrap');
     if(!wrap)return;
     const cfg=cfgOf(wrap);
     if(isDefault(cfg)||!neededDims(cfg).length)return; /* 피벗 꺼짐 → 원본 핸들러가 처리 */
-    const g=btn.dataset.period;
+    const g=isCpl?btn.dataset.cplPeriod:btn.dataset.period;
     if(g==='filter'){ applyAdd(wrap,'filter',TIME); return; }
     if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
     if(cfg.grain===g)return;
