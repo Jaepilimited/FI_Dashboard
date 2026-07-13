@@ -10209,6 +10209,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     const table=pivotHtml(wrap,data);
     if(wrap.id==='plSummaryWrap'){
       wrap.innerHTML=shelf+table;
+      syncPeriodTabs(wrap,cfgOf(wrap).grain);
     } else {
       const card=wrap.querySelector('.card');
       if(!card) return;
@@ -10326,12 +10327,35 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     pop.addEventListener('change',function(){
       const g=pop.querySelector('input:checked').value;
       cfg.grain=g; cfg.viewId=null; cfg.sort=null;
+      syncPeriodTabs(wrap,g);
       _pvOutside({target:document.body});
       refresh(wrap);
     });
     _pvPopup=pop;
     document.addEventListener('mousedown',_pvOutside,true);
   }
+
+  /* 기존 월별/분기별/반기별 탭 ↔ 피벗 grain 동기화 (요약 카드 전용) */
+  function syncPeriodTabs(wrap,g){
+    if(wrap.id!=='plSummaryWrap')return;
+    if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
+    if(typeof state!=='undefined')state.plPeriod=g;
+    document.querySelectorAll('#plPeriodTabs .pl-pt').forEach(function(b){b.classList.toggle('active',b.dataset.period===g);});
+  }
+  document.addEventListener('click',function(e){
+    const btn=e.target.closest('#plPeriodTabs .pl-pt');
+    if(!btn)return;
+    const wrap=document.getElementById('plSummaryWrap');
+    if(!wrap)return;
+    const cfg=cfgOf(wrap);
+    if(isDefault(cfg)||!neededDims(cfg).length)return; /* 피벗 꺼짐 → 원본 핸들러가 처리 */
+    const g=btn.dataset.period;
+    if(g==='filter'){ applyAdd(wrap,'filter',TIME); return; }
+    if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
+    if(cfg.grain===g)return;
+    cfg.grain=g; cfg.viewId=null; cfg.sort=null;
+    refresh(wrap);
+  });
 
   function openAddMenu(wrap,zone,btnEl){
     _pvOutside({target:document.body});
