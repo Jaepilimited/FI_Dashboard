@@ -4362,12 +4362,7 @@ function renderOverviewView(){
           <div class="card-sub">굵은 행을 클릭하면 세부 계정이 펼쳐집니다 · 1~4월 실적 · 값 아래 ▲▼는 전월 대비 증감률</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="pl-period-tabs" id="plPeriodTabs">
-            <button class="pl-pt active" data-period="monthly">월별</button>
-            <button class="pl-pt" data-period="quarterly">분기별</button>
-            <button class="pl-pt" data-period="halfyear">반기별</button>
-            <button class="pl-pt" data-period="filter">필터</button>
-          </div>
+          <div class="pv-shelf-slot"></div>
           <div class="waterfall-card-unit">단위: 백만원</div>
         </div>
       </div>
@@ -4567,16 +4562,6 @@ function renderPlSummary(){
   }); });
   if (window.lucide) lucide.createIcons();
 }
-
-document.addEventListener('click', function(e){
-  const btn = e.target.closest('.pl-pt');
-  if(!btn) return;
-  const period = btn.dataset.period;
-  if(!period || state.plPeriod === period) return;
-  state.plPeriod = period;
-  document.querySelectorAll('.pl-pt').forEach(function(b){ b.classList.toggle('active', b.dataset.period === period); });
-  renderPlSummary();
-});
 
 /* ─── 카테고리별 손익계산서 (PL 프레임: 섹션 전체/SK/유통 × 열 차원 + 하위 top10 펼치기) ─── */
 const CPL_SEC_DEFS = [
@@ -5460,12 +5445,7 @@ function renderOrgPl(){
     +' <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">(조직별)</span></div>'
     +'<div class="card-sub">굵은 행 클릭 → 세부 계정 · ▶/▸ 클릭 → 접기/펼치기</div>'
     +'</div><div style="display:flex;align-items:center;gap:8px">'
-    +'<div class="pl-period-tabs">'
-    +'<button class="pl-pt'+(cplPd==='monthly'?' active':'')+'" data-cpl-period="monthly">월별</button>'
-    +'<button class="pl-pt'+(cplPd==='quarterly'?' active':'')+'" data-cpl-period="quarterly">분기별</button>'
-    +'<button class="pl-pt'+(cplPd==='halfyear'?' active':'')+'" data-cpl-period="halfyear">반기별</button>'
-    +'<button class="pl-pt'+(cplPd==='filter'?' active':'')+'" data-cpl-period="filter">필터</button>'
-    +'</div>'
+    +'<div class="pv-shelf-slot"></div>'
     +'<div class="waterfall-card-unit">단위: 백만원</div>'
     +'<button class="pl-edit-toggle-btn'+(state.plEdit.org?' active':'')+'" data-pl-edit-toggle="org" title="편집"><i data-lucide="sliders-horizontal"></i></button>'
     +'</div></div>'
@@ -5559,13 +5539,6 @@ function renderOrgPl(){
       renderOrgPl();
     });
   });
-  wrap.querySelectorAll('[data-cpl-period]').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      const p=btn.dataset.cplPeriod;
-      if(!p||state.cplPeriod===p)return;
-      state.cplPeriod=p;renderOrgPl();
-    });
-  });
   wrap.querySelectorAll('[data-pl-edit-toggle]').forEach(function(btn){
     btn.addEventListener('click', function(){ togglePlEdit(btn.dataset.plEditToggle); });
   });
@@ -5594,12 +5567,7 @@ function renderCategoryPl(){
     + '<div class="card-title"><i data-lucide="table-2"></i>손익계산서 <span style="font-weight:500;color:var(--text-tertiary);font-size:11px;margin-left:4px">' + (state.category === 'product' ? '(전체 / SK)' : '(전체 / SK / 유통)') + '</span></div>'
     + '<div class="card-sub">' + subText + '</div>'
     + '</div><div style="display:flex;align-items:center;gap:8px">'
-    + '<div class="pl-period-tabs">'
-    + '<button class="pl-pt' + (cplPd==='monthly'?' active':'') + '" data-cpl-period="monthly">월별</button>'
-    + '<button class="pl-pt' + (cplPd==='quarterly'?' active':'') + '" data-cpl-period="quarterly">분기별</button>'
-    + '<button class="pl-pt' + (cplPd==='halfyear'?' active':'') + '" data-cpl-period="halfyear">반기별</button>'
-    + '<button class="pl-pt' + (cplPd==='filter'?' active':'') + '" data-cpl-period="filter">필터</button>'
-    + '</div>'
+    + '<div class="pv-shelf-slot"></div>'
     + '<div class="waterfall-card-unit">단위: 백만원</div></div></div>'
     + '<div class="card-body card-body-flush"><div class="pl-table-wrap">';
   {
@@ -5767,14 +5735,6 @@ function renderCategoryPl(){
   wrap.querySelectorAll('[data-cpl-month]').forEach(function(th){ th.addEventListener('click', function(){
     const k = state.category + ':' + th.dataset.cplMonth;
     if (cplMonthExp.has(k)) cplMonthExp.delete(k); else cplMonthExp.add(k);
-    renderCategoryPl();
-  }); });
-  wrap.querySelectorAll('[data-cpl-period]').forEach(function(btn){ btn.addEventListener('click', function(){
-    const period = btn.dataset.cplPeriod;
-    if (!period || state.cplPeriod === period) return;
-    state.cplPeriod = period;
-    cplMonthExp.clear();
-    _cplSeededCats.delete(state.category);
     renderCategoryPl();
   }); });
   if (window.lucide) lucide.createIcons();
@@ -9830,6 +9790,8 @@ else init();
 </script>
 <style id="pvShelfCss">
 .pv-shelf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.pv-shelf-slot{display:flex;min-width:0}
+.pv-shelf-slot .pv-shelf{padding:0;border-bottom:0;background:transparent;justify-content:flex-end}
 .pv-group{display:flex;align-items:center;gap:4px}
 .pv-sep{color:var(--text-tertiary);font-size:11px;padding:0 2px}
 .pv-add{width:22px;height:22px;border-radius:6px;border:1px dashed var(--border);background:var(--surface);color:var(--text-tertiary);font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
@@ -10191,11 +10153,18 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     else { renderCategoryPl(); }
     if(typeof lucide!=='undefined') lucide.createIcons();
   }
+  /* 선반은 카드 헤더의 .pv-shelf-slot에 렌더 (요약 카드는 wrap 밖 → 카드 루트에서 탐색) */
+  function pvRoot(wrap){ return wrap.id==='plSummaryWrap' ? (wrap.closest('.card')||wrap) : wrap; }
+  function slotOf(wrap){ return pvRoot(wrap).querySelector('.pv-shelf-slot'); }
+  async function renderShelf(wrap){
+    const shelf=await shelfHtml(wrap);
+    const slot=slotOf(wrap);
+    if(slot)slot.innerHTML=shelf;
+  }
   function showPivotStatus(wrap,message){
     const html='<div class="pv-pivot"><div class="spinner-wrap">'+message+'</div></div>';
     if(wrap.id==='plSummaryWrap'){
-      const shelf=wrap.querySelector('.pv-shelf');
-      wrap.innerHTML=(shelf?shelf.outerHTML:'')+html;
+      wrap.innerHTML=html;
     } else {
       const tableWrap=wrap.querySelector('.pl-table-wrap');
       if(tableWrap)tableWrap.innerHTML=html;
@@ -10208,25 +10177,23 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     if(seq!==wrap._pvSeq)return;
     const table=pivotHtml(wrap,data);
     if(wrap.id==='plSummaryWrap'){
-      wrap.innerHTML=shelf+table;
-      syncPeriodTabs(wrap,cfgOf(wrap).grain);
+      wrap.innerHTML=table;
     } else {
       const card=wrap.querySelector('.card');
       if(!card) return;
-      const old=card.querySelector('.pv-shelf'); if(old) old.remove();
-      const body=card.querySelector('.card-body');
-      body.insertAdjacentHTML('beforebegin',shelf);
       const tw=card.querySelector('.pl-table-wrap');
       if(tw) tw.innerHTML=table;
-      syncPeriodTabs(wrap,cfgOf(wrap).grain);
     }
+    const slot=slotOf(wrap);
+    if(slot)slot.innerHTML=shelf;
+    syncPeriodTabs(wrap,cfgOf(wrap).grain);
   }
   async function refresh(wrap){
     persist();
     const seq=(wrap._pvSeq||0)+1;
     wrap._pvSeq=seq;
     const cfg=cfgOf(wrap);
-    if(isDefault(cfg)||!neededDims(cfg).length){wrap._pvRendering=false;originalRender(wrap);return;}
+    if(isDefault(cfg)||!neededDims(cfg).length){wrap._pvRendering=false;syncPeriodTabs(wrap,cfg.grain);originalRender(wrap);renderShelf(wrap);return;}
     wrap._pvRendering=true;
     showPivotStatus(wrap,'불러오는 중…');
     try{await renderPivotInto(wrap,seq);}
@@ -10275,7 +10242,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     let values;
     try{values=await valuesOf(col);}
     catch(error){console.error('Failed to load pivot filter values',error);showPivotStatus(wrap,'데이터를 불러오지 못했습니다.');return;}
-    const pillEl=wrap.querySelector('[data-pv-fpill="'+col+'"]');
+    const pillEl=pvRoot(wrap).querySelector('[data-pv-fpill="'+col+'"]');
     if(!pillEl)return;
     const cfg=cfgOf(wrap);
     const sel=new Set(cfg.filters[col]||values);
@@ -10311,7 +10278,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
 
   function openGrainPopup(wrap){
     _pvOutside({target:document.body});
-    const pillEl=wrap.querySelector('[data-pv-grainbtn]');
+    const pillEl=pvRoot(wrap).querySelector('[data-pv-grainbtn]');
     if(!pillEl)return;
     const cfg=cfgOf(wrap);
     const pop=document.createElement('div');
@@ -10336,32 +10303,12 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     document.addEventListener('mousedown',_pvOutside,true);
   }
 
-  /* 기존 월별/분기별/반기별 탭 ↔ 피벗 grain 동기화 (요약 + 카테고리 카드) */
+  /* 피벗 grain → 원본 렌더러 기간 상태 동기화 (초기화 후 연속성) */
   function syncPeriodTabs(wrap,g){
     if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
-    if(wrap.id==='plSummaryWrap'){
-      if(typeof state!=='undefined')state.plPeriod=g;
-      document.querySelectorAll('#plPeriodTabs .pl-pt').forEach(function(b){b.classList.toggle('active',b.dataset.period===g);});
-    } else {
-      if(typeof state!=='undefined')state.cplPeriod=g;
-      wrap.querySelectorAll('[data-cpl-period]').forEach(function(b){b.classList.toggle('active',b.dataset.cplPeriod===g);});
-    }
+    if(typeof state==='undefined')return;
+    if(wrap.id==='plSummaryWrap')state.plPeriod=g; else state.cplPeriod=g;
   }
-  document.addEventListener('click',function(e){
-    const btn=e.target.closest('#plPeriodTabs .pl-pt,[data-cpl-period]');
-    if(!btn)return;
-    const isCpl=btn.hasAttribute('data-cpl-period');
-    const wrap=document.getElementById(isCpl?'categoryPlSection':'plSummaryWrap');
-    if(!wrap)return;
-    const cfg=cfgOf(wrap);
-    if(isDefault(cfg)||!neededDims(cfg).length)return; /* 피벗 꺼짐 → 원본 핸들러가 처리 */
-    const g=isCpl?btn.dataset.cplPeriod:btn.dataset.period;
-    if(g==='filter'){ applyAdd(wrap,'filter',TIME); return; }
-    if(g!=='monthly'&&g!=='quarterly'&&g!=='halfyear')return;
-    if(cfg.grain===g)return;
-    cfg.grain=g; cfg.viewId=null; cfg.sort=null;
-    refresh(wrap);
-  });
 
   function openAddMenu(wrap,zone,btnEl){
     _pvOutside({target:document.body});
@@ -10424,21 +10371,22 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
   function clearOver(wrap){ wrap.querySelectorAll('.pv-dz-over').forEach(function(x){x.classList.remove('pv-dz-over');}); }
 
   function wireContainer(wrap){
-    if(wrap.dataset.pvWired)return;
-    wrap.dataset.pvWired='1';
-    wrap.addEventListener('dragstart',function(e){
+    const root=pvRoot(wrap);
+    if(root.dataset.pvWired)return;
+    root.dataset.pvWired='1';
+    root.addEventListener('dragstart',function(e){
       const ch=e.target.closest('[data-pv-chip]');
       if(ch){ e.dataTransfer.setData('text/plain',JSON.stringify({pv:1,col:ch.dataset.pvChip})); e.dataTransfer.effectAllowed='copy'; document.body.classList.add('pv-dragging'); return; }
       const pl=e.target.closest('[data-pv-pill]');
       if(pl){ e.dataTransfer.setData('text/plain',JSON.stringify({pv:1,col:pl.dataset.pvPill,from:pl.dataset.pvFrom})); document.body.classList.add('pv-dragging'); }
     });
-    wrap.addEventListener('dragend',function(){ document.body.classList.remove('pv-dragging'); clearOver(wrap); });
-    wrap.addEventListener('dragover',function(e){
-      const z=zoneAt(e,wrap); clearOver(wrap);
+    root.addEventListener('dragend',function(){ document.body.classList.remove('pv-dragging'); clearOver(root); });
+    root.addEventListener('dragover',function(e){
+      const z=zoneAt(e,root); clearOver(root);
       if(z){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; z.el.classList.add('pv-dz-over'); }
     });
-    wrap.addEventListener('drop',function(e){
-      const z=zoneAt(e,wrap); clearOver(wrap);
+    root.addEventListener('drop',function(e){
+      const z=zoneAt(e,root); clearOver(root);
       if(!z)return;
       e.preventDefault(); e.stopPropagation();
       const raw=e.dataTransfer.getData('text/plain'); if(!raw)return;
@@ -10448,7 +10396,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
       if(!ok)return;
       applyAdd(wrap,z.zone,col);
     });
-    wrap.addEventListener('click',function(e){
+    root.addEventListener('click',function(e){
       const x=e.target.closest('[data-pv-remove]');
       if(x){ e.stopPropagation(); applyRemove(wrap,x.dataset.pvZone,x.dataset.pvRemove); return; }
       const fp=e.target.closest('[data-pv-fpill]');
@@ -10510,9 +10458,9 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
         if(cfg.viewId&&confirm('이 뷰를 삭제할까요?')){ saveViews(loadViews().filter(function(v){return v.id!==cfg.viewId;})); cfg.viewId=null; refresh(wrap); }
         return;
       }
-      if(e.target.closest('[data-pv-reset]')){ state._pvCfg[keyOf(wrap)]=blank(); persist(); originalRender(wrap); }
+      if(e.target.closest('[data-pv-reset]')){ state._pvCfg[keyOf(wrap)]=blank(); refresh(wrap); }
     });
-    wrap.addEventListener('change',function(e){
+    root.addEventListener('change',function(e){
       const sel=e.target.closest('[data-pv-views]');
       if(!sel)return;
       const id=parseInt(sel.value,10);
@@ -10530,15 +10478,16 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
       if(!wrap)continue;
       wireContainer(wrap);
       const cfg=cfgOf(wrap);
+      const root=pvRoot(wrap);
       if(!isDefault(cfg)&&neededDims(cfg).length){
-        if((!wrap.querySelector('.pv-pivot')||!wrap.querySelector('.pv-shelf'))&&!wrap._pvRendering)refresh(wrap);
+        if((!wrap.querySelector('.pv-pivot')||!root.querySelector('.pv-shelf'))&&!wrap._pvRendering)refresh(wrap);
         continue;
       }
-      if(wrap.querySelector('.pl-table')&&!wrap.querySelector('.pv-shelf')){
+      if(wrap.querySelector('.pl-table')&&!root.querySelector('.pv-shelf')){
         const shelf=await shelfHtml(wrap);
-        if(wrap.querySelector('.pv-shelf'))continue;
-        if(id==='plSummaryWrap'){ wrap.insertAdjacentHTML('afterbegin',shelf); }
-        else { const card=wrap.querySelector('.card'),body=card&&card.querySelector('.card-body'); if(card&&body)body.insertAdjacentHTML('beforebegin',shelf); }
+        if(root.querySelector('.pv-shelf'))continue;
+        const slot=slotOf(wrap);
+        if(slot)slot.innerHTML=shelf;
       }
     }
   }
