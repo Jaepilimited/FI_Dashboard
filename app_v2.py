@@ -1912,6 +1912,10 @@ _PL_ALLOWED_DIM = {
     'Brand', 'Group', 'Division', 'Department', 'Continent1', 'Continent2',
     'Country', 'Customer', 'Line', 'Category', 'Product_Name', 'Sales_Type',
 }
+_PL_PIVOT_ALLOWED_DIM = {
+    'Department', 'Line', 'Category', 'Country', 'Continent2', 'Customer',
+    'Sales_Type', 'Group',
+}
 _PL_BQ_RESERVED = {'Group'}  # 백틱 필요 컬럼
 
 # FI_SM 테이블 경로 (config.BQ_TABLE에서 project.dataset 추출)
@@ -2135,6 +2139,115 @@ def api_pl():
         result_nodes.append(out)
 
     return jsonify({'months': months, 'nodes': result_nodes})
+
+
+@app.route('/api/pl-pivot')
+@login_required
+def api_pl_pivot():
+    dims = [dim.strip() for dim in request.args.getlist('dims')]
+    if not 1 <= len(dims) <= 4 or any(dim not in _PL_PIVOT_ALLOWED_DIM for dim in dims):
+        return jsonify({'error': f'invalid dims. allowed: {sorted(_PL_PIVOT_ALLOWED_DIM)}'}), 400
+
+    where, params = build_bq_filters(request.args)
+    T = config.BQ_TABLE
+    SM = _fi_sm_table()
+    dimcols = [f'`{dim}`' if dim in _PL_BQ_RESERVED else dim for dim in dims]
+    dim_sql = ', '.join(dimcols)
+    ff_cols = dimcols + ([] if 'Department' in dims else ['Department'])
+    ff_sql = ', '.join(ff_cols)
+    ff_dim_sql = ', '.join(f'ff.{col}' for col in dimcols)
+
+    sql_a = f"""
+        SELECT {dim_sql}, Year_Month,
+            SUM(Sales_Amount) AS sales,
+            SUM(Cost_of_Sales) AS cogs,
+            SUM(Gross_Profit) AS gross
+        FROM `{T}` {where}
+        GROUP BY {dim_sql}, Year_Month
+    """
+    sql_b = f"""
+        WITH ff AS (
+            SELECT {ff_sql}, Year_Month,
+                SUM(SG_and_A_Expenses) AS sga
+            FROM `{T}` {where}
+            GROUP BY {ff_sql}, Year_Month
+        ),
+        sm AS (
+            SELECT Department, Year_Month,
+                Indirect_Cost_Class AS cls,
+                SUM(Amount) AS amt
+            FROM `{SM}`
+            GROUP BY Department, Year_Month, Indirect_Cost_Class
+        ),
+        sm_tot AS (
+            SELECT Department, Year_Month, SUM(Amount) AS tot
+            FROM `{SM}`
+            GROUP BY Department, Year_Month
+        )
+        SELECT {ff_dim_sql}, ff.Year_Month, sm.cls,
+            SUM(CAST(ff.sga AS FLOAT64) * sm.amt / NULLIF(sm_tot.tot, 0)) AS val
+        FROM ff
+        JOIN sm      ON ff.Department = sm.Department      AND ff.Year_Month = sm.Year_Month
+        JOIN sm_tot  ON ff.Department = sm_tot.Department  AND ff.Year_Month = sm_tot.Year_Month
+        GROUP BY {ff_dim_sql}, ff.Year_Month, sm.cls
+    """
+
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        fut_a = ex.submit(run_query_cached, sql_a, params)
+        fut_b = ex.submit(run_query_cached, sql_b, params)
+        rows_a = fut_a.result()
+        rows_b = fut_b.result()
+
+    def _dim_values(row):
+        return tuple(
+            str(row[dim]) if row[dim] is not None else ('조정' if dim in ('Line', 'Category') else '(없음)')
+            for dim in dims
+        )
+
+    merged = {}
+
+    def _row(key):
+        if key not in merged:
+            merged[key] = {
+                'd': list(key[0]), 'ym': key[1],
+                'sales': 0, 'cogs': 0, 'gross': 0,
+                'sgaD': 0.0, 'sgaO': 0.0, 'sgaC': 0.0,
+            }
+        return merged[key]
+
+    months = set()
+    for source in (rows_a, rows_b):
+        for row in source:
+            if row['Year_Month']:
+                months.add(str(row['Year_Month']))
+
+    for row in rows_a:
+        ym = str(row['Year_Month']) if row['Year_Month'] else None
+        if ym is None:
+            continue
+        out = _row((_dim_values(row), ym))
+        out['sales'] += row['sales'] or 0
+        out['cogs'] += row['cogs'] or 0
+        out['gross'] += row['gross'] or 0
+
+    cls_map = {'직접': 'sgaD', '조직간접': 'sgaO', 'SSG간접': 'sgaC'}
+    for row in rows_b:
+        ym = str(row['Year_Month']) if row['Year_Month'] else None
+        prefix = cls_map.get(str(row['cls'] or ''))
+        if ym is None or prefix is None:
+            continue
+        _row((_dim_values(row), ym))[prefix] += float(row['val'] or 0)
+
+    result_rows = []
+    for row in merged.values():
+        row['sales'] = int(round(row['sales']))
+        row['cogs'] = int(round(row['cogs']))
+        row['gross'] = int(round(row['gross']))
+        for prefix in ('sgaD', 'sgaO', 'sgaC'):
+            row[prefix] = round(row[prefix], 2)
+        result_rows.append(row)
+
+    return jsonify({'months': sorted(months), 'dims': dims, 'rows': result_rows})
 
 
 @app.route('/api/pl-source-export')

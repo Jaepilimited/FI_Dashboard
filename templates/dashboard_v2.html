@@ -2580,13 +2580,13 @@ html.theme-dark .tbl-s-chip.dim{color:#7eb3fb}
   <div class="nav-tools">
     <div class="user-chip">
       <div class="user-avatar" id="userAvatar">U</div>
-      <span class="user-name" id="userName">Guest</span>
-      <span class="user-role" id="userRole">viewer</span>
+      <span class="user-name" id="userName">{{ user.display_name if user else 'Guest' }}</span>
+      <span class="user-role" id="userRole">{{ user.role if user else 'viewer' }}</span>
     </div>
-    
+    {% if user and user.role=='admin' %}
     <a href="/admin" class="nav-btn"><i data-lucide="user-cog" class="ic"></i>사용자 관리</a>
     <button class="nav-btn" id="btnClearCache" title="BigQuery 캐시를 초기화하고 최신 데이터를 불러옵니다"><i data-lucide="refresh-cw" class="ic"></i>데이터 업데이트</button>
-    
+    {% endif %}
     <button class="nav-btn" id="btnMetricGuide" title="지표 산식 가이드"><i data-lucide="book-open" class="ic"></i>지표 가이드</button>
     <button class="nav-icon-btn" id="themeBtn" title="테마 전환">
       <i data-lucide="moon" class="ic"></i>
@@ -2741,101 +2741,14 @@ html.theme-dark .tbl-s-chip.dim{color:#7eb3fb}
 </div>
 
 <script>
-
+{% raw %}
 /* ═════════════════════════════════════════════════════════════════════════
    FI Dashboard v2 — restructured
    ───────────────────────────────────────────────────────────────────────
    USE_MOCK = true: synthesizes data without the backend (for design preview)
    USE_MOCK = false: hits the real /api/* endpoints on app_v2.py
    ═════════════════════════════════════════════════════════════════════════ */
-const USE_MOCK = true;
-
-/* ── PREVIEW-ONLY: /api/pl mock shim (손익계산서용) — 원본에는 없는 코드 ── */
-(function(){
-  const _origFetch = window.fetch.bind(window);
-  function h(str){ let x=2166136261; for(let i=0;i<str.length;i++){x^=str.charCodeAt(i);x=Math.imul(x,16777619);} return (x>>>0)/4294967295; }
-  const DIM_NODES = {
-    Brand:['SK','UM'],
-    Group:['B2B','GM','UM','ETC'],
-    Division:['B2B','GM','UM'],
-    Department:['영업1','영업2','코스트코','GM WEST MKT','GM CBT','GM WEST Ecomm'],
-    Continent1:['아시아','북미','유럽','중동','기타'],
-    Continent2:['동아시아','동남아시아','북미','서유럽','중동'],
-    Country:['미국','일본','중국','캐나다','프랑스','영국','아랍에미리트'],
-    Customer:['Costco Wholesale USA','실리콘투','Stylevana','예스아시아닷컴코리아','AMAZON_미국','Hnb Trading'],
-    Line:['Hyalucica','Madagascar Centella','Tea-Trica','Poremizing'],
-    Category:['Suncare','Serum','Toner','Cream','Mask'],
-    Product_Name:['마다가스카르 센텔라 히알루-시카 워터핏 선세럼 50ml','마다가스카르 센텔라 앰플 100ml','다이너스티크림 100ml','히알루-시카 블루 세럼 50ml'],
-    Sales_Type:['B2B','B2C']
-  };
-  function mockPl(params){
-    const dim = params.get('dim')||'Group';
-    const brand = params.get('brand');
-    let months = params.getAll('months'); if(!months.length) months=['2026-01','2026-02','2026-03','2026-04'];
-    months = months.slice().sort();
-    const names = DIM_NODES[dim]||DIM_NODES.Group;
-    const bScale = brand==='SK'?0.62:brand==='UM'?0.38:1;
-    const nodes = names.map(function(name){
-      const base = 3e9 + h(dim+name)*2.7e10;
-      const sales = months.map(function(m,i){ return Math.round(base*(0.75+h(name+m)*0.6)*(1+i*0.05)*bScale); });
-      function part(f,lo,hi){ return sales.map(function(s,i){ return Math.round(s*(lo+h(name+f+months[i])*(hi-lo))); }); }
-      const cogs = part('cogs',0.30,0.46);
-      const gross = sales.map(function(s,i){ return s-cogs[i]; });
-      const nd = { name:name, sales:sales, cogs:cogs, gross:gross };
-      const grp = { D:[0.16,0.30], O:[0.04,0.07], C:[0.02,0.045] };
-      const subs = ['adv','log','fee','hr','etc'], w = {adv:0.38,log:0.22,fee:0.16,hr:0.14,etc:0.10};
-      ['D','O','C'].forEach(function(k){
-        const tot = part('sga'+k, grp[k][0], grp[k][1]);
-        nd['sga'+k] = tot;
-        subs.forEach(function(s){ nd['sga'+k+'_'+s] = tot.map(function(v){ return Math.round(v*w[s]); }); });
-      });
-      nd.op = gross.map(function(g,i){ return g-nd.sgaD[i]-nd.sgaO[i]-nd.sgaC[i]; });
-      return nd;
-    });
-    return { months:months, nodes:nodes };
-  }
-  /* preview-only views store (localStorage) */
-  const VIEWS_KEY = 'fi_preview_views';
-  function loadViews(){ try{ return JSON.parse(localStorage.getItem(VIEWS_KEY)||'[]'); }catch(e){ return []; } }
-  function saveViews(v){ try{ localStorage.setItem(VIEWS_KEY, JSON.stringify(v)); }catch(e){} }
-  function json(obj){ return Promise.resolve(new Response(JSON.stringify(obj), {headers:{'Content-Type':'application/json'}})); }
-  window.fetch = function(url, opts){
-    try{
-      const u = String(url), path = u.split('?')[0];
-      const method = (opts && opts.method || 'GET').toUpperCase();
-      if(path === '/api/pl'){
-        const params = new URLSearchParams(u.split('?')[1]||'');
-        return json(mockPl(params));
-      }
-      if(path === '/api/views'){
-        const params = new URLSearchParams(u.split('?')[1]||'');
-        if(method === 'POST'){
-          const body = JSON.parse(opts.body||'{}');
-          const views = loadViews();
-          const created = { id: Date.now(), kind: body.kind, screen: body.screen, name: body.name, config: body.config };
-          views.push(created); saveViews(views);
-          return json(created);
-        }
-        const kind = params.get('kind'), screen = params.get('screen');
-        return json({ views: loadViews().filter(function(v){ return (!kind||v.kind===kind) && (!screen||v.screen===screen); }) });
-      }
-      const mView = path.match(/^\/api\/views\/(\d+)$/);
-      if(mView){
-        const id = parseInt(mView[1],10);
-        let views = loadViews();
-        if(method === 'DELETE'){ saveViews(views.filter(function(v){ return v.id !== id; })); return json({ok:true}); }
-        if(method === 'PUT'){
-          const body = JSON.parse(opts.body||'{}');
-          views = views.map(function(v){ return v.id === id ? Object.assign({}, v, body) : v; });
-          saveViews(views);
-          return json(views.filter(function(v){ return v.id === id; })[0] || {ok:true});
-        }
-        return json(views.filter(function(v){ return v.id === id; })[0] || {});
-      }
-    }catch(e){}
-    return _origFetch(url, opts);
-  };
-})();
+const USE_MOCK = false;
 
 /* ─── Tweaks: persisted design knobs ─────────────────────────────────
    Edit these defaults via the in-page Tweaks panel — the host persists
@@ -9835,7 +9748,7 @@ async function init(){
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
-
+{% endraw %}
 </script>
 
 <!-- P&L 우클릭 원본 다운로드 컨텍스트 메뉴 -->
@@ -9980,34 +9893,29 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
 .pv-fp-row input{accent-color:var(--accent)}
 </style>
 <script>
-/* PREVIEW-ONLY: Tableau-style pivot builder (행/열/필터 선반 + 정렬/비율/증감/CSV/저장 뷰) — 원본에는 없는 코드 */
+{% raw %}
 (function(){
-  function h(str){ let x=2166136261; for(let i=0;i<str.length;i++){x^=str.charCodeAt(i);x=Math.imul(x,16777619);} return (x>>>0)/4294967295; }
   const TIME='__time__';
   const DIMS=[['Department','부서'],['Line','라인'],['Category','카테고리'],['Country','국가'],['Continent2','대륙'],['Customer','거래처'],['Sales_Type','판매유형'],['Group','그룹']];
   const DIM_LABEL={}; DIMS.forEach(function(d){DIM_LABEL[d[0]]=d[1];}); DIM_LABEL[TIME]='기간';
   const ACCOUNTS=[['sales','매출액'],['cogs','매출원가'],['gross','매출총이익'],['sgaD','판관비(직접)'],['direct','직접이익'],['sgaO','판관비(조직간접)'],['contrib','공헌이익'],['sgaC','판관비(전사간접)'],['op','영업이익']];
   const BOLD={sales:1,gross:1,direct:1,contrib:1,op:1};
-  const DEPTS=[['영업1','B2B'],['영업2','B2B'],['코스트코','UM'],['GM WEST MKT','GM'],['GM CBT','GM'],['GM WEST Ecomm','GM']];
-  const LINES=['Hyalucica','Madagascar Centella','Tea-Trica','Poremizing'];
-  const CATS=['Suncare','Serum','Toner','Cream','Mask'];
-  const COUNTRIES=[['미국','북미'],['캐나다','북미'],['일본','아시아'],['중국','아시아'],['프랑스','유럽'],['영국','유럽'],['아랍에미리트','중동']];
-  const CUSTOMERS=['Costco Wholesale USA','실리콘투','Stylevana','예스아시아닷컴코리아','AMAZON_미국','Hnb Trading'];
-  const _recCache={};
-  function recordsFor(month){
-    if(_recCache[month]) return _recCache[month];
-    const recs=[];
-    for(let i=0;i<220;i++){
-      const k=month+':'+i;
-      const dept=DEPTS[Math.floor(h(k+'d')*DEPTS.length)];
-      const ctry=COUNTRIES[Math.floor(h(k+'c')*COUNTRIES.length)];
-      const sales=6e6+h(k+'s')*5.2e7;
-      const dims={Department:dept[0],Group:dept[1],Line:LINES[Math.floor(h(k+'l')*LINES.length)],Category:CATS[Math.floor(h(k+'g')*CATS.length)],Country:ctry[0],Continent2:ctry[1],Customer:CUSTOMERS[Math.floor(h(k+'u')*CUSTOMERS.length)],Sales_Type:h(k+'t')<0.72?'B2B':'B2C'};
-      recs.push({day:Math.floor(h(k+'dy')*28)+1,dims:dims,m:{sales:sales,cogs:sales*(0.30+h(k+'x')*0.16),sgaD:sales*(0.16+h(k+'y')*0.14),sgaO:sales*(0.04+h(k+'z')*0.03),sgaC:sales*(0.02+h(k+'w')*0.025)}});
+  const _pivotCache={};
+  async function fetchPivot(dimList,months){
+    const key=dimList.join(',')+'|'+months.join(',');
+    if(!_pivotCache[key]){
+      const params=new URLSearchParams();
+      dimList.forEach(function(dim){params.append('dims',dim);});
+      months.forEach(function(month){params.append('months',month);});
+      _pivotCache[key]=fetch('/api/pl-pivot?'+params.toString()).then(function(response){
+        if(!response.ok)throw new Error('피벗 데이터 요청 실패 ('+response.status+')');
+        return response.json();
+      });
     }
-    _recCache[month]=recs; return recs;
+    try{return await _pivotCache[key];}
+    catch(error){delete _pivotCache[key];throw error;}
   }
-  function derive(m){ const gross=m.sales-m.cogs, direct=gross-m.sgaD, contrib=direct-m.sgaO; return {sales:m.sales,cogs:m.cogs,gross:gross,sgaD:m.sgaD,direct:direct,sgaO:m.sgaO,contrib:contrib,sgaC:m.sgaC,op:contrib-m.sgaC}; }
+  function derive(m){ const gross=m.gross, direct=gross-m.sgaD, contrib=direct-m.sgaO; return {sales:m.sales,cogs:m.cogs,gross:gross,sgaD:m.sgaD,direct:direct,sgaO:m.sgaO,contrib:contrib,sgaC:m.sgaC,op:contrib-m.sgaC}; }
 
   /* config + persistence */
   const CFG_KEY='fi_pv_cfg', VIEWS_KEY='fi_pv_views';
@@ -10017,31 +9925,41 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
   function saveViews(v){ try{ localStorage.setItem(VIEWS_KEY,JSON.stringify(v)); }catch(e){} }
   function keyOf(wrap){ return wrap.id==='plSummaryWrap' ? 'sum' : 'cat:'+state.category; }
   function blank(){ return {rows:[],cols:[TIME],filters:{},pct:false,sort:null,viewId:null,grain:'monthly'}; }
-  const GRAIN_LABEL={daily:'일',monthly:'월',quarterly:'분기',halfyear:'반기'};
+  const GRAIN_LABEL={monthly:'월',quarterly:'분기',halfyear:'반기'};
   function cfgOf(wrap){
     const k=keyOf(wrap);
     if(!state._pvCfg[k]) state._pvCfg[k]=blank();
     const c=state._pvCfg[k];
-    if(!c.filters)c.filters={}; if(!c.cols||!c.cols.length)c.cols=[TIME]; if(!c.rows)c.rows=[]; if(!c.grain)c.grain='monthly';
+    if(!c.filters)c.filters={}; if(!c.cols||!c.cols.length)c.cols=[TIME]; if(!c.rows)c.rows=[]; if(!c.grain||c.grain==='daily')c.grain='monthly';
     return c;
   }
   function isDefault(cfg){ return cfg.rows.length===0 && cfg.cols.length===1 && cfg.cols[0]===TIME && Object.keys(cfg.filters).length===0 && !cfg.pct && cfg.grain==='monthly'; }
-
-  function valuesOf(col){
-    switch(col){
-      case 'Department': return DEPTS.map(function(d){return d[0];});
-      case 'Group': return ['B2B','GM','UM'];
-      case 'Line': return LINES.slice();
-      case 'Category': return CATS.slice();
-      case 'Country': return COUNTRIES.map(function(c){return c[0];});
-      case 'Continent2': return ['북미','아시아','유럽','중동'];
-      case 'Customer': return CUSTOMERS.slice();
-      case 'Sales_Type': return ['B2B','B2C'];
-      case TIME: return activeMonths();
-    }
-    return [];
+  function neededDims(cfg){
+    const dims=[];
+    cfg.rows.concat(cfg.cols,Object.keys(cfg.filters)).forEach(function(col){
+      if(col!==TIME&&dims.indexOf(col)<0)dims.push(col);
+    });
+    return dims;
   }
-  function passes(r,F){ for(const c in F){ if(c===TIME)continue; if(F[c].indexOf(r.dims[c])<0) return false; } return true; }
+
+  async function valuesOf(col){
+    if(col===TIME)return activeMonths();
+    const data=await fetchPivot([col],activeMonths());
+    const sums={};
+    data.rows.forEach(function(row){
+      const value=row.d[0];
+      sums[value]=(sums[value]||0)+(row.sales||0);
+    });
+    return Object.keys(sums).sort(function(a,b){return sums[b]-sums[a];});
+  }
+  function passes(row,F,dimIndex){
+    for(const col in F){
+      if(col===TIME){if(F[col].length&&F[col].indexOf(row.ym)<0)return false;continue;}
+      const idx=dimIndex[col];
+      if(idx==null||F[col].indexOf(row.d[idx])<0)return false;
+    }
+    return true;
+  }
   function monthsFiltered(F){
     let months=activeMonths();
     if(F&&F[TIME]&&F[TIME].length) months=months.filter(function(m){return F[TIME].indexOf(m)>=0;});
@@ -10052,13 +9970,6 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     const cfg=cfgOf(wrap);
     const g=cfg.grain||'monthly';
     const months=monthsFiltered(cfg.filters);
-    if(g==='daily'){
-      const out=[];
-      months.forEach(function(ym){
-        for(let d=1;d<=28;d++)out.push({label:ym.slice(2).replace('-','.')+'.'+String(d).padStart(2,'0'),months:[]});
-      });
-      return out;
-    }
     if(g==='quarterly'||g==='halfyear'){
       const map={},out=[];
       months.forEach(function(ym){
@@ -10071,34 +9982,37 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     }
     return months.map(function(ym){ return {label:ym.slice(2).replace('-','.'),months:[ym]}; });
   }
-  function topValues(col,cap,F){
+  function topValues(col,cap,F,data,dimIndex){
     const months=monthsFiltered(F),sums={};
-    months.forEach(function(ym){ recordsFor(ym).forEach(function(r){ if(F&&!passes(r,F))return; const v=r.dims[col]; sums[v]=(sums[v]||0)+r.m.sales; }); });
+    data.rows.forEach(function(row){
+      if(months.indexOf(row.ym)<0||!passes(row,F,dimIndex))return;
+      const value=row.d[dimIndex[col]];
+      sums[value]=(sums[value]||0)+(row.sales||0);
+    });
     const names=Object.keys(sums).sort(function(a,b){return sums[b]-sums[a];});
     return {list:names.slice(0,cap), others:names.length>cap};
   }
-  function bucket(rec,col,allowed){ const v=rec.dims[col]; return allowed.indexOf(v)>=0?v:'기타'; }
+  function bucket(row,col,allowed,dimIndex){ const value=row.d[dimIndex[col]]; return allowed.indexOf(value)>=0?value:'기타'; }
   function fmtMoney(v){
     const mm=Math.round(v/1e6);
     return mm<0?'<span class="pl-neg">-'+Math.abs(mm).toLocaleString('ko-KR')+'</span>':mm.toLocaleString('ko-KR');
   }
 
   /* pivot compute (shared by table + CSV) */
-  function computePivot(wrap){
+  function computePivot(wrap,data){
     const cfg=cfgOf(wrap);
     const F=cfg.filters||{};
     const months=monthsFiltered(F);
+    const dimIndex={}; data.dims.forEach(function(dim,idx){dimIndex[dim]=idx;});
     const rowDims=cfg.rows.slice(0,2);
     const colSpec=cfg.cols.slice(0,3);
     const caps={0:6,1:4,2:3};
     const domains={};
     rowDims.concat(colSpec.filter(function(c){return c!==TIME;})).forEach(function(col,idx){
-      if(!domains[col]){ const t=topValues(col,caps[Math.min(idx,2)]||4,F); domains[col]=t.others?t.list.concat(['기타']):t.list; }
+      if(!domains[col]){ const t=topValues(col,caps[Math.min(idx,2)]||4,F,data,dimIndex); domains[col]=t.others?t.list.concat(['기타']):t.list; }
     });
     const periods=periodsFor(wrap);
-    const isDaily=(cfg.grain==='daily');
     const monthPeriod={}; periods.forEach(function(p){ (p.months||[]).forEach(function(m){ monthPeriod[m]=p.label; }); });
-    const timeOf=function(r,ym){ return isDaily?ym.slice(2).replace('-','.')+'.'+String(r.day).padStart(2,'0'):monthPeriod[ym]; };
     const colLevels=colSpec.map(function(c){ return c===TIME?periods.map(function(p){return p.label;}):domains[c]; });
     let leafCols=[[]];
     colLevels.forEach(function(vals){
@@ -10116,17 +10030,20 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
       rowCombos=next;
     });
     const acc={};
-    const add=function(key,m){ let t=acc[key]; if(!t){t={sales:0,cogs:0,sgaD:0,sgaO:0,sgaC:0};acc[key]=t;} t.sales+=m.sales;t.cogs+=m.cogs;t.sgaD+=m.sgaD;t.sgaO+=m.sgaO;t.sgaC+=m.sgaC; };
-    months.forEach(function(ym){
-      recordsFor(ym).forEach(function(r){
-        if(!passes(r,F))return;
-        const rk=rowDims.map(function(c){return bucket(r,c,domains[c]);}).join('|');
-        const tval=colSpec.indexOf(TIME)>=0?timeOf(r,ym):'';
-        if(colSpec.indexOf(TIME)>=0&&tval==null)return;
-        const ck=colSpec.map(function(c){return c===TIME?tval:bucket(r,c,domains[c]);}).join('|');
-        if(!leafSet.has(ck)) return;
-        add(rk+'||'+ck,r.m); add(rk+'||__tot__',r.m);
-      });
+    const add=function(key,row){
+      let total=acc[key];
+      if(!total){total={sales:0,cogs:0,gross:0,sgaD:0,sgaO:0,sgaC:0};acc[key]=total;}
+      total.sales+=row.sales||0;total.cogs+=row.cogs||0;total.gross+=row.gross||0;
+      total.sgaD+=row.sgaD||0;total.sgaO+=row.sgaO||0;total.sgaC+=row.sgaC||0;
+    };
+    data.rows.forEach(function(row){
+      if(months.indexOf(row.ym)<0||!passes(row,F,dimIndex))return;
+      const rk=rowDims.map(function(col){return bucket(row,col,domains[col],dimIndex);}).join('|');
+      const timeValue=colSpec.indexOf(TIME)>=0?monthPeriod[row.ym]:'';
+      if(colSpec.indexOf(TIME)>=0&&timeValue==null)return;
+      const ck=colSpec.map(function(col){return col===TIME?timeValue:bucket(row,col,domains[col],dimIndex);}).join('|');
+      if(!leafSet.has(ck))return;
+      add(rk+'||'+ck,row);add(rk+'||__tot__',row);
     });
     const cell=function(rk,ck,acct){ const t=acc[rk+'||'+ck]; return t?derive(t)[acct]:0; };
     const timeLv=colSpec.indexOf(TIME);
@@ -10153,30 +10070,12 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     return '<div class="pv-mom '+(up?'up':'down')+'">'+(up?'▲':'▼')+Math.abs(d).toFixed(1)+'%</div>';
   }
 
-  function pivotHtml(wrap){
-    const P=computePivot(wrap);
+  function pivotHtml(wrap,data){
+    const P=computePivot(wrap,data);
     const cfg=P.cfg, L=P.colSpec.length;
-    const daily=cfg.grain==='daily'&&P.timeLv>=0;
     let t='<div class="pv-pivot"><table class="pl-table pl-month-matrix"><colgroup><col style="width:190px"><col style="width:92px">';
     P.leafMeta.forEach(function(){t+='<col>';});
     t+='</colgroup><thead>';
-    if(daily){
-      t+='<tr><th rowspan="2">구분</th><th rowspan="2">합계</th>';
-      let i=0;
-      while(i<P.leafMeta.length){
-        const mon=P.leafMeta[i].parts[P.timeLv].slice(0,5);
-        let j=i;
-        while(j<P.leafMeta.length&&P.leafMeta[j].parts[P.timeLv].slice(0,5)===mon)j++;
-        t+='<th class="pl-month-group" colspan="'+(j-i)+'" data-pv-hfield="'+TIME+'" data-pv-hval="'+mon+'" data-pv-hym="20'+mon.replace('.','-')+'" title="클릭: 열 메뉴">'+mon+'</th>';
-        i=j;
-      }
-      t+='</tr><tr>';
-      P.leafMeta.forEach(function(meta){
-        const sorted=cfg.sort===meta.key;
-        t+='<th class="pl-col-total'+(sorted?' pv-sorted':'')+'" data-pv-hfield="'+TIME+'" data-pv-sort="'+meta.key.replace(/"/g,'&quot;')+'" title="클릭: 열 메뉴">'+meta.parts[P.timeLv].slice(6)+(sorted?' ▼':'')+'</th>';
-      });
-      t+='</tr>';
-    } else {
     for(let lv=0;lv<L;lv++){
       t+='<tr>';
       if(lv===0)t+='<th rowspan="'+L+'">구분</th><th rowspan="'+L+'">합계</th>';
@@ -10194,7 +10093,6 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
         i+=span;
       }
       t+='</tr>';
-    }
     }
     t+='</thead><tbody>';
     P.rowCombos.forEach(function(combo){
@@ -10229,8 +10127,13 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     return t;
   }
 
-  function exportCsv(wrap){
-    const P=computePivot(wrap);
+  async function exportCsv(wrap){
+    const dims=neededDims(cfgOf(wrap));
+    if(!dims.length)return;
+    let data;
+    try{data=await fetchPivot(dims,activeMonths());}
+    catch(error){console.error('Failed to load pivot data',error);showPivotStatus(wrap,'데이터를 불러오지 못했습니다.');return;}
+    const P=computePivot(wrap,data);
     const esc=function(s){ s=String(s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
     const head=P.rowDims.map(function(d){return DIM_LABEL[d];}).concat(['계정','합계']).concat(P.leafMeta.map(function(m){return m.parts.join(' / ');}));
     const lines=[head.map(esc).join(',')];
@@ -10257,18 +10160,20 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
   function pill(col,zone,grain){
     const time=col===TIME;
     const label=time?'기간 · '+(GRAIN_LABEL[grain||'monthly']||'월')+'별 ▾':DIM_LABEL[col];
-    return '<span class="pv-pill'+(time?' pv-pill--time':'')+'" draggable="true" data-pv-pill="'+col+'" data-pv-from="'+zone+'"'+(time?' data-pv-grainbtn="1" title="클릭: 일/월/분기/반기 선택"':'')+'>'+label+'<span class="pv-x" data-pv-remove="'+col+'" data-pv-zone="'+zone+'">×</span></span>';
+    return '<span class="pv-pill'+(time?' pv-pill--time':'')+'" draggable="true" data-pv-pill="'+col+'" data-pv-from="'+zone+'"'+(time?' data-pv-grainbtn="1" title="클릭: 월/분기/반기 선택"':'')+'>'+label+'<span class="pv-x" data-pv-remove="'+col+'" data-pv-zone="'+zone+'">×</span></span>';
   }
-  function shelfHtml(wrap){
+  async function shelfHtml(wrap){
     const cfg=cfgOf(wrap);
     const views=loadViews().filter(function(v){return v.key===keyOf(wrap);});
+    const filterCols=Object.keys(cfg.filters),filterTotals={};
+    await Promise.all(filterCols.map(async function(col){filterTotals[col]=(await valuesOf(col)).length;}));
     const addBtn=function(zone){ return '<button class="pv-add" data-pv-addmenu="'+zone+'" title="필드 추가">+</button>'; };
     return '<div class="pv-shelf">'
       +'<div class="pv-group"><span class="pv-shelf-label">행</span><span class="pv-well" data-pv-zone="row">'+cfg.rows.map(function(c){return pill(c,'row',cfg.grain);}).join('')+'<span class="pv-pill pv-pill-locked">계정</span></span>'+addBtn('row')+'</div>'
       +'<span class="pv-sep">×</span>'
       +'<div class="pv-group"><span class="pv-shelf-label">열</span><span class="pv-well" data-pv-zone="col">'+cfg.cols.map(function(c){return pill(c,'col',cfg.grain);}).join('')+'</span>'+addBtn('col')+'</div>'
       +'<span class="pv-sep">·</span>'
-      +'<div class="pv-group"><span class="pv-shelf-label">필터</span><span class="pv-well pv-well--filter" data-pv-zone="filter">'+Object.keys(cfg.filters).map(function(c){const sel=cfg.filters[c].length,tot=valuesOf(c).length;return '<span class="pv-pill pv-pill-filter" data-pv-fpill="'+c+'">'+DIM_LABEL[c]+': '+(sel===tot?'전체':sel+'/'+tot)+'<span class="pv-x" data-pv-remove="'+c+'" data-pv-zone="filter">×</span></span>';}).join('')+'</span>'+addBtn('filter')+'</div>'
+      +'<div class="pv-group"><span class="pv-shelf-label">필터</span><span class="pv-well pv-well--filter" data-pv-zone="filter">'+filterCols.map(function(c){const sel=cfg.filters[c].length,tot=filterTotals[c];return '<span class="pv-pill pv-pill-filter" data-pv-fpill="'+c+'">'+DIM_LABEL[c]+': '+(sel===tot?'전체':sel+'/'+tot)+'<span class="pv-x" data-pv-remove="'+c+'" data-pv-zone="filter">×</span></span>';}).join('')+'</span>'+addBtn('filter')+'</div>'
       +'<div class="pv-tools">'
       +(isDefault(cfg)?'':'<button class="pv-btn'+(cfg.pct?' active':'')+'" data-pv-pct="1" title="매출 대비 비중 행 표시">%</button>')
       +(isDefault(cfg)?'':'<button class="pv-btn" data-pv-csv="1">CSV</button>')
@@ -10286,32 +10191,60 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     else { renderCategoryPl(); }
     if(typeof lucide!=='undefined') lucide.createIcons();
   }
-  function renderPivotInto(wrap){
+  function showPivotStatus(wrap,message){
+    const html='<div class="pv-pivot"><div class="spinner-wrap">'+message+'</div></div>';
     if(wrap.id==='plSummaryWrap'){
-      wrap.innerHTML=shelfHtml(wrap)+pivotHtml(wrap);
+      const shelf=wrap.querySelector('.pv-shelf');
+      wrap.innerHTML=(shelf?shelf.outerHTML:'')+html;
+    } else {
+      const tableWrap=wrap.querySelector('.pl-table-wrap');
+      if(tableWrap)tableWrap.innerHTML=html;
+    }
+  }
+  async function renderPivotInto(wrap,seq){
+    const dims=neededDims(cfgOf(wrap));
+    const data=await fetchPivot(dims,activeMonths());
+    const shelf=await shelfHtml(wrap);
+    if(seq!==wrap._pvSeq)return;
+    const table=pivotHtml(wrap,data);
+    if(wrap.id==='plSummaryWrap'){
+      wrap.innerHTML=shelf+table;
     } else {
       const card=wrap.querySelector('.card');
       if(!card) return;
       const old=card.querySelector('.pv-shelf'); if(old) old.remove();
       const body=card.querySelector('.card-body');
-      body.insertAdjacentHTML('beforebegin',shelfHtml(wrap));
+      body.insertAdjacentHTML('beforebegin',shelf);
       const tw=card.querySelector('.pl-table-wrap');
-      if(tw) tw.innerHTML=pivotHtml(wrap);
+      if(tw) tw.innerHTML=table;
     }
   }
-  function refresh(wrap){
+  async function refresh(wrap){
     persist();
-    if(isDefault(cfgOf(wrap))) originalRender(wrap);
-    else renderPivotInto(wrap);
+    const seq=(wrap._pvSeq||0)+1;
+    wrap._pvSeq=seq;
+    const cfg=cfgOf(wrap);
+    if(isDefault(cfg)||!neededDims(cfg).length){wrap._pvRendering=false;originalRender(wrap);return;}
+    wrap._pvRendering=true;
+    showPivotStatus(wrap,'불러오는 중…');
+    try{await renderPivotInto(wrap,seq);}
+    catch(error){
+      if(seq===wrap._pvSeq){console.error('Failed to load pivot data',error);showPivotStatus(wrap,'데이터를 불러오지 못했습니다.');}
+    } finally {
+      if(seq===wrap._pvSeq)wrap._pvRendering=false;
+    }
   }
 
-  function applyAdd(wrap,zone,col){
+  async function applyAdd(wrap,zone,col){
     const cfg=cfgOf(wrap);
     cfg.viewId=null;
     if(zone==='filter'){
-      if(!cfg.filters[col])cfg.filters[col]=valuesOf(col);
-      refresh(wrap);
-      openFilterPopup(wrap,col);
+      if(!cfg.filters[col]){
+        try{cfg.filters[col]=await valuesOf(col);}
+        catch(error){console.error('Failed to load pivot filter values',error);showPivotStatus(wrap,'데이터를 불러오지 못했습니다.');return;}
+      }
+      await refresh(wrap);
+      await openFilterPopup(wrap,col);
       return;
     }
     cfg.rows=cfg.rows.filter(function(c){return c!==col;});
@@ -10321,7 +10254,7 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     else { const dimCount=cfg.cols.filter(function(c){return c!==TIME;}).length; if(col!==TIME&&dimCount>=2)cfg.cols.pop(); cfg.cols.push(col); }
     if(cfg.cols.length===0)cfg.cols=[TIME];
     cfg.sort=null;
-    refresh(wrap);
+    await refresh(wrap);
   }
   function applyRemove(wrap,zone,col){
     const cfg=cfgOf(wrap);
@@ -10335,18 +10268,21 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
 
   let _pvPopup=null;
   function _pvOutside(e){ if(_pvPopup&&!_pvPopup.contains(e.target)){ _pvPopup.remove(); _pvPopup=null; document.removeEventListener('mousedown',_pvOutside,true); } }
-  function openFilterPopup(wrap,col){
+  async function openFilterPopup(wrap,col){
     _pvOutside({target:document.body});
+    let values;
+    try{values=await valuesOf(col);}
+    catch(error){console.error('Failed to load pivot filter values',error);showPivotStatus(wrap,'데이터를 불러오지 못했습니다.');return;}
     const pillEl=wrap.querySelector('[data-pv-fpill="'+col+'"]');
     if(!pillEl)return;
     const cfg=cfgOf(wrap);
-    const sel=new Set(cfg.filters[col]||valuesOf(col));
+    const sel=new Set(cfg.filters[col]||values);
     const pop=document.createElement('div');
     pop.className='pv-filter-pop';
     pop.innerHTML='<div class="pv-fp-hd">'+DIM_LABEL[col]+' 필터</div>'
       +'<div class="pv-fp-acts"><button data-pv-fp-all>전체 선택</button><button data-pv-fp-none>전체 해제</button></div>'
       +'<div class="pv-fp-search"><input type="text" placeholder="검색…" data-pv-fp-search></div>'
-      +'<div class="pv-fp-list">'+valuesOf(col).map(function(v){const lbl=col===TIME?v.slice(2).replace('-','.'):v;return '<label class="pv-fp-row"><input type="checkbox" value="'+v+'"'+(sel.has(v)?' checked':'')+'>'+lbl+'</label>';}).join('')+'</div>';
+      +'<div class="pv-fp-list">'+values.map(function(v){const lbl=col===TIME?v.slice(2).replace('-','.'):v;return '<label class="pv-fp-row"><input type="checkbox" value="'+v+'"'+(sel.has(v)?' checked':'')+'>'+lbl+'</label>';}).join('')+'</div>';
     document.body.appendChild(pop);
     const r=pillEl.getBoundingClientRect();
     pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-260))+'px';
@@ -10380,8 +10316,8 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     pop.className='pv-filter-pop';
     pop.style.width='170px';
     pop.innerHTML='<div class="pv-fp-hd">기간 단위</div>'
-      +'<div class="pv-fp-list">'+['daily','monthly','quarterly','halfyear'].map(function(g){
-        return '<label class="pv-fp-row"><input type="radio" name="pv-grain" value="'+g+'"'+(cfg.grain===g?' checked':'')+'>'+GRAIN_LABEL[g]+'별'+(g==='daily'?' <span style="color:var(--text-tertiary);font-size:10px">(최근 월)</span>':'')+'</label>';
+      +'<div class="pv-fp-list">'+['monthly','quarterly','halfyear'].map(function(g){
+        return '<label class="pv-fp-row"><input type="radio" name="pv-grain" value="'+g+'"'+(cfg.grain===g?' checked':'')+'>'+GRAIN_LABEL[g]+'별</label>';
       }).join('')+'</div>';
     document.body.appendChild(pop);
     const r=pillEl.getBoundingClientRect();
@@ -10390,7 +10326,6 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     pop.addEventListener('change',function(){
       const g=pop.querySelector('input:checked').value;
       cfg.grain=g; cfg.viewId=null; cfg.sort=null;
-      if(g==='daily') cfg.cols=[TIME];
       _pvOutside({target:document.body});
       refresh(wrap);
     });
@@ -10559,26 +10494,29 @@ th[data-pv-sort].pv-sorted{color:var(--accent)}
     });
   }
 
-  function decorate(){
-    ['categoryPlSection','plSummaryWrap'].forEach(function(id){
+  async function decorate(){
+    for(const id of ['categoryPlSection','plSummaryWrap']){
       const wrap=document.getElementById(id);
-      if(!wrap)return;
+      if(!wrap)continue;
       wireContainer(wrap);
       const cfg=cfgOf(wrap);
-      if(!isDefault(cfg)){
-        if(!wrap.querySelector('.pv-pivot')||!wrap.querySelector('.pv-shelf')) renderPivotInto(wrap);
-        return;
+      if(!isDefault(cfg)&&neededDims(cfg).length){
+        if((!wrap.querySelector('.pv-pivot')||!wrap.querySelector('.pv-shelf'))&&!wrap._pvRendering)refresh(wrap);
+        continue;
       }
       if(wrap.querySelector('.pl-table')&&!wrap.querySelector('.pv-shelf')){
-        if(id==='plSummaryWrap'){ wrap.insertAdjacentHTML('afterbegin',shelfHtml(wrap)); }
-        else { const card=wrap.querySelector('.card'),body=card&&card.querySelector('.card-body'); if(card&&body)body.insertAdjacentHTML('beforebegin',shelfHtml(wrap)); }
+        const shelf=await shelfHtml(wrap);
+        if(wrap.querySelector('.pv-shelf'))continue;
+        if(id==='plSummaryWrap'){ wrap.insertAdjacentHTML('afterbegin',shelf); }
+        else { const card=wrap.querySelector('.card'),body=card&&card.querySelector('.card-body'); if(card&&body)body.insertAdjacentHTML('beforebegin',shelf); }
       }
-    });
+    }
   }
   const mo=new MutationObserver(function(){ decorate(); });
   mo.observe(document.body,{childList:true,subtree:true});
   decorate();
 })();
+{% endraw %}
 </script>
 </body>
 </html>
