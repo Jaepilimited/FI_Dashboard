@@ -105,8 +105,14 @@ def zero_series(n):
 
 def build_columns(resp, months, top_n=TOP_N):
     """응답 nodes → [(열이름, series)] : 누계 매출 상위 top_n + 기타 + 합계."""
-    nodes = [(n["name"], node_series(n, resp["months"], months)) for n in resp["nodes"]]
-    nodes.sort(key=lambda kv: -sum(kv[1]["sales"]))
+    pairs = [(n["name"], node_series(n, resp["months"], months)) for n in resp["nodes"]]
+    return columns_from_pairs(pairs, months, top_n)
+
+
+def columns_from_pairs(pairs, months, top_n, sort=True):
+    nodes = list(pairs)
+    if sort:
+        nodes.sort(key=lambda kv: -sum(kv[1]["sales"]))
     top = nodes[:top_n]
     rest = nodes[top_n:]
     cols = list(top)
@@ -255,14 +261,35 @@ def export_product(sess, months, out_dir, tag):
 
 
 def export_sales_type(sess, months, out_dir, tag):
-    resp = api(sess, "/api/pl", dim="Sales_Type", months=months)
+    """시트: SK / 유통(brand=UM) / 기타(전체−SK−유통). 열: 월별 B2B/B2C/기타 + 합계."""
     order = {"B2B": 0, "B2C": 1}
-    resp["nodes"].sort(key=lambda n: order.get(n["name"], 9))
-    cols = build_columns(resp, months, top_n=len(resp["nodes"]))
+    n = len(months)
+
+    def series_map(resp):
+        return {nd["name"]: node_series(nd, resp["months"], months) for nd in resp["nodes"]}
+
+    m_all = series_map(api(sess, "/api/pl", dim="Sales_Type", months=months))
+    m_sk = series_map(api(sess, "/api/pl", dim="Sales_Type", months=months, brand="SK"))
+    m_um = series_map(api(sess, "/api/pl", dim="Sales_Type", months=months, brand="UM"))
+
+    names = sorted(set(m_all) | set(m_sk) | set(m_um), key=lambda x: order.get(x, 9))
+    m_etc = {}
+    for name in names:
+        s = {k: list(v) for k, v in (m_all.get(name) or zero_series(n)).items()}
+        for part in (m_sk, m_um):
+            if name in part:
+                for k in s:
+                    s[k] = [s[k][i] - part[name][k][i] for i in range(n)]
+        m_etc[name] = s
+
     wb = Workbook()
     wb.remove(wb.active)
-    write_sheet(wb, "판매유형별", months, cols, set())
-    print(f"  [판매유형별] 열 {len(cols)}")
+    used = set()
+    for title, mp in (("SK", m_sk), ("유통", m_um), ("기타", m_etc)):
+        pairs = [(name, mp[name]) for name in names if name in mp]
+        cols = columns_from_pairs(pairs, months, top_n=len(pairs), sort=False)
+        write_sheet(wb, title, months, cols, used)
+        print(f"  [판매유형별] {title}: 열 {len(cols)}")
     path = os.path.join(out_dir, f"손익계산서_판매유형별_{tag}.xlsx")
     wb.save(path)
     return path
@@ -272,6 +299,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--months", nargs="+", default=DEFAULT_MONTHS)
     ap.add_argument("--out", default=os.path.join(os.path.expanduser("~"), "Downloads"))
+    ap.add_argument("--only", choices=["region", "product", "sales"], default=None)
     args = ap.parse_args()
     months = sorted(args.months)
     tag = f"{months[0]}~{months[-1]}"
@@ -281,7 +309,9 @@ def main():
     if "/login" in r.url:
         sys.exit("로그인 실패 — 서버/계정 확인")
 
-    for fn in (export_region, export_product, export_sales_type):
+    targets = {"region": export_region, "product": export_product, "sales": export_sales_type}
+    fns = [targets[args.only]] if args.only else list(targets.values())
+    for fn in fns:
         path = fn(sess, months, args.out, tag)
         print("저장:", path)
 
