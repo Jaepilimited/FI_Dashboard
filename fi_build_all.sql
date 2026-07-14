@@ -36,6 +36,9 @@ WHERE Year_Month = '2026-02'
 --   Product_Name='(조정)', Product_Code=NULL 인 별도 행으로 추가.
 --   조정 행은 Country/Continent='기타' 고정 (부서 단위 조정이므로 국가 배분 불필요).
 --   → Sales_Adj / COGS_Adj 컬럼 없음.
+--
+-- [Continent 보정] 멕시코는 SALES_ALL_Backup 매핑 오류 방지를 위해
+--   Continent1='중미', Continent2='중앙아메리카'로 강제 override.
 -- ────────────────────────────────────────────────────────────────
 CREATE OR REPLACE TABLE `skin1004-319714.Sales_Integration.FI_Final` AS
 WITH
@@ -225,8 +228,10 @@ SELECT
   ROUND(base.Gross_Profit,     0)                                       AS Gross_Profit,
   ROUND(base.Operating_Income, 0)                                       AS Operating_Income,
   IFNULL(base.Country,    'Others')                                     AS Country,
-  IFNULL(cont.Continent1, 'Others')                                     AS Continent1,
-  IFNULL(cont.Continent2, 'Others')                                     AS Continent2,
+  CASE WHEN base.Country = '멕시코' THEN '중미'
+       ELSE IFNULL(cont.Continent1, 'Others') END                       AS Continent1,
+  CASE WHEN base.Country = '멕시코' THEN '중앙아메리카'
+       ELSE IFNULL(cont.Continent2, 'Others') END                       AS Continent2,
   gm.`Group`                                                            AS `Group`,
   bm.Brand                                                              AS Brand
 FROM (
