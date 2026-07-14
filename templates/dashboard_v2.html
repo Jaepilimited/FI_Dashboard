@@ -9681,6 +9681,7 @@ async function init(){
       ALL_MONTHS = (filters.months||[]).sort();
       state.rangeEnd = ALL_MONTHS.length - 1;
       state.rangeStart = 0;
+      updatePeriodLabel();
       REAL_GROUPS      = filters.groups||[];
       REAL_DEPARTMENTS = filters.departments||[];
       REAL_CONTINENTS1 = filters.continents1||filters.continents||[];
