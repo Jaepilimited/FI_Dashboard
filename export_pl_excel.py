@@ -295,11 +295,61 @@ def export_sales_type(sess, months, out_dir, tag):
     return path
 
 
+# 채널별 고정 포함 거래처: (열 라벨, 매칭 함수) — 상위 10 밖이어도 별도 열로 표시
+CHANNEL_PINS = {
+    "B2B": [
+        ("다모아코스메틱", lambda nm: nm == "다모아코스메틱"),
+        ("TJ Max(합산)", lambda nm: nm.upper().replace(" ", "").startswith("TJMAX")),
+    ],
+}
+
+
+def export_channel(sess, months, out_dir, tag):
+    """시트: B2B / B2C / 기타.
+    열: 월별 [거래처 매출 상위 10 + 고정 지정 거래처 + 기타 + 합계] (누계 순위 고정)."""
+    wb = Workbook()
+    wb.remove(wb.active)
+    used = set()
+    for st in ("B2B", "B2C", "기타"):
+        resp = api(sess, "/api/pl", dim="Customer", months=months, sales_type=st)
+        if not resp["nodes"]:
+            continue
+        pairs = [(n["name"], node_series(n, resp["months"], months)) for n in resp["nodes"]]
+        pairs.sort(key=lambda kv: -sum(kv[1]["sales"]))
+        top = pairs[:TOP_N]
+        rest = pairs[TOP_N:]
+        cols = list(top)
+        top_names = {nm for nm, _ in top}
+        for label, match in CHANNEL_PINS.get(st, []):
+            hit = [(nm, s) for nm, s in rest if match(nm)]
+            if not hit:
+                continue
+            pin = zero_series(len(months))
+            for _, s in hit:
+                add_series(pin, s)
+            cols.append((label, pin))
+            rest = [(nm, s) for nm, s in rest if not match(nm)]
+        if rest:
+            etc = zero_series(len(months))
+            for _, s in rest:
+                add_series(etc, s)
+            cols.append(("기타", etc))
+        total = zero_series(len(months))
+        for _, s in pairs:
+            add_series(total, s)
+        cols.append(("합계", total))
+        write_sheet(wb, st, months, cols, used)
+        print(f"  [채널별] {st}: 거래처 {len(pairs)}개 → 열 {len(cols)} | {[c[0] for c in cols[:13]]}")
+    path = os.path.join(out_dir, f"손익계산서_채널별_{tag}.xlsx")
+    wb.save(path)
+    return path
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--months", nargs="+", default=DEFAULT_MONTHS)
     ap.add_argument("--out", default=os.path.join(os.path.expanduser("~"), "Downloads"))
-    ap.add_argument("--only", choices=["region", "product", "sales"], default=None)
+    ap.add_argument("--only", choices=["region", "product", "sales", "channel"], default=None)
     args = ap.parse_args()
     months = sorted(args.months)
     tag = f"{months[0]}~{months[-1]}"
@@ -309,7 +359,8 @@ def main():
     if "/login" in r.url:
         sys.exit("로그인 실패 — 서버/계정 확인")
 
-    targets = {"region": export_region, "product": export_product, "sales": export_sales_type}
+    targets = {"region": export_region, "product": export_product,
+               "sales": export_sales_type, "channel": export_channel}
     fns = [targets[args.only]] if args.only else list(targets.values())
     for fn in fns:
         path = fn(sess, months, args.out, tag)
